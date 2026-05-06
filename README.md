@@ -1,10 +1,15 @@
-# laa-spring-boot-microservice-template
+# Record Controlled Work Api
 
-[![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/laa-spring-boot-microservice-template/badge)](https://github-community.service.justice.gov.uk/repository-standards/laa-spring-boot-microservice-template)
+### Install pre-hook commits
 
-### ⚠️ WORK IN PROGRESS ⚠️
+`scripts/setup-hooks.sh` to install pre-commit hooks this will run
 
-This template is still under development and features may be added or subject to change.
+- Spotless on the codebase
+- checkStyle on main, test and integration test
+- https://github.com/ministryofjustice/devsecops-hooks to scan for any secrets that may accidentally may have been commited.
+- [gitlint](https://github.com/jorisroovers/gitlint) to ensure commit conventions are followed
+
+{# TODO #}
 
 ## Overview
 
