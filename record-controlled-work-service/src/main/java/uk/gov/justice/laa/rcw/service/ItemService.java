@@ -1,19 +1,17 @@
-package uk.gov.justice.laa.springboot.microservice.service;
+package uk.gov.justice.laa.rcw.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.springboot.microservice.entity.ItemEntity;
-import uk.gov.justice.laa.springboot.microservice.exception.ItemNotFoundException;
-import uk.gov.justice.laa.springboot.microservice.mapper.ItemMapper;
+import uk.gov.justice.laa.rcw.entity.ItemEntity;
+import uk.gov.justice.laa.rcw.exception.ItemNotFoundException;
+import uk.gov.justice.laa.rcw.mapper.ItemMapper;
+import uk.gov.justice.laa.rcw.repository.ItemRepository;
 import uk.gov.justice.laa.springboot.microservice.model.Item;
 import uk.gov.justice.laa.springboot.microservice.model.ItemRequestBody;
-import uk.gov.justice.laa.springboot.microservice.repository.ItemRepository;
 
-/**
- * Service class for handling items requests.
- */
+/** Service class for handling items requests. */
 @Slf4j
 @RequiredArgsConstructor
 @Service

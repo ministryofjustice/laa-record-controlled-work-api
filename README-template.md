@@ -179,7 +179,7 @@ By default, the application outputs logs in ECS JSON format with distributed tra
   },
   "log": {
     "level": "INFO",
-    "logger": "uk.gov.justice.laa.springboot.microservice.controller.ItemController"
+    "logger": "uk.gov.justice.laa.springboot.microservice.controller.record-controlled-work.ItemController"
   },
   "message": "Getting all items",
   "process": {

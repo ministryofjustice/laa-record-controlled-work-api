@@ -9,6 +9,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.ServletWebRequest;
+import uk.gov.justice.laa.rcw.exception.GlobalExceptionHandler;
+import uk.gov.justice.laa.rcw.exception.ItemNotFoundException;
 
 class GlobalExceptionHandlerTest {
 
@@ -19,8 +21,7 @@ class GlobalExceptionHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/items/99");
     ResponseEntity<Object> result =
         globalExceptionHandler.handleItemNotFound(
-            new ItemNotFoundException("Item not found"),
-            new ServletWebRequest(request));
+            new ItemNotFoundException("Item not found"), new ServletWebRequest(request));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -33,7 +34,8 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
-    ResponseEntity<String> result = globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
+    ResponseEntity<String> result =
+        globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);

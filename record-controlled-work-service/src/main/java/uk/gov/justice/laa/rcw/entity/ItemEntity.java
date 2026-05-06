@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice.entity;
+package uk.gov.justice.laa.rcw.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,9 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * The entity class for items.
- */
+/** The entity class for items. */
 @Data
 @Builder
 @NoArgsConstructor

@@ -9,6 +9,24 @@
 - https://github.com/ministryofjustice/devsecops-hooks to scan for any secrets that may accidentally may have been commited.
 - [gitlint](https://github.com/jorisroovers/gitlint) to ensure commit conventions are followed
 
+
+### Add GitHub Token
+Generate a Github PAT (Personal Access Token) to access the required plugin, via https://github.com/settings/tokens
+
+Specify the Note field, e.g. “Token to allow access to LAA Gradle plugin”
+
+*Moj has a requirement of max 366 days on expiration date on PAT tokens
+
+If you don't already have one, create a `gradle.properties` file in your home directory at `~/.gradle/gradle.properties`.
+
+Add the following properties to `~/.gradle/gradle.properties` and replace the placeholder values as follows:
+
+```
+project.ext.gitPackageUser = YOUR_GITHUB_USERNAME
+project.ext.gitPackageKey = PAT_CREATED_ABOVE
+```
+
+Go back to Github to authorize MOJ for SSO
 {# TODO #}
 
 ## Overview
@@ -126,7 +144,7 @@ By default, the application outputs logs in ECS JSON format with distributed tra
   },
   "log": {
     "level": "INFO",
-    "logger": "uk.gov.justice.laa.springboot.microservice.controller.ItemController"
+    "logger": "uk.gov.justice.laa.springboot.microservice.controller.record-controlled-work.ItemController"
   },
   "message": "Getting all items",
   "process": {

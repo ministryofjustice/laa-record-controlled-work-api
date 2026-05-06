@@ -1,8 +1,6 @@
-package uk.gov.justice.laa.springboot.microservice.exception;
+package uk.gov.justice.laa.rcw.exception;
 
-/**
- * The exception thrown when item not found.
- */
+/** The exception thrown when item not found. */
 public class ItemNotFoundException extends RuntimeException {
 
   /**

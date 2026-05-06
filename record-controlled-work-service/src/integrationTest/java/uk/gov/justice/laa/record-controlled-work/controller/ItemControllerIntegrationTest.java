@@ -16,15 +16,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.justice.laa.springboot.microservice.SpringBootMicroserviceApplication;
+import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 
 @SpringBootTest(classes = SpringBootMicroserviceApplication.class)
 @AutoConfigureMockMvc
 @Transactional
 class ItemControllerIntegrationTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
   @Test
   void shouldGetAllItems() throws Exception {
@@ -37,7 +36,8 @@ class ItemControllerIntegrationTest {
 
   @Test
   void shouldGetItem() throws Exception {
-    mockMvc.perform(get("/api/v1/items/1"))
+    mockMvc
+        .perform(get("/api/v1/items/1"))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value(1))
@@ -51,7 +51,8 @@ class ItemControllerIntegrationTest {
         .perform(
             post("/api/v1/items")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"Item Six\", \"description\": \"This is a description of Item Six.\"}")
+                .content(
+                    "{\"name\": \"Item Six\", \"description\": \"This is a description of Item Six.\"}")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated());
   }
@@ -62,7 +63,8 @@ class ItemControllerIntegrationTest {
         .perform(
             put("/api/v1/items/2")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"id\": 2, \"name\": \"Item Two\", \"description\": \"This is a updated description of Item Three.\"}")
+                .content(
+                    "{\"id\": 2, \"name\": \"Item Two\", \"description\": \"This is a updated description of Item Three.\"}")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
   }

@@ -1,11 +1,9 @@
-package uk.gov.justice.laa.springboot.microservice;
+package uk.gov.justice.laa.rcw;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/**
- * Entry point for the Spring Boot microservice application.
- */
+/** Entry point for the Spring Boot microservice application. */
 @SpringBootApplication
 public class SpringBootMicroserviceApplication {
 

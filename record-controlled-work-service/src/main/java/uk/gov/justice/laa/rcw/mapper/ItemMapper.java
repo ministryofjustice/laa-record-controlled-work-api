@@ -1,12 +1,10 @@
-package uk.gov.justice.laa.springboot.microservice.mapper;
+package uk.gov.justice.laa.rcw.mapper;
 
 import org.mapstruct.Mapper;
-import uk.gov.justice.laa.springboot.microservice.entity.ItemEntity;
+import uk.gov.justice.laa.rcw.entity.ItemEntity;
 import uk.gov.justice.laa.springboot.microservice.model.Item;
 
-/**
- * The mapper between Item and ItemEntity.
- */
+/** The mapper between Item and ItemEntity. */
 @Mapper(componentModel = "spring")
 public interface ItemMapper {
 
