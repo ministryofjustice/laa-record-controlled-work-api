@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: laa-spring-boot-microservice
+    name: laa-record-controlled-work
     version: @version@
 
   # example database

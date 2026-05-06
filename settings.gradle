@@ -19,8 +19,8 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'laa-spring-boot-microservice-template'
+rootProject.name = 'laa-record-controlled-work-api'
 
-include 'spring-boot-microservice-api'
-include 'spring-boot-microservice-service'
+include 'record-controlled-work-api'
+include 'record-controlled-work-service'
 

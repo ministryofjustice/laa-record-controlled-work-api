@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results
-          path: spring-boot-microservice-service/build/test-results
+          path: record-controlled-work-service/build/test-results
           retention-days: 14
 
       - name: Upload checkstyle report
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: checkstyle-report
-          path: spring-boot-microservice-service/build/reports/checkstyle
+          path: record-controlled-work-service/build/reports/checkstyle
           retention-days: 14
 
       - name: Upload test report
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-report
-          path: spring-boot-microservice-service/build/reports/tests
+          path: record-controlled-work-service/build/reports/tests
           retention-days: 14
 
       - name: Upload jacoco coverage report
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: jacoco-coverage-report
-          path: spring-boot-microservice-service/build/reports/jacoco
+          path: record-controlled-work-service/build/reports/jacoco
           retention-days: 14
 
   vulnerability-report:

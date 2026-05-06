@@ -1,9 +1,7 @@
 # laa-spring-boot-microservice-template
-
 [![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/laa-spring-boot-microservice-template/badge)](https://github-community.service.justice.gov.uk/repository-standards/laa-spring-boot-microservice-template)
 
 ### ⚠️ WORK IN PROGRESS ⚠️
-
 This template is still under development and features may be added or subject to change.
 
 ## Overview
@@ -22,22 +20,34 @@ sensible defaults for the following plugins:
 - [Test Logger](https://github.com/radarsh/gradle-test-logger-plugin)
 - [Versions](https://github.com/ben-manes/gradle-versions-plugin)
 
-The plugin is provided by - [laa-spring-boot-common](https://github.com/ministryofjustice/laa-spring-boot-common), where you can find
+The plugin is provided by -  [laa-spring-boot-common](https://github.com/ministryofjustice/laa-spring-boot-common), where you can find
 more information regarding setup and usage.
 
 ### Project Structure
-
 Includes the following subprojects:
 
 - `spring-boot-microservice-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
 - `spring-boot-microservice-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
 
 ## Setup Instructions
-
 Once you've created your repository using this template, perform the following steps:
 
-### Configure Dependabot
+### Update README
+Edit this `README.md` file to document your project accurately. Take the time to create a clear, engaging, and informative`README.md` file. Include information such as what your project does, how to install and run it, how to contribute, and any other pertinent details.
 
+### Update Repository Description
+Change the description that appears at the top of your repository's main page to provide an overview of your project.
+
+### Grant Team Permissions
+Assign permissions to the appropriate Ministry of Justice teams. Ensure at least one team is granted Admin permissions. Whenever possible, assign permissions to teams rather than individual users.
+
+### Add Branch Protection rules
+Ensure branch protection is set up on the `main` branch.
+
+### Update CODEOWNERS
+(Optional) Modify the `CODEOWNERS` file to specify the teams or users authorized to approve pull requests.
+
+### Configure Dependabot
 The template includes `.github/dependabot.yml` with weekly updates configured for Gradle and GitHub Actions.
 
 After creating your repository from this template:
@@ -56,51 +66,100 @@ After creating your repository from this template:
 - Enable Dependabot security updates (`Settings` -> `Security` -> `Code security and analysis`).
 - (Optional) Enable auto-merge for low-risk dependency PRs (`Settings` -> `General` -> `Pull Requests` -> `Allow auto-merge`).
 
-### Database scripts
+### Add Repository To Snyk
+Ensure that your repository has been added to the [Legal Aid Agency Snyk](https://app.snyk.io/org/legal-aid-agency) organisation.
 
-The \*.sql scripts in `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
+Also add `SNYK_TOKEN` as a repository secret.
+
+### Update Project Files
+<details>
+
+<summary>Click here for more details on which files to update.</summary>
+
+#### 1. Rename subproject directories
+Ensure to rename `spring-boot-microservice-api` and `spring-boot-microservice-service` directories to your application name:
+`{application-name}-api` and `{application-name}-service`.
+
+Update `settings.gradle` as follows:
+```
+rootProject.name = '{repository-name}'
+
+include '{application-name}-api'
+include '{application-name}-service'
+```
+
+Update `build.gradle` in the project root directory as follows:
+```
+subprojects {
+    group = 'uk.gov.justice.laa.{application-name}'
+}
+```
+
+#### 2. Update api subproject
+Update the following files found in the `{application-name}-api` directory:
+
+- `open-api-specification.yml` - replace the contents of this file with the API specification for your application.
+- `build.gradle` - replace all references to `spring-boot-microservice-api` with `{service-name}-api`.
+
+#### 3. Update service subproject
+
+Rename the package name/directory - `uk.gov.justice.laa.springboot.microservice` to `uk.gov.justice.laa.{application-package-name}`
+under `src/integrationTest/java`, `src/main/java`, `src/test/java`.
+
+Update the following properties in `src/main/resources/application.yml` with your application details:
+`spring.application.name`, `info.app.name`, `info.app.description`
+
+#### 4. Update Dockerfile
+Rename the `laa-spring-boot-microservice` directory and jar file name to  `laa-{application-name}`.
+
+#### 5. Update GitHub workflow
+The following workflows have been provided:
+
+* Build and test PR - `build-test-pr.yml`
+* Build and deploy after PR merged - `pr-merge-main.yml`
+
+In the above workflow files, change all occurrences of the `spring-boot-microservice-service/build/` build path to `{application-name}-service/build/`.
+
+</details>
+
+### Database scripts
+The *.sql scripts in  `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
 
 ## Build And Run Application
 
 ### Build application
-
 `./gradlew clean build`
 
 ### Run integration tests
-
 `./gradlew integrationTest`
 
 ### Run application
-
 `./gradlew bootRun`
 
 ### Run application via Docker
-
 `docker compose up`
 
 ### Debug application running via Docker
 
 #### Configuration
 
-- Go to Run > Edit Configurations
-- Click + (Add New Configuration)
-- Select Remote JVM Debug
-- Configure:
-- Name: Docker Debug
-- Debugger mode: Attach to remote JVM
-- Host: localhost
-- Port: 5005
-- Use module classpath: Select (laa-spring-boot-microservice-template)
+* Go to Run > Edit Configurations
+* Click + (Add New Configuration)
+* Select Remote JVM Debug
+* Configure:
+* Name: Docker Debug
+* Debugger mode: Attach to remote JVM
+* Host: localhost
+* Port: 5005
+* Use module classpath: Select (laa-spring-boot-microservice-template)
 
 #### Debugging
-
-- run `docker compose up`
-- run > Debug 'Docker Debug'
+* run `docker compose up`
+* run > Debug 'Docker Debug'
 
 #### Local Development Logging
 
 When running with the `local` profile, structured logging is disabled, for console output:
-
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
@@ -112,7 +171,6 @@ This application uses **ECS (Elastic Common Schema) structured logging** for pro
 #### Structured Logging (Default/Production)
 
 By default, the application outputs logs in ECS JSON format with distributed tracing support:
-
 ```json
 {
   "@timestamp": "2026-03-06T16:25:18.992904Z",
@@ -142,11 +200,9 @@ By default, the application outputs logs in ECS JSON format with distributed tra
   "traceId": "69aaffee8d19869cfe4586c5fd5f7021"
 }
 ```
-
 #### logback-spring.xml Conflicts
 
 Adding `logback-spring.xml` will:
-
 - Override the profile-based logging configuration in `application.yml`
 
 ## Application Endpoints
@@ -154,24 +210,19 @@ Adding `logback-spring.xml` will:
 ### API Documentation
 
 #### Swagger UI
-
 - http://localhost:8081/swagger-ui/index.html
 
 #### API docs (JSON)
-
 - http://localhost:8081/v3/api-docs
 
 ### Actuator Endpoints
-
 The following actuator endpoints have been configured:
-
 - http://localhost:8081/actuator
 - http://localhost:8081/actuator/health
 
 ## Application Configuration
 
 ### Sentry
-
 In order to integrate with Sentry, the following properties need to be configured in the `application.yml`:
 
 ```
@@ -181,7 +232,6 @@ sentry:
 ```
 
 ## Libraries Used
-
 - [Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/index.html) - used to provide various endpoints to help monitor the application, such as view application health and information.
 - [Spring Boot Web](https://docs.spring.io/spring-boot/reference/web/index.html) - used to provide features for building the REST API implementation.
 - [Spring Data JPA](https://docs.spring.io/spring-data/jpa/reference/jpa.html) - used to simplify database access and interaction, by providing an abstraction over persistence technologies, to help reduce boilerplate code.
@@ -200,7 +250,10 @@ The following Gradle dependency overrides are **temporary** and should be remove
 available in a future `laa-spring-boot-common` release.
 
 | Dependency                                  | Overridden Version | Reason                                                                                                                                    | Date Added |
-| ------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+|---------------------------------------------|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------|------------|
 | `com.fasterxml.jackson.core:jackson-core`   | `2.21.2`           | Fixes Snyk issue - [SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551](https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551) | 2026-04-30 |
 | `org.apache.tomcat.embed:tomcat-embed-core` | `11.0.21`          | Fixes Snyk issues - [SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820)      | 2026-04-30 |
 | `tools.jackson.core:jackson-core`           | `3.1.1`            | Fixes Snyk issue - [SNYK-JAVA-TOOLSJACKSONCORE-15907550](https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-15907550)               | 2026-04-30 |
+
+
+

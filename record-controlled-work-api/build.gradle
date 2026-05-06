@@ -19,8 +19,8 @@ checkstyleMain.exclude "*"
 
 openApiGenerate {
     generatorName = "spring"
-    inputSpec = "$rootDir/spring-boot-microservice-api/open-api-specification.yml".toString()
-    outputDir = "$rootDir/spring-boot-microservice-api/generated".toString()
+    inputSpec = "$rootDir/record-controlled-work-api/open-api-specification.yml".toString()
+    outputDir = "$rootDir/record-controlled-work-api/generated".toString()
     apiPackage = "uk.gov.justice.laa.springboot.microservice.api"
     invokerPackage = "uk.gov.justice.laa.springboot.microservice.invoker"
     modelPackage = "uk.gov.justice.laa.springboot.microservice.model"
@@ -38,7 +38,7 @@ openApiGenerate {
 compileJava.dependsOn 'openApiGenerate'
 
 clean {
-    delete "$rootDir/spring-boot-microservice-api/generated"
+    delete "$rootDir/record-controlled-work-api/generated"
 }
 
 // disable for overall project when running a build
