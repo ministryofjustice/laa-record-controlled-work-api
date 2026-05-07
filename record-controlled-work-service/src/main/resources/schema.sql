@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS ITEMS;
+-- fixing for integration tests for setup purposes.
 CREATE TABLE ITEMS
 (
     id          BIGINT          AUTO_INCREMENT,

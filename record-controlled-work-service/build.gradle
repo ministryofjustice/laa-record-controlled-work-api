@@ -80,3 +80,9 @@ spotless {
         googleJavaFormat()
     }
 }
+
+tasks.register('checkstyleAll') {
+    group = 'verification'
+    description = 'Runs checkstyleMain, checkstyleTest, and checkstyleIntegrationTest.'
+    dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest'] }
+}

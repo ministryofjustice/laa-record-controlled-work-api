@@ -51,8 +51,7 @@ class ItemControllerIntegrationTest {
         .perform(
             post("/api/v1/items")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    "{\"name\": \"Item Six\", \"description\": \"This is a description of Item Six.\"}")
+                .content("{\"name\": \"Six\", \"description\": \"This is Six.\"}")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated());
   }
@@ -63,8 +62,7 @@ class ItemControllerIntegrationTest {
         .perform(
             put("/api/v1/items/2")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    "{\"id\": 2, \"name\": \"Item Two\", \"description\": \"This is a updated description of Item Three.\"}")
+                .content("{\"id\": 2, \"name\": \"Two\", \"description\": \"This is Three.\"}")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isNoContent());
   }

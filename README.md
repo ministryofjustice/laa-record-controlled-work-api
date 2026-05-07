@@ -27,11 +27,10 @@ project.ext.gitPackageKey = PAT_CREATED_ABOVE
 ```
 
 Go back to Github to authorize MOJ for SSO
-{# TODO #}
 
 ## Overview
 
-Template GitHub repository used for Spring Boot Java microservice projects.
+TODO
 
 The project uses the `laa-spring-boot-gradle-plugin` Gradle plugin which provides
 sensible defaults for the following plugins:
@@ -52,12 +51,9 @@ more information regarding setup and usage.
 
 Includes the following subprojects:
 
-- `spring-boot-microservice-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
-- `spring-boot-microservice-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
-
-## Setup Instructions
-
-Once you've created your repository using this template, perform the following steps:
+TODO
+- `record-controlled-work-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
+- `record-controlled-work-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
 
 ### Configure Dependabot
 
@@ -80,26 +76,26 @@ After creating your repository from this template:
 - (Optional) Enable auto-merge for low-risk dependency PRs (`Settings` -> `General` -> `Pull Requests` -> `Allow auto-merge`).
 
 ### Database scripts
-
+TODO
 The \*.sql scripts in `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
 
 ## Build And Run Application
 
 ### Build application
 
-`./gradlew clean build`
+`make build`
 
 ### Run integration tests
 
-`./gradlew integrationTest`
+`make integration`
 
 ### Run application
 
-`./gradlew bootRun`
+`make dev`
 
 ### Run application via Docker
 
-`docker compose up`
+`make docker-up`
 
 ### Debug application running via Docker
 
@@ -117,7 +113,7 @@ The \*.sql scripts in `src/main/resources` have been included to provide an exam
 
 #### Debugging
 
-- run `docker compose up`
+- run `make docker-up`
 - run > Debug 'Docker Debug'
 
 #### Local Development Logging
@@ -125,7 +121,7 @@ The \*.sql scripts in `src/main/resources` have been included to provide an exam
 When running with the `local` profile, structured logging is disabled, for console output:
 
 ```bash
-./gradlew bootRun --args='--spring.profiles.active=local'
+make dev
 ```
 
 ### Logging Configuration
@@ -188,8 +184,8 @@ Adding `logback-spring.xml` will:
 
 The following actuator endpoints have been configured:
 
-- http://localhost:8081/actuator
-- http://localhost:8081/actuator/health
+- http://localhost:8181/actuator
+- http://localhost:8181/actuator/health
 
 ## Application Configuration
 

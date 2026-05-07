@@ -52,9 +52,9 @@ class ItemControllerTest {
 
   @Test
   void getItemById_returnsOkStatusAndOneItem() throws Exception {
-    when(mockItemService.getItem(1L))
-        .thenReturn(
-            Item.builder().id(1L).name("Item One").description("This is a test item one.").build());
+    Item item =
+        Item.builder().id(1L).name("Item One").description("This is a test item one.").build();
+    when(mockItemService.getItem(1L)).thenReturn(item);
 
     mockMvc
         .perform(get("/api/v1/items/1"))
@@ -79,7 +79,10 @@ class ItemControllerTest {
             post("/api/v1/items")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"name\": \"Item Three\", \"description\": \"This is an updated item three.\"}")
+                    "{\"name\": "
+                        + "\"Item Three\", "
+                        + "\"description\": "
+                        + "\"This is an updated item three.\"}")
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
         .andExpect(header().string("Location", containsString("/api/v1/items/3")));
@@ -97,8 +100,12 @@ class ItemControllerTest {
         .andExpect(
             content()
                 .json(
-                    "{\"type\":\"about:blank\",\"title\":\"Bad Request\","
-                        + "\"status\":400,\"detail\":\"Invalid request content.\",\"instance\":\"/api/v1/items\"}"));
+                    "{"
+                        + "\"type\":\"about:blank\","
+                        + "\"title\":\"Bad Request\","
+                        + "\"status\":400,"
+                        + "\"detail\":\"Invalid request content.\","
+                        + "\"instance\":\"/api/v1/items\"}"));
 
     verify(mockItemService, never()).createItem(any(ItemRequestBody.class));
   }
@@ -129,8 +136,11 @@ class ItemControllerTest {
         .andExpect(
             content()
                 .json(
-                    "{\"type\":\"about:blank\",\"title\":\"Bad Request\","
-                        + "\"status\":400,\"detail\":\"Invalid request content.\",\"instance\":\"/api/v1/items/2\"}"));
+                    "{\"type\":\"about:blank\","
+                        + "\"title\":\"Bad Request\","
+                        + "\"status\":400,"
+                        + "\"detail\":\"Invalid request content.\","
+                        + "\"instance\":\"/api/v1/items/2\"}"));
 
     verify(mockItemService, never()).updateItem(eq(2L), any(ItemRequestBody.class));
   }
