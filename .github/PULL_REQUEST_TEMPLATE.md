@@ -1,15 +1,18 @@
-## What
 
-[Link to story](https://dsdmoj.atlassian.net/browse/LASB-XXX)
+<!-- We use squash rather than merge or rebase. Make sure the PR has a descriptive title. -->
 
-Describe what you did and why.
+## What?
+<!-- One liner that describes the change. -->
 
-## Checklist
 
-Before you ask people to review this PR:
+## Why?
+<!-- Justify the changes. Does it add a feature? Did you use a new pattern? Are there new workflows? -->
 
-- [ ] Tests should be passing: `./gradlew test`
-- [ ] Github should not be reporting conflicts; you should have recently run `git rebase main`.
-- [ ] Avoid mixing whitespace changes with code changes in the same commit. These make diffs harder to read and conflicts more likely.
-- [ ] You should have looked at the diff against main and ensured that nothing unexpected is included in your changes.
-- [ ] You should have checked that the commit messages say why the change was made.
+
+## Changes
+<!-- Bullet points, enough to summarise the changes. -->
+
+
+## Notes
+<!-- Anything extra that needs mentioning. Issues, limitations, dependencies, open questions, etc. If there's nothing noteworthy, remove the section. -->
+
