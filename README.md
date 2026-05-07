@@ -1,5 +1,33 @@
 # Record Controlled Work Api
 
+## Overview
+
+TODO
+
+The project uses the `laa-spring-boot-gradle-plugin` Gradle plugin which provides
+sensible defaults for the following plugins:
+
+- [Checkstyle](https://docs.gradle.org/current/userguide/checkstyle_plugin.html)
+- [Dependency Management](https://plugins.gradle.org/plugin/io.spring.dependency-management)
+- [Jacoco](https://docs.gradle.org/current/userguide/jacoco_plugin.html)
+- [Java](https://docs.gradle.org/current/userguide/java_plugin.html)
+- [Maven Publish](https://docs.gradle.org/current/userguide/publishing_maven.html)
+- [Spring Boot](https://plugins.gradle.org/plugin/org.springframework.boot)
+- [Test Logger](https://github.com/radarsh/gradle-test-logger-plugin)
+- [Versions](https://github.com/ben-manes/gradle-versions-plugin)
+
+The plugin is provided by - [laa-spring-boot-common](https://github.com/ministryofjustice/laa-spring-boot-common), where you can find
+more information regarding setup and usage.
+
+### Project Structure
+
+Includes the following subprojects:
+
+TODO
+- `record-controlled-work-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
+- `record-controlled-work-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
+
+## Setup Instructions
 ### Install pre-hook commits
 
 `scripts/setup-hooks.sh` to install pre-commit hooks this will run
@@ -28,35 +56,8 @@ project.ext.gitPackageKey = PAT_CREATED_ABOVE
 
 Go back to Github to authorize MOJ for SSO
 
-## Overview
-
-TODO
-
-The project uses the `laa-spring-boot-gradle-plugin` Gradle plugin which provides
-sensible defaults for the following plugins:
-
-- [Checkstyle](https://docs.gradle.org/current/userguide/checkstyle_plugin.html)
-- [Dependency Management](https://plugins.gradle.org/plugin/io.spring.dependency-management)
-- [Jacoco](https://docs.gradle.org/current/userguide/jacoco_plugin.html)
-- [Java](https://docs.gradle.org/current/userguide/java_plugin.html)
-- [Maven Publish](https://docs.gradle.org/current/userguide/publishing_maven.html)
-- [Spring Boot](https://plugins.gradle.org/plugin/org.springframework.boot)
-- [Test Logger](https://github.com/radarsh/gradle-test-logger-plugin)
-- [Versions](https://github.com/ben-manes/gradle-versions-plugin)
-
-The plugin is provided by - [laa-spring-boot-common](https://github.com/ministryofjustice/laa-spring-boot-common), where you can find
-more information regarding setup and usage.
-
-### Project Structure
-
-Includes the following subprojects:
-
-TODO
-- `record-controlled-work-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
-- `record-controlled-work-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
-
 ### Configure Dependabot
-
+TODO
 The template includes `.github/dependabot.yml` with weekly updates configured for Gradle and GitHub Actions.
 
 After creating your repository from this template:
@@ -71,7 +72,7 @@ After creating your repository from this template:
 - See `Required GitHub repository settings after template creation` for repository-level security toggles.
 
 ### Required GitHub repository settings after template creation
-
+TODO
 - Enable Dependabot security updates (`Settings` -> `Security` -> `Code security and analysis`).
 - (Optional) Enable auto-merge for low-risk dependency PRs (`Settings` -> `General` -> `Pull Requests` -> `Allow auto-merge`).
 
