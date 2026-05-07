@@ -20,7 +20,6 @@ import uk.gov.justice.laa.rcw.mapper.ItemMapper;
 import uk.gov.justice.laa.rcw.model.Item;
 import uk.gov.justice.laa.rcw.model.ItemRequestBody;
 import uk.gov.justice.laa.rcw.repository.ItemRepository;
-import uk.gov.justice.laa.rcw.service.ItemService;
 
 @ExtendWith(MockitoExtension.class)
 class ItemServiceTest {
