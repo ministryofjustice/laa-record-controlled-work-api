@@ -25,8 +25,8 @@ class GlobalExceptionHandlerTest {
     assertThat(result.getStatusCode()).isEqualTo(NOT_FOUND);
     assertThat(result.getBody()).isInstanceOf(ProblemDetail.class);
     ProblemDetail body = (ProblemDetail) result.getBody();
-      assert body != null;
-      assertThat(body.getDetail()).isEqualTo("Item not found");
+    assert body != null;
+    assertThat(body.getDetail()).isEqualTo("Item not found");
     assertThat(body.getInstance()).hasToString("/api/v1/items/99");
     assertThat(body.getType()).hasToString("about:blank");
   }
