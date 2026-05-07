@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice.mapper;
+package uk.gov.justice.laa.rcw.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,8 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.rcw.entity.ItemEntity;
-import uk.gov.justice.laa.rcw.mapper.ItemMapper;
-import uk.gov.justice.laa.springboot.microservice.model.Item;
+import uk.gov.justice.laa.rcw.model.Item;
 
 @ExtendWith(MockitoExtension.class)
 class ItemMapperTest {

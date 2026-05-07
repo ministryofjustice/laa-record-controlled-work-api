@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.rcw.entity.ItemEntity;
 import uk.gov.justice.laa.rcw.exception.ItemNotFoundException;
 import uk.gov.justice.laa.rcw.mapper.ItemMapper;
+import uk.gov.justice.laa.rcw.model.Item;
+import uk.gov.justice.laa.rcw.model.ItemRequestBody;
 import uk.gov.justice.laa.rcw.repository.ItemRepository;
-import uk.gov.justice.laa.springboot.microservice.model.Item;
-import uk.gov.justice.laa.springboot.microservice.model.ItemRequestBody;
 
 /** Service class for handling items requests. */
 @Slf4j

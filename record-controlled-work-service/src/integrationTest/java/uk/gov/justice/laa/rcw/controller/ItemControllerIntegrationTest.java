@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice.controller;
+package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;

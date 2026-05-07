@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice.actuator;
+package uk.gov.justice.laa.rcw.actuator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

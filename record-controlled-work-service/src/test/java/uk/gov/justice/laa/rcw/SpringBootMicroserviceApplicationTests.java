@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice;
+package uk.gov.justice.laa.rcw;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

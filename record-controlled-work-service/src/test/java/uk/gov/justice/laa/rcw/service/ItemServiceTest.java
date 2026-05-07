@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.springboot.microservice.service;
+package uk.gov.justice.laa.rcw.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,10 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.rcw.entity.ItemEntity;
 import uk.gov.justice.laa.rcw.exception.ItemNotFoundException;
 import uk.gov.justice.laa.rcw.mapper.ItemMapper;
+import uk.gov.justice.laa.rcw.model.Item;
+import uk.gov.justice.laa.rcw.model.ItemRequestBody;
 import uk.gov.justice.laa.rcw.repository.ItemRepository;
 import uk.gov.justice.laa.rcw.service.ItemService;
-import uk.gov.justice.laa.springboot.microservice.model.Item;
-import uk.gov.justice.laa.springboot.microservice.model.ItemRequestBody;
 
 @ExtendWith(MockitoExtension.class)
 class ItemServiceTest {
