@@ -70,24 +70,22 @@ configMap:
     DEBUG_MODE: "true"
     ENVIRONMENT: development
 
-# TODO add secrets
-secrets:
-  enabled: true
-  # -- Secret name (if not set, will use app name)
-  name: ""
-  # -- Secret data key-value pairs (base64 encoded by values)
-  data: {}
-  # -- Mount Secret as volume
-  mountPath: ""
-  # -- Secret mount subPath
-  subPath: ""
+# secrets:
+#   enabled: true
+#   # -- Secret name (if not set, will use app name)
+#   name: ""
+#   # -- Secret data key-value pairs (base64 encoded by values)
+#   data: {}
+#   # -- Mount Secret as volume
+#   mountPath: ""
+#   # -- Secret mount subPath
+#   subPath: ""
 
-# TODO add env variables 
-containerEnvironment:
-  enabled: true
-  variables:
-    APP_ENV: dev
-    LOG_LEVEL: debug
+# containerEnvironment:
+#   enabled: true
+#   variables:
+#     APP_ENV: dev
+#     LOG_LEVEL: debug
 
   # TODO datastore added this
 # startupProbe:
