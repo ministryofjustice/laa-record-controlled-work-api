@@ -14,13 +14,13 @@ pluginManagement {
 
     plugins {
         id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.6'
-        id 'org.openapi.generator' version '7.18.0'
+        id 'org.openapi.generator' version '7.21.0'
         id 'io.freefair.lombok' version '9.4.0'
     }
 }
 
-rootProject.name = 'laa-spring-boot-microservice-template'
+rootProject.name = 'laa-record-controlled-work-api'
 
-include 'spring-boot-microservice-api'
-include 'spring-boot-microservice-service'
+include 'record-controlled-work-api'
+include 'record-controlled-work-service'
 
