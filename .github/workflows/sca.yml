@@ -60,9 +60,6 @@ jobs:
 
       - name: ⚡️ SCA
         uses: ministryofjustice/devsecops-actions/sca@86248cec9a6bb1fd4dabc08a05178e0650d3af4f # Feature branch
-        env:
-          JAVA_HOME: /opt/jdk
-          JAVA_HOME_25_X64: ''      
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
