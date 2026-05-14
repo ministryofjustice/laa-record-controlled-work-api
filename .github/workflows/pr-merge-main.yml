@@ -1,12 +1,14 @@
-name: Build and deploy after PR merged
+name: CICD
 
 on:
   push:
     branches: [ "main" ]
-
+  workflow_dispatch:
+    
 permissions:
   contents: read
   packages: write
+  
 
 jobs:
   build-test:
@@ -109,3 +111,14 @@ jobs:
         uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         with:
           sarif_file: snyk-app.sarif
+
+  build-push-deploy-uat:
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@main
+    with:
+      app_name: Record controlled work API
+      helm_chart: ./laa-generic-helm-chart
+      environment: uat
+      helm_release_name: laa-record-controlled-work-api
+      helm_values_path: ./helm/values/uat.yaml
+      k8s_service_account: rcw-api-github-action-service-account
+    secrets: inherit
