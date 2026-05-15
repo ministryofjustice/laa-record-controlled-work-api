@@ -21,3 +21,5 @@ out/
 .vscode/
 
 .local/
+
+.env
