@@ -1,12 +1,26 @@
-# Specify java runtime base image
+# Build stage
+FROM amazoncorretto:25-alpine AS builder
+
+RUN mkdir -p /build
+WORKDIR /build
+
+COPY gradlew settings.gradle build.gradle gradle.properties ./
+COPY gradle/ gradle/
+COPY record-controlled-work-api/ record-controlled-work-api/
+COPY record-controlled-work-service/ record-controlled-work-service/
+
+RUN --mount=type=secret,id=gradle_props,target=/root/.gradle/gradle.properties \
+    chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
+
+# Runtime stage
 FROM amazoncorretto:25-alpine
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/
 WORKDIR /opt/laa-record-controlled-work/
 
-# Copy the JAR file into the container
-COPY record-controlled-work-service/build/libs/record-controlled-work-service-1.0.0.jar app.jar
+# Copy the JAR file from the build stage
+COPY --from=builder /build/record-controlled-work-service/build/libs/record-controlled-work-service-1.0.0.jar app.jar
 
 # Create a group and non-root user
 RUN addgroup -S appgroup && adduser -u 1001 -S appuser -G appgroup
@@ -18,4 +32,4 @@ USER 1001
 EXPOSE 8081 8181
 
 # Run the JAR file
-CMD java -jar app.jar
+CMD ["java", "-jar", "app.jar"]

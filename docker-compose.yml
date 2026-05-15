@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: .
+      secrets:
+        - gradle_props
     ports:
       - "8081:8081"
       - "8181:8181"
@@ -10,3 +12,7 @@ services:
       - SERVER_PORT=8081
       - SPRING_PROFILES_ACTIVE=local
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
+secrets:
+  gradle_props:
+    file: ${HOME}/.gradle/gradle.properties

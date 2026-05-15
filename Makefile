@@ -19,5 +19,10 @@ dev:
 	./gradlew bootRun --args='--spring.profiles.active=local'
 
 
+docker-build:
+	docker build \
+		--secret id=gradle_props,src=$(HOME)/.gradle/gradle.properties \
+		-t laa-record-controlled-work-api .
+
 docker-up:
-	docker compose up
+	docker compose up --build
