@@ -114,7 +114,7 @@ jobs:
 
       - name: Build a Docker image
         run: |
-          docker build \
+          DOCKER_BUILDKIT=1 docker build \
             --secret id=github_actor,env=GITHUB_ACTOR \
             --secret id=github_token,env=GITHUB_TOKEN \
             -t record-controlled-work:scan .
