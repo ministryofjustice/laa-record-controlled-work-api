@@ -14,24 +14,13 @@ on:
   pull_request:
     branches: ["main"]
 
-  merge_group:
-
   workflow_dispatch:
   workflow_call:
 
 jobs:
-  skip:
-    name: Skip SCA in merge queue
-    runs-on: ubuntu-latest
-    if: github.event_name == 'merge_group'
-    steps:
-      - name: Skip SCA in merge queue
-        run: echo "Skipping SCA in merge queue"
-
   sca:
     name: Software Composition Analysis
     runs-on: ubuntu-latest
-    if: github.event_name != 'merge_group'
     timeout-minutes: 30
     permissions:
       contents: write

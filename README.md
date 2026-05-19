@@ -1,8 +1,14 @@
 # Record Controlled Work Api
 
-## Overview
+{# TODO - update renovate App to also check local private repo laa-spring-boot-common
+Go to https://developer.mend.io
+Find your org/repo
+Go to Secrets settings
+Add a secret for host maven.pkg.github.com with your PAT (needs read:packages, SSO-authorized for MoJ)
+The hostRules in the config tells Renovate which host needs credentials — the portal is where the actual token lives securely.
+#}
 
-TODO
+## Overview
 
 The project uses the `laa-spring-boot-gradle-plugin` Gradle plugin which provides
 sensible defaults for the following plugins:
@@ -23,11 +29,11 @@ more information regarding setup and usage.
 
 Includes the following subprojects:
 
-TODO
-- `record-controlled-work-api` - example OpenAPI specification used for generating API stub interfaces and documentation.
-- `record-controlled-work-service` - example REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
+- `record-controlled-work-api` - OpenAPI specification used for generating API stub interfaces and documentation.
+- `record-controlled-work-service` - REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
 
 ## Setup Instructions
+
 ### Install pre-hook commits
 
 `scripts/setup-hooks.sh` to install pre-commit hooks this will run
@@ -37,13 +43,13 @@ TODO
 - https://github.com/ministryofjustice/devsecops-hooks to scan for any secrets that may accidentally may have been commited.
 - [gitlint](https://github.com/jorisroovers/gitlint) to ensure commit conventions are followed
 
-
 ### Add GitHub Token
+
 Generate a Github PAT (Personal Access Token) to access the required plugin, via https://github.com/settings/tokens
 
 Specify the Note field, e.g. “Token to allow access to LAA Gradle plugin”
 
-*Moj has a requirement of max 366 days on expiration date on PAT tokens
+\*Moj has a requirement of max 366 days on expiration date on PAT tokens
 
 If you don't already have one, create a `gradle.properties` file in your home directory at `~/.gradle/gradle.properties`.
 
@@ -56,27 +62,8 @@ project.ext.gitPackageKey = PAT_CREATED_ABOVE
 
 Go back to Github to authorize MOJ for SSO
 
-### Configure Dependabot
-TODO
-The template includes `.github/dependabot.yml` with weekly updates configured for Gradle and GitHub Actions.
-
-After creating your repository from this template:
-
-- Review the contents of `.github/dependabot.yml` and make the following changes if needed:
-  - Change `uk.gov.laa.springboot.microservice.*` package references to `uk.gov.laa.{application-package-name}.*`.
-  - Review schedule settings (`day`, `time`, `timezone`, and `cooldown`) and update if needed.
-  - Update `labels` to match your repository conventions.
-  - Uncomment the `registries` section and follow the inline instructions if you need updates from `laa-spring-boot-common`.
-- Configure `CODEOWNERS` and enable required code owner review in repository branch protection/rulesets so Dependabot PRs route to the correct team.
-- Add `REPO_TOKEN` as a repository secret if `registries` is enabled.
-- See `Required GitHub repository settings after template creation` for repository-level security toggles.
-
-### Required GitHub repository settings after template creation
-TODO
-- Enable Dependabot security updates (`Settings` -> `Security` -> `Code security and analysis`).
-- (Optional) Enable auto-merge for low-risk dependency PRs (`Settings` -> `General` -> `Pull Requests` -> `Allow auto-merge`).
-
 ### Database scripts
+
 TODO
 The \*.sql scripts in `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
 
