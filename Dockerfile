@@ -11,6 +11,7 @@ COPY record-controlled-work-service/ record-controlled-work-service/
 
 RUN --mount=type=secret,id=git_token \
     export GITHUB_TOKEN=$(cat /run/secrets/git_token) && \
+    export GITHUB_ACTOR=x-token && \
     chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
