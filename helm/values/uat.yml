@@ -28,12 +28,12 @@ autoscaling:
 
 ingress:
   green:
-    className: beta
+    className: default-non-prod
     hostname: "laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk"
     pathType: Prefix
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: "laa-record-controlled-work-api.beta.cloud-platform.service.justice.gov.uk"
+      external-dns.alpha.kubernetes.io/hostname: "laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk"
       external-dns.alpha.kubernetes.io/aws-weight: "100"
       external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-api-green-laa-record-controlled-work-api-uat-green"
 
