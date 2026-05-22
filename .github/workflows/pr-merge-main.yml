@@ -74,6 +74,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      contents: read
       security-events: write
 
     env:
