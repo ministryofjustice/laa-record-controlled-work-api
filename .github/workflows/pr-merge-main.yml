@@ -123,7 +123,7 @@ jobs:
       helm_chart: ./laa-generic-helm-chart
       environment: uat
       helm_release_name: laa-record-controlled-work-api
-      helm_values_path: ./helm/values/uat.yaml
+      helm_values_path: ./helm/values/uat.yml
       k8s_service_account: rcw-api-github-action-service-account
       dockerfile_requires_git: true
     secrets: inherit
