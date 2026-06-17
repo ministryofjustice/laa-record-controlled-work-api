@@ -2,7 +2,7 @@ package uk.gov.justice.laa.rcw.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,11 +22,14 @@ class ApplicationServiceTest {
                 b ->
                     b.id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
                         .name("Other Random Name")
-                        .dob(LocalDate.of(1972, 11, 28))
-                        .address("Other Random Address")));
+                        .modifiedAt(OffsetDateTime.now())
+                        .applicationRefNumber("CW-222222")));
 
     List<Application> result = applicationService.getApplications();
 
-    assertThat(result).hasSize(2).isEqualTo(applications);
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringFields("modifiedAt")
+        .isEqualTo(applications);
   }
 }

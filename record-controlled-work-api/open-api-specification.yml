@@ -169,19 +169,19 @@ components:
       required:
         - id
         - name
-        - dob
-        - address
+        - applicationRefNumber
+        - lastUpdated
       properties:
         id:
           type: string
           format: uuid
         name:
           type: string
-        dob:
+        applicationRefNumber:
           type: string
-          format: date
-        address:
+        modifiedAt:
           type: string
+          format: date-time
 
     Applications:
       type: array

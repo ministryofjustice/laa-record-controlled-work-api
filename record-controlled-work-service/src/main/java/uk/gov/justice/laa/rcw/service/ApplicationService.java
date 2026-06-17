@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.rcw.service;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -24,14 +24,14 @@ public class ApplicationService {
         Application.builder()
             .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
             .name("Random Name")
-            .dob(LocalDate.of(1985, 3, 14))
-            .address("Random Address")
+            .modifiedAt(OffsetDateTime.now())
+            .applicationRefNumber("CW-111111")
             .build(),
         Application.builder()
             .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
             .name("Other Random Name")
-            .dob(LocalDate.of(1972, 11, 28))
-            .address("Other Random Address")
+            .modifiedAt(OffsetDateTime.now())
+            .applicationRefNumber("CW-222222")
             .build());
   }
 }
