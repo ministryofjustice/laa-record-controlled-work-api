@@ -1,9 +1,31 @@
-# TODO: update contents to API spec
+
 openapi: "3.0.0"
 info:
   version: 1.0.0
-  title: Items API
+  title: Record Controlled Work API
 paths:
+  /api/v1/applications:
+    get:
+      tags:
+        - applications
+      summary: Get all applications
+      operationId: getApplications
+      responses:
+        '200':
+          description: 'Success'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Applications"
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '500':
+          description: 'Internal server error'
+
   /api/v1/items:
     get:
       tags:
@@ -144,6 +166,29 @@ paths:
 
 components:
   schemas:
+    Application:
+      required:
+        - id
+        - name
+        - dob
+        - address
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        dob:
+          type: string
+          format: date
+        address:
+          type: string
+
+    Applications:
+      type: array
+      items:
+        $ref: "#/components/schemas/Application"
+
     Item:
       required:
         - id
