@@ -19,7 +19,6 @@ public class ApplicationController implements ApplicationsApi {
 
   @Override
   public ResponseEntity<List<Application>> getApplications() {
-    log.info("GET /api/v1/applications");
     return ResponseEntity.ok(applicationService.getApplications());
   }
 }
