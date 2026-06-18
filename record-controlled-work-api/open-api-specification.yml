@@ -170,7 +170,7 @@ components:
         - id
         - name
         - applicationRefNumber
-        - lastUpdated
+        - modifiedAt
       properties:
         id:
           type: string
