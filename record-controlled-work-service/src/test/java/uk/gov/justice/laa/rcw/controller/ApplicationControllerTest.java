@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.controller;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -10,6 +11,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -17,7 +22,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
+import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
+import uk.gov.justice.laa.rcw.generator.CreateApplicationResponseGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
 
 @WebMvcTest(ApplicationController.class)
@@ -65,5 +74,25 @@ class ApplicationControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.*", hasSize(0)));
+  }
+
+  @Test
+  void createApplication_acceptsTheCorrectData() throws Exception {
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.create(null);
+    CreateApplicationResponseBody response = CreateApplicationResponseGenerator.create(null);
+    when(mockApplicationService.createApplication(request)).thenReturn(response);
+
+    ObjectMapper mapper =
+            new ObjectMapper()
+                    .registerModule(new JavaTimeModule())
+                    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    var test = mapper.writeValueAsString(request);
+
+    mockMvc.perform(post("/api/v1/applications")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(test)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated());
   }
 }

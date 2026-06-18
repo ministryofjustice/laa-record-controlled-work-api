@@ -6,19 +6,17 @@ import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.rcw.entity.ApplicationEntity;
 import uk.gov.justice.laa.rcw.model.Application;
-import uk.gov.justice.laa.rcw.model.ApplicationRequestBody;
-import uk.gov.justice.laa.rcw.repository.ApplicationRepository;
+import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 
 /** Service class for handling Application requests. */
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class ApplicationService {
-
-  private final ApplicationRepository applicationRepository;
 
     /**
    * Gets all Applications.
@@ -43,22 +41,15 @@ public class ApplicationService {
             .build());
   }
 
-  public <applicationEntity> void createApplication(ApplicationRequestBody applicationRequestBody) {
-    log.info("Creating application: {}", applicationRequestBody.getFullName());
-    ApplicationEntity applicationEntity = new ApplicationEntity();
-    applicationEntity.setEcf(applicationRequestBody.getEcf());
-    applicationEntity.setLegalAidBefore(applicationEntity.getLegalAidBefore());
-    applicationEntity.setLegalAidLast6Months(applicationEntity.getLegalAidLast6Months());
-    applicationEntity.setReasonForYes(applicationEntity.getReasonForYes());
-    applicationEntity.setFullName(applicationRequestBody.getFullName());
-    applicationEntity.setDateOfBirth(applicationRequestBody.getDateOfBirth());
-    applicationEntity.setHasNINumber(applicationEntity.getHasNINumber());
-    applicationEntity.setNiNumber(applicationEntity.getNiNumber());
-    applicationEntity.setHaveAHomeAddress(applicationEntity.getHaveAHomeAddress());
-    applicationEntity.setAddress(applicationRequestBody.getAddressLine1());
+  public CreateApplicationResponseBody createApplication(CreateApplicationRequestBody applicationRequestBody) {
+    log.info("Creating application: {}", applicationRequestBody);
 
-    applicationEntity createdApplicationEntity = applicationRepository.save(applicationEntity);
-    log.info("Created item with id: {}", createdApplicationEntity.getId());
-    createdApplicationEntity.getId();
+    CreateApplicationResponseBody responseBody = new CreateApplicationResponseBody();
+
+    BeanUtils.copyProperties(applicationRequestBody, responseBody);
+
+    responseBody.id(UUID.fromString("69e24085-60f9-43c5-9574-7544502f6905"));
+
+    return responseBody;
   }
 }

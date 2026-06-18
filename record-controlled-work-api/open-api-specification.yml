@@ -34,10 +34,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplicationRequestBody'
+              $ref: '#/components/schemas/CreateApplicationRequestBody'
       responses:
-        '201':
+        '200':
           description: 'Created'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateApplicationResponseBody"
         '400':
           description: 'Bad request'
         '401':
@@ -206,7 +210,7 @@ components:
           type: string
           format: date-time
 
-    ApplicationRequestBody:
+    CreateApplicationRequestBody:
       required:
         - ecf
         - legalAidBefore
@@ -217,6 +221,47 @@ components:
         - addressLine1
         - country
       properties:
+        ecf:
+          type: string
+        legalAidBefore:
+          type: string
+        legalAidLast6Months:
+          type: string
+        reasonForYes:
+          type: string
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        hasNINumber:
+          type: string
+        niNumber:
+          type: string
+        haveAHomeAddress:
+          type: string
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        addressLine3:
+          type: string
+        addressLine4:
+          type: string
+        townOrCity:
+          type: string
+        county:
+          type: string
+        postcode:
+          type: string
+        country:
+          type: string
+
+    CreateApplicationResponseBody:
+      properties:
+        id:
+          type: string
+          format: uuid
         ecf:
           type: string
         legalAidBefore:
