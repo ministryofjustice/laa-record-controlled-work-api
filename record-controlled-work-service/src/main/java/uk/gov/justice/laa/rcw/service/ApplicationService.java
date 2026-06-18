@@ -3,16 +3,24 @@ package uk.gov.justice.laa.rcw.service;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.rcw.entity.ApplicationEntity;
 import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.ApplicationRequestBody;
+import uk.gov.justice.laa.rcw.repository.ApplicationRepository;
 
 /** Service class for handling Application requests. */
 @Slf4j
+@RequiredArgsConstructor
 @Service
 public class ApplicationService {
 
-  /**
+  private final ApplicationRepository applicationRepository;
+
+    /**
    * Gets all Applications.
    *
    * @return the list of Applications
@@ -33,5 +41,24 @@ public class ApplicationService {
             .modifiedAt(OffsetDateTime.now())
             .applicationRefNumber("CW-222222")
             .build());
+  }
+
+  public <applicationEntity> void createApplication(ApplicationRequestBody applicationRequestBody) {
+    log.info("Creating application: {}", applicationRequestBody.getFullName());
+    ApplicationEntity applicationEntity = new ApplicationEntity();
+    applicationEntity.setEcf(applicationRequestBody.getEcf());
+    applicationEntity.setLegalAidBefore(applicationEntity.getLegalAidBefore());
+    applicationEntity.setLegalAidLast6Months(applicationEntity.getLegalAidLast6Months());
+    applicationEntity.setReasonForYes(applicationEntity.getReasonForYes());
+    applicationEntity.setFullName(applicationRequestBody.getFullName());
+    applicationEntity.setDateOfBirth(applicationRequestBody.getDateOfBirth());
+    applicationEntity.setHasNINumber(applicationEntity.getHasNINumber());
+    applicationEntity.setNiNumber(applicationEntity.getNiNumber());
+    applicationEntity.setHaveAHomeAddress(applicationEntity.getHaveAHomeAddress());
+    applicationEntity.setAddress(applicationRequestBody.getAddressLine1());
+
+    applicationEntity createdApplicationEntity = applicationRepository.save(applicationEntity);
+    log.info("Created item with id: {}", createdApplicationEntity.getId());
+    createdApplicationEntity.getId();
   }
 }
