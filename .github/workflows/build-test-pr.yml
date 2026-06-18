@@ -115,11 +115,9 @@ jobs:
       - name: Build a Docker image
         run: |
           docker build \
-            --secret id=github_actor,env=GITHUB_ACTOR \
-            --secret id=github_token,env=GITHUB_TOKEN \
+            --secret id=git_token,env=GITHUB_TOKEN \
             -t record-controlled-work:scan .
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Snyk to check Docker image for vulnerabilities
