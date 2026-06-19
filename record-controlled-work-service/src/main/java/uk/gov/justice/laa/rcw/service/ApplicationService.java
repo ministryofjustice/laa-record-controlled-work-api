@@ -42,7 +42,6 @@ public class ApplicationService {
 
   public CreateApplicationResponseBody createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
-    log.info("Creating application: {}", applicationRequestBody);
 
     CreateApplicationResponseBody responseBody = new CreateApplicationResponseBody();
 

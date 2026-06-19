@@ -24,7 +24,6 @@ public class ApplicationController implements ApplicationsApi {
   @Override
   public ResponseEntity<CreateApplicationResponseBody> createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
-    log.info("POST /api/v1/createApplication");
     CreateApplicationResponseBody responseBody =
         applicationService.createApplication(applicationRequestBody);
     URI uri =
