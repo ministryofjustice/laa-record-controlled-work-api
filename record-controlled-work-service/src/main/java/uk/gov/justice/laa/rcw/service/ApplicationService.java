@@ -40,6 +40,11 @@ public class ApplicationService {
             .build());
   }
 
+  /**
+   * Create application.
+   *
+   * @return the request body with the created ID
+   */
   public CreateApplicationResponseBody createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
 
