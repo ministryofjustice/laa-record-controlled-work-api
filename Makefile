@@ -1,10 +1,13 @@
-.PHONY: setup-hooks build lint lint-build integration run dev docker-up
+.PHONY: setup-hooks build generate lint lint-build integration run dev docker-up
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
 
 build:
 	./gradlew clean build
+
+generate:
+	./gradlew :record-controlled-work-api:openApiGenerate
 
 lint:
 	./gradlew spotlessApply

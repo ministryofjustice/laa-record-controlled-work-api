@@ -230,22 +230,16 @@ components:
         id:
           type: string
           format: uuid
-          example:
         individualLegalAidNumber:
           type: string
           format: uuid
-          example:
-          description:
         providerFirmId:
           type: string
           format: uuid
-          example:
-          description:
         providerOfficeId:
           type: string
           format: uuid
-          example:
-          description:
+
         meansAssessmentStatus:
           type: string
           format: uuid
