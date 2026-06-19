@@ -62,10 +62,12 @@ project.ext.gitPackageKey = PAT_CREATED_ABOVE
 
 Go back to Github to authorize MOJ for SSO
 
-### Database scripts
+### Bruno Collection
 
-TODO
-The \*.sql scripts in `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
+For ease of use, a collection was added to the repo which can be opened through [Bruno](https://www.usebruno.com/) .
+
+This can be done by opening the collection located in the `bruno-collection` folder.
+you can also add the open
 
 ## Build And Run Application
 
@@ -200,14 +202,3 @@ sentry:
   and Entity objects. It generates mapping code at compile code.
 - [H2](https://www.h2database.com/html/main.html) - used to provide an example database and should not be used in production.
 - [Sentry for Java SDK](https://docs.sentry.io/platforms/java/) - used to capture application exception events at runtime, which can be monitored via the Sentry UI.
-
-## ⚠️ Temporary Dependency Overrides
-
-The following Gradle dependency overrides are **temporary** and should be removed once the dependency versions are
-available in a future `laa-spring-boot-common` release.
-
-| Dependency                                  | Overridden Version | Reason                                                                                                                                    | Date Added |
-| ------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `com.fasterxml.jackson.core:jackson-core`   | `2.21.2`           | Fixes Snyk issue - [SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551](https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551) | 2026-04-30 |
-| `org.apache.tomcat.embed:tomcat-embed-core` | `11.0.21`          | Fixes Snyk issues - [SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820)      | 2026-04-30 |
-| `tools.jackson.core:jackson-core`           | `3.1.1`            | Fixes Snyk issue - [SNYK-JAVA-TOOLSJACKSONCORE-15907550](https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-15907550)               | 2026-04-30 |
