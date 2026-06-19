@@ -64,6 +64,8 @@ Go back to Github to authorize MOJ for SSO
 
 ### Bruno Collection
 
+Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing
+
 For ease of use, a collection was added to the repo which can be opened through [Bruno](https://www.usebruno.com/) .
 
 This can be done by opening the collection located in the `bruno-collection` folder.
