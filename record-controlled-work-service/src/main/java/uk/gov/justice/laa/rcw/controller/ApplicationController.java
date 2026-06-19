@@ -26,6 +26,9 @@ public class ApplicationController implements ApplicationsApi {
 
   @Override
   public ResponseEntity<ApplicationResponse> getApplication(UUID id) {
-    return ResponseEntity.ok(applicationService.getApplication(id));
+    return applicationService
+        .getApplication(id)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
   }
 }

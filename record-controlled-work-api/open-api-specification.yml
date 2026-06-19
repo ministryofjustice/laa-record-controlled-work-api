@@ -263,12 +263,12 @@ components:
           type: string
         createdAt:
           type: string
-          format: date
+          format: date-time
         createdBy:
           type: string
         modifiedAt:
           type: string
-          format: date
+          format: date-time
         modifiedBy:
           type: string
 
@@ -284,12 +284,12 @@ components:
           type: boolean
         createdAt:
           type: string
-          format: date
+          format: date-time
         createdBy:
           type: string
         modifiedAt:
           type: string
-          format: date
+          format: date-time
         modifiedBy:
           type: string
 
