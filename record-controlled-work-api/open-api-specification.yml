@@ -24,10 +24,10 @@ paths:
           description: 'Forbidden'
         '500':
           description: 'Internal server error'
-  /api/v0/applications/{id}:
+  /api/v1/applications/{id}:
     get:
       tags:
-        - application
+        - applications
       summary: Get application by ID
       operationId: getApplication
       parameters:
@@ -263,12 +263,12 @@ components:
           type: string
         createdAt:
           type: string
-          format: date-time
+          format: date
         createdBy:
           type: string
         modifiedAt:
           type: string
-          format: date-time
+          format: date
         modifiedBy:
           type: string
 
@@ -284,12 +284,12 @@ components:
           type: boolean
         createdAt:
           type: string
-          format: date-time
+          format: date
         createdBy:
           type: string
         modifiedAt:
           type: string
-          format: date-time
+          format: date
         modifiedBy:
           type: string
 

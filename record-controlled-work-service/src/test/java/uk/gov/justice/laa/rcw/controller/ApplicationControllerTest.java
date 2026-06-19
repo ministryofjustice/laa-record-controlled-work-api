@@ -16,8 +16,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
-import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
+import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
 
 @WebMvcTest(ApplicationController.class)
@@ -29,10 +29,10 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsOkStatusAndAllApplications() throws Exception {
-    List<Application> applications =
+    List<ApplicationOverview> applications =
         List.of(
-            ApplicationGenerator.create(null),
-            ApplicationGenerator.create(
+            ApplicationOverviewGenerator.create(null),
+            ApplicationOverviewGenerator.create(
                     b ->
                         b.id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
                             .name("Other Random Name")

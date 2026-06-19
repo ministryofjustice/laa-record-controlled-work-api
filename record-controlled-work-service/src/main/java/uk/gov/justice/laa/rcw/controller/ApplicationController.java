@@ -1,12 +1,14 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
-import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationResponse;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
 
 /** Controller for handling application requests. */
@@ -18,7 +20,12 @@ public class ApplicationController implements ApplicationsApi {
   private final ApplicationService applicationService;
 
   @Override
-  public ResponseEntity<List<Application>> getApplications() {
+  public ResponseEntity<List<ApplicationOverview>> getApplications() {
     return ResponseEntity.ok(applicationService.getApplications());
+  }
+
+  @Override
+  public ResponseEntity<ApplicationResponse> getApplication(UUID id) {
+    return ResponseEntity.ok(applicationService.getApplication(id));
   }
 }
