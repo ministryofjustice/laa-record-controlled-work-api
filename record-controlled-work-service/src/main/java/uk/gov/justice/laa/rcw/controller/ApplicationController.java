@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -23,14 +22,17 @@ public class ApplicationController implements ApplicationsApi {
   private final ApplicationService applicationService;
 
   @Override
-  public ResponseEntity<CreateApplicationResponseBody> createApplication(CreateApplicationRequestBody applicationRequestBody) {
+  public ResponseEntity<CreateApplicationResponseBody> createApplication(
+      CreateApplicationRequestBody applicationRequestBody) {
     log.info("POST /api/v1/createApplication");
-    CreateApplicationResponseBody responseBody = applicationService.createApplication(applicationRequestBody);
+    CreateApplicationResponseBody responseBody =
+        applicationService.createApplication(applicationRequestBody);
     URI uri =
-            ServletUriComponentsBuilder.fromCurrentRequest().path("/api/v1/applications/{id}").buildAndExpand(responseBody.getId()).toUri();
-    return ResponseEntity
-            .created(uri)
-            .body(responseBody);
+        ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/api/v1/applications/{id}")
+            .buildAndExpand(responseBody.getId())
+            .toUri();
+    return ResponseEntity.created(uri).body(responseBody);
   }
 
   @Override

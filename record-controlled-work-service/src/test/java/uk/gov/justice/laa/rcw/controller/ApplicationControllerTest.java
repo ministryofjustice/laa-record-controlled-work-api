@@ -1,20 +1,19 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -83,16 +82,47 @@ class ApplicationControllerTest {
     when(mockApplicationService.createApplication(request)).thenReturn(response);
 
     ObjectMapper mapper =
-            new ObjectMapper()
-                    .registerModule(new JavaTimeModule())
-                    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     var test = mapper.writeValueAsString(request);
 
-    mockMvc.perform(post("/api/v1/applications")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(test)
-            .accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isCreated());
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(test)
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void createItem_returnsBadRequestStatus() throws Exception {
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createBad(null);
+
+    ObjectMapper mapper =
+        new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    var test = mapper.writeValueAsString(request);
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(test)
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest())
+        .andExpect(
+            content()
+                .json(
+                    "{"
+                        + "\"type\":\"about:blank\","
+                        + "\"title\":\"Bad Request\","
+                        + "\"status\":400,"
+                        + "\"detail\":\"Invalid request content.\","
+                        + "\"instance\":\"/api/v1/applications\"}"));
   }
 }

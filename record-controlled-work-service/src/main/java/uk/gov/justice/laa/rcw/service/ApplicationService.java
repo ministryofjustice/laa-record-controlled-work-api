@@ -3,7 +3,6 @@ package uk.gov.justice.laa.rcw.service;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -18,7 +17,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 @Service
 public class ApplicationService {
 
-    /**
+  /**
    * Gets all Applications.
    *
    * @return the list of Applications
@@ -41,7 +40,8 @@ public class ApplicationService {
             .build());
   }
 
-  public CreateApplicationResponseBody createApplication(CreateApplicationRequestBody applicationRequestBody) {
+  public CreateApplicationResponseBody createApplication(
+      CreateApplicationRequestBody applicationRequestBody) {
     log.info("Creating application: {}", applicationRequestBody);
 
     CreateApplicationResponseBody responseBody = new CreateApplicationResponseBody();
