@@ -1,0 +1,12 @@
+opencollection: 1.0.0
+info:
+  name: "bruno-workspace"
+  type: workspace
+
+collections:
+  - name: "Record Controlled Work API"
+    path: "collections/Record Controlled Work API"
+
+specs:
+
+docs: ''
