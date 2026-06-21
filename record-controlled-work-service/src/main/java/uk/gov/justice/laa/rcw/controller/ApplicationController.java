@@ -7,8 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
+import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationResponse;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
 
 /** Controller for handling application requests. */
@@ -25,7 +25,7 @@ public class ApplicationController implements ApplicationsApi {
   }
 
   @Override
-  public ResponseEntity<ApplicationResponse> getApplication(UUID id) {
+  public ResponseEntity<Application> getApplication(UUID id) {
     return applicationService
         .getApplication(id)
         .map(ResponseEntity::ok)

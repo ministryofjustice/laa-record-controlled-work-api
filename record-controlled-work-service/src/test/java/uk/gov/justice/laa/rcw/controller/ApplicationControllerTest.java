@@ -17,10 +17,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
-import uk.gov.justice.laa.rcw.generator.ApplicationResponseGenerator;
+import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationResponse;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
 
 @WebMvcTest(ApplicationController.class)
@@ -73,8 +73,7 @@ class ApplicationControllerTest {
   @Test
   void getApplicationWithId_returnsOkStatusAndApplicationResponse() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    ApplicationResponse applicationResponse =
-        ApplicationResponseGenerator.create(b -> b.id(applicationId));
+    Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
 
     when(mockApplicationService.getApplication(applicationId))
         .thenReturn(Optional.of(applicationResponse));

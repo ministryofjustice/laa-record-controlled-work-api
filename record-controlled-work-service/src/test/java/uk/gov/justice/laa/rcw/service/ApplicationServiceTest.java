@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
-import uk.gov.justice.laa.rcw.generator.ApplicationResponseGenerator;
+import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationResponse;
 
 class ApplicationServiceTest {
 
@@ -39,15 +39,31 @@ class ApplicationServiceTest {
   @Test
   void shouldGetApplicationById() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Optional<ApplicationResponse> expected =
-        Optional.of(ApplicationResponseGenerator.create(b -> b.id(applicationId)));
+    Optional<Application> expected =
+        Optional.of(ApplicationGenerator.create(b -> b.id(applicationId)));
 
-    Optional<ApplicationResponse> result = applicationService.getApplication(applicationId);
+    Optional<Application> result = applicationService.getApplication(applicationId);
 
     assertThat(result).isPresent();
+
     assertThat(result)
         .usingRecursiveComparison()
-        .ignoringFields("value.modifiedAt", "value.createdAt")
+        .ignoringFields(
+            "value.individualLegalAidNumber",
+            "value.providerFirmId",
+            "value.providerOfficeId",
+            "value.createdAt",
+            "value.modifiedAt",
+            "value.clientDetails.id",
+            "value.clientDetails.address.id",
+            "value.clientDetails.address.createdAt",
+            "value.clientDetails.address.modifiedAt",
+            "value.declaration.id",
+            "value.declaration.createdAt",
+            "value.declaration.modifiedAt",
+            "value.evidence.id",
+            "value.evidence.createdAt",
+            "value.evidence.modifiedAt")
         .isEqualTo(expected);
   }
 }
