@@ -99,7 +99,8 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_returnsBadRequestStatus() throws Exception {
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithoutName(null);
+    CreateApplicationRequestBody request =
+        CreateApplicationRequestGenerator.createWithoutName(null);
 
     ObjectMapper mapper =
         new ObjectMapper()

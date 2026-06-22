@@ -41,9 +41,8 @@ public class ApplicationService {
   }
 
   /**
-   * Create application.
-   * This is a temporary return so that we can test the integration before connecting to the data store.
-   * TODO: Replace with Data Store API call
+   * Create application. This is a temporary return so that we can test the integration before
+   * connecting to the data store. TODO: Replace with Data Store API call
    *
    * @return the request body with the created ID
    */
