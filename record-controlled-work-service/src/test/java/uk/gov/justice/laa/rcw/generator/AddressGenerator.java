@@ -20,6 +20,7 @@ public class AddressGenerator {
             .addressLine2("Prime ministers address")
             .postCode("SW1A 2AA")
             .townOrCity("London")
+            .country("GB")
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now());
 

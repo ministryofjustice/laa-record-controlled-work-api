@@ -350,6 +350,10 @@ components:
           format: date-time
 
     Address:
+      required:
+        - id
+        - addressLine1
+        - country
       type: object
       properties:
         id:
