@@ -1,0 +1,4 @@
+name: uat
+variables:
+  - name: baseUrl
+    value: laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk
