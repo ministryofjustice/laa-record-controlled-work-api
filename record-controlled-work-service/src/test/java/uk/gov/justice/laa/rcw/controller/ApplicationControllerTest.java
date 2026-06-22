@@ -76,8 +76,8 @@ class ApplicationControllerTest {
   }
 
   @Test
-  void createApplication_acceptsTheCorrectData() throws Exception {
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.create(null);
+  void createApplication_returnsCreatedStatus_andApplication() throws Exception {
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     CreateApplicationResponseBody response = CreateApplicationResponseGenerator.create(null);
     when(mockApplicationService.createApplication(request)).thenReturn(response);
 
@@ -86,33 +86,33 @@ class ApplicationControllerTest {
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    var test = mapper.writeValueAsString(request);
+    var mappedRequest = mapper.writeValueAsString(request);
 
     mockMvc
         .perform(
             post("/api/v1/applications")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(test)
+                .content(mappedRequest)
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated());
   }
 
   @Test
-  void createItem_returnsBadRequestStatus() throws Exception {
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createBad(null);
+  void createApplication_returnsBadRequestStatus() throws Exception {
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithoutName(null);
 
     ObjectMapper mapper =
         new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-    var test = mapper.writeValueAsString(request);
+    var mappedRequest = mapper.writeValueAsString(request);
 
     mockMvc
         .perform(
             post("/api/v1/applications")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(test)
+                .content(mappedRequest)
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest())
         .andExpect(
