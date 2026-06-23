@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -13,6 +14,8 @@ import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationStatus;
 import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
+import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Evidence;
 import uk.gov.justice.laa.rcw.model.EvidenceStatus;
@@ -113,5 +116,23 @@ public class ApplicationService {
             .modifiedAt(OffsetDateTime.now())
             .modifiedBy("Random User")
             .build());
+  }
+
+  /**
+   * Create application. This is a temporary return so that we can test the integration before
+   * connecting to the data store. TODO: Replace with Data Store API call
+   *
+   * @return the request body with the created ID
+   */
+  public CreateApplicationResponseBody createApplication(
+      CreateApplicationRequestBody applicationRequestBody) {
+
+    CreateApplicationResponseBody responseBody = new CreateApplicationResponseBody();
+
+    BeanUtils.copyProperties(applicationRequestBody, responseBody);
+
+    responseBody.id(UUID.fromString("69e24085-60f9-43c5-9574-7544502f6905"));
+
+    return responseBody;
   }
 }
