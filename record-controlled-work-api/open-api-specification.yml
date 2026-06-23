@@ -244,7 +244,8 @@ components:
       required:
         - ecf
         - legalAidBefore
-        - fullName
+        - firstName
+        - lastName
         - dateOfBirth
         - hasNINumber
         - haveAHomeAddress
@@ -259,7 +260,9 @@ components:
           type: string
         reasonForYes:
           type: string
-        fullName:
+        firstName:
+          type: string
+        lastName:
           type: string
         dateOfBirth:
           type: string
@@ -300,7 +303,9 @@ components:
           type: string
         reasonForYes:
           type: string
-        fullName:
+        firstName:
+          type: string
+        lastName:
           type: string
         dateOfBirth:
           type: string
@@ -449,7 +454,9 @@ components:
         id:
           type: string
           format: uuid
-        fullName:
+        firstName:
+          type: string
+        lastName:
           type: string
         dateOfBirth:
           type: string

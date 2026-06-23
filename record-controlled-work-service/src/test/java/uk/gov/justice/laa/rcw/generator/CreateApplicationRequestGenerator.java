@@ -9,7 +9,7 @@ public class CreateApplicationRequestGenerator {
 
   public static CreateApplicationRequestBody createWithName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
-    return createApplication(customizer).fullName("Joe Bloggs").build();
+    return createApplication(customizer).firstName("Joe").lastName("Bloggs").build();
   }
 
   public static CreateApplicationRequestBody createWithoutName(

@@ -21,7 +21,8 @@ public class ClientDetailsGenerator {
     var builder =
         ClientDetails.builder()
             .id(UUID.randomUUID())
-            .fullName("Joe Bloggs")
+            .firstName("Joe")
+            .lastName("Bloggs")
             .niNumber("AB123456Q")
             .address(address)
             .dateOfBirth(LocalDate.of(1990, 1, 1));
