@@ -1,0 +1,143 @@
+info:
+  name: Create applications
+  type: http
+  seq: 3
+  tags:
+    - applications
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/applications"
+  body:
+    type: json
+    data: |-
+      {
+        "ecf": "false",
+        "legalAidBefore" : "false",
+        "fullName" : "fullName",
+        "dateOfBirth" : "2000-01-01",
+        "hasNINumber" : "JN123456D",
+        "haveAHomeAddress" : "true",
+        "addressLine1" : "addressLine1",
+        "country" : "country"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should be 200 response", function () {
+          expect(res.getStatus()).to.equal(201);
+        });
+
+        test("applications should have correct properties", function(){
+          const application = res.getBody();
+            expect(application).to.have.property("addressLine1");
+            expect(application).to.have.property("addressLine2");
+            expect(application).to.have.property("addressLine3");
+            expect(application).to.have.property("addressLine4");
+            expect(application).to.have.property("country");
+            expect(application).to.have.property("county");
+            expect(application).to.have.property("ecf");
+            expect(application).to.have.property("fullName");
+            expect(application).to.have.property("hasNINumber");
+            expect(application).to.have.property("haveAHomeAddress");
+            expect(application).to.have.property("id");
+            expect(application).to.have.property("legalAidBefore");
+            expect(application).to.have.property("legalAidLast6Months");
+            expect(application).to.have.property("niNumber");
+            expect(application).to.have.property("postcode");
+            expect(application).to.have.property("reasonForYes");
+            expect(application).to.have.property("townOrCity");        
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/api/v1/applicationa"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "ecf": "false",
+            "legalAidBefore" : "false",
+            "fullName" : "fullName",
+            "dateOfBirth" : "2000-01-01",
+            "hasNINumber" : "JN123456D",
+            "haveAHomeAddress" : "true",
+            "addressLine1" : "addressLine1",
+            "country" : "country"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [
+           {
+            "addressLine1": "",
+            "addressLine2": "",
+            "addressLine3": "",
+            "addressLine4": "",
+            "country": "",
+            "county": "",
+            "dateOfBirth": "",
+            "ecf": "false",
+            "fullName": "",
+            "hasNINumber": "",
+            "haveAHomeAddress": "true",
+            "id": "",
+            "legalAidBefore": "false",
+            "legalAidLast6Months": "false",
+            "niNumber": "",
+            "postcode": "",
+            "reasonForYes": "",
+            "townOrCity": ""
+           }
+          ]
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: POST
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 403 Response
+    description: Forbidden
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: POST
+    response:
+      status: 403
+      statusText: Forbidden
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Internal server error
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: POST
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""
