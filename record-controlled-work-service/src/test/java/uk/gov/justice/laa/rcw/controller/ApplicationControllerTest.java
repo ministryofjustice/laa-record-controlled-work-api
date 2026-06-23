@@ -1,7 +1,7 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +22,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
+import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationResponseGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.service.ApplicationService;
@@ -37,10 +40,10 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsOkStatusAndAllApplications() throws Exception {
-    List<Application> applications =
+    List<ApplicationOverview> applications =
         List.of(
-            ApplicationGenerator.create(null),
-            ApplicationGenerator.create(
+            ApplicationOverviewGenerator.create(null),
+            ApplicationOverviewGenerator.create(
                     b ->
                         b.id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
                             .name("Other Random Name")
@@ -73,6 +76,40 @@ class ApplicationControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.*", hasSize(0)));
+  }
+
+  @Test
+  void getApplicationWithId_returnsOkStatusAndApplicationResponse() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
+
+    when(mockApplicationService.getApplication(applicationId))
+        .thenReturn(Optional.of(applicationResponse));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(
+            jsonPath("$.individualLegalAidNumber").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.modifiedAt").exists())
+        .andExpect(jsonPath("$.createdAt").exists())
+        .andExpect(jsonPath("$.providerOfficeId").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.providerFirmId").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.modifiedBy").value("Random User"))
+        .andExpect(jsonPath("$.createdBy").value("Random User"));
+  }
+
+  @Test
+  void getApplicationWithId_returnsNotFoundWhenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+
+    when(mockApplicationService.getApplication(applicationId)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)))
+        .andExpect(status().isNotFound());
   }
 
   @Test
