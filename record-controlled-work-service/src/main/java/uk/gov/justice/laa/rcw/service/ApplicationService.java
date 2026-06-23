@@ -70,7 +70,8 @@ public class ApplicationService {
     ClientDetails clientDetails =
         ClientDetails.builder()
             .id(UUID.randomUUID())
-            .fullName("Joe Bloggs")
+            .firstName("Joe")
+            .lastName("Bloggs")
             .niNumber("AB123456Q")
             .dateOfBirth(LocalDate.of(1990, 1, 1))
             .address(address)

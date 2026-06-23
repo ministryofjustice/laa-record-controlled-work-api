@@ -14,7 +14,8 @@ http:
       {
         "ecf": "false",
         "legalAidBefore" : "false",
-        "fullName" : "fullName",
+        "firstName" : "firstName",
+        "lastName" : "lastName",
         "dateOfBirth" : "2000-01-01",
         "hasNINumber" : "JN123456D",
         "haveAHomeAddress" : "true",
@@ -40,7 +41,8 @@ runtime:
             expect(application).to.have.property("country");
             expect(application).to.have.property("county");
             expect(application).to.have.property("ecf");
-            expect(application).to.have.property("fullName");
+            expect(application).to.have.property("firstName");
+            expect(application).to.have.property("lastName");
             expect(application).to.have.property("hasNINumber");
             expect(application).to.have.property("haveAHomeAddress");
             expect(application).to.have.property("id");
@@ -70,7 +72,8 @@ examples:
           {
             "ecf": "false",
             "legalAidBefore" : "false",
-            "fullName" : "fullName",
+            "firstName" : "firstName",
+            "lastName" : "lastName",
             "dateOfBirth" : "2000-01-01",
             "hasNINumber" : "JN123456D",
             "haveAHomeAddress" : "true",
@@ -96,7 +99,8 @@ examples:
             "county": "",
             "dateOfBirth": "",
             "ecf": "false",
-            "fullName": "",
+            "firstName": "",
+            "lastName": "",
             "hasNINumber": "",
             "haveAHomeAddress": "true",
             "id": "",
