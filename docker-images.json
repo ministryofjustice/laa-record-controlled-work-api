@@ -1,0 +1,5 @@
+{
+  "images": [
+    "docker.io/library/amazoncorretto:25-alpine"
+  ]
+}

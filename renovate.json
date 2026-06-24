@@ -1,0 +1,9 @@
+{
+  "extends": ["github>ministryofjustice/devsecops-actions"],
+  "hostRules": [
+    {
+      "matchHost": "https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common",
+      "hostType": "maven"
+    }
+  ]
+}

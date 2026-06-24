@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: .
+      secrets:
+        - git_token
     ports:
       - "8081:8081"
       - "8181:8181"
@@ -10,3 +12,7 @@ services:
       - SERVER_PORT=8081
       - SPRING_PROFILES_ACTIVE=local
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
+secrets:
+  git_token:
+    environment: GITHUB_TOKEN
