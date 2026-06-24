@@ -35,7 +35,7 @@ jobs:
         run: ./gradlew integrationTest --tests '*IntegrationTest'
 
       - name: Publish package
-        if: github.actor != 'dependabot[bot]'
+        if: github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]'
         run: ./gradlew publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
