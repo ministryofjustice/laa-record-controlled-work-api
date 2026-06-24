@@ -1,0 +1,174 @@
+info:
+  name: Get application
+  type: http
+  seq: 2
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should be 200 response", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+        test("application should have correct properties", function(){
+          const application = res.getBody();
+
+          expect(application).to.have.property("id");
+          expect(application).to.have.property("individualLegalAidNumber");
+          expect(application).to.have.property("providerFirmId");
+          expect(application).to.have.property("providerOfficeId");
+          expect(application).to.have.property("clientDetails");
+          expect(application).to.have.property("ecfFlag");
+          expect(application).to.have.property("applicationType");
+          expect(application).to.have.property("createdAt");
+          expect(application).to.have.property("createdBy");
+          expect(application).to.have.property("modifiedAt");
+          expect(application).to.have.property("modifiedBy");
+          expect(application).to.have.property("applicationStatus");
+          expect(application).to.have.property("contribution");
+          expect(application).to.have.property("declaration");
+          expect(application).to.have.property("evidence");
+          expect(application).to.have.property("meansAssessmentId");
+          expect(application).to.have.property("meansAssessmentRequired");
+          expect(application).to.have.property("reasonForReapplication");
+          expect(application).to.have.property("typeOfNonMeans");
+          
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [  
+            {
+              "id": "",
+              "individualLegalAidNumber": "",
+              "providerFirmId": "",
+              "providerOfficeId": "",
+              "clientDetails": {
+                "address": {
+                  "addressLine1": "",
+                  "addressLine2": "",
+                  "addressLine3": "",
+                  "addressLine4": "",
+                  "country": "",
+                  "county": "",
+                  "createdAt": "",
+                  "id": "",
+                  "modifiedAt": "",
+                  "postCode": "",
+                  "townOrCity": ""
+                },
+                "createdAt": "",
+                "dateOfBirth": "",
+                "firstName" : "",
+                "lastName" : "",
+                "hasFixedAddress": "",
+                "id": "",
+                "modifiedAt": "",
+                "niNumber": ""
+              },
+              "ecfFlag": "",
+              "applicationType": "",
+              "createdAt": "",
+              "createdBy": "",
+              "modifiedAt": "",
+              "modifiedBy": "",
+              "applicationStatus": "",
+              "contribution": "",
+              "declaration": {
+                "clientDeclarationStatus": "",
+                "createdAt": "",
+                "createdBy": "",
+                "declarationConfirmation": false,
+                "id": "",
+                "modifiedAt": "",
+                "modifiedBy": ""
+              },
+              "evidence": {
+                "capitalEvidence": false,
+                "createdAt": "",
+                "createdBy": "",
+                "evidenceStatus": "",
+                "housingCostsEvidence": false,
+                "id": "",
+                "modifiedAt": "",
+                "modifiedBy": "",
+                "otherIncomeEvidence": false,
+                "payeIncomeEvidence": false
+              },
+              "meansAssessmentId": "",
+              "meansAssessmentRequired": "",
+              "reasonForReapplication": "",
+              "typeOfNonMeans": ""
+            }
+          ] 
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 403 Response
+    description: Forbidden
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Internal server error
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      method: GET
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""
+  - name: 404 Response
+    description: Forbidden
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""

@@ -6,8 +6,11 @@ on:
   workflow_dispatch:
     
 permissions:
+  actions: read
   contents: read
   packages: write
+  id-token: write
+  security-events: write
   
 
 jobs:
@@ -71,6 +74,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      actions: read
+      contents: read
       security-events: write
 
     env:
@@ -115,10 +120,11 @@ jobs:
   build-push-deploy-uat:
     uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@main
     with:
-      app_name: Record controlled work API
+      app_name: laa-record-controlled-work-api
       helm_chart: ./laa-generic-helm-chart
       environment: uat
       helm_release_name: laa-record-controlled-work-api
-      helm_values_path: ./helm/values/uat.yaml
+      helm_values_path: ./helm/values/uat.yml
       k8s_service_account: rcw-api-github-action-service-account
+      dockerfile_requires_git: true
     secrets: inherit

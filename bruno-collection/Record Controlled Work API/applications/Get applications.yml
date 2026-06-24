@@ -1,0 +1,96 @@
+info:
+  name: Get applications
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should be 200 response", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+        test("should be a collection", function() {
+          const items = res.getBody();
+          expect(items).to.be.an("array");
+        });
+        test("all applications should have correct properties", function(){
+          const items = res.getBody();
+          items.forEach(item => {
+            expect(item).to.have.property("id");
+            expect(item).to.have.property("name");
+            expect(item).to.have.property("modifiedAt");
+            expect(item).to.have.property("applicationRefNumber");
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json
+      body:
+        type: json
+        data: |-
+          [
+            {
+              "id": "",
+              "name": "",
+              "modifiedAt": "",
+              "applicationRefNumber": ""
+            }
+          ]
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 403 Response
+    description: Forbidden
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Internal server error
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: GET
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

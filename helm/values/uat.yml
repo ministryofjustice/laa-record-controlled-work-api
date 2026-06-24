@@ -1,6 +1,6 @@
 # Development Environment Values
-appName: generic-java-app
-namespace: chart-dev
+appName: laa-record-controlled-work-api
+namespace: laa-record-controlled-work-api-uat
 serviceAccountName: rcw-api-github-action-service-account
 environmentName: dev
 replicaCount: 1
@@ -10,8 +10,7 @@ minReplicaCount: 1
 image:
   repository: nginx
   pullPolicy: Always
-  # TODO what tag to use????
-  # tag: "@sha256:1881968aff6f7cdcc4b888c00a11f4ce241ad7ec957e0cb4a9e19e93a3ff87ea"
+  tag: "@sha256:1881968aff6f7cdcc4b888c00a11f4ce241ad7ec957e0cb4a9e19e93a3ff87ea"
 
 resources:
   limits:
@@ -29,14 +28,14 @@ autoscaling:
 
 ingress:
   green:
-    className: beta
+    className: default-non-prod
     hostname: "laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk"
     pathType: Prefix
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      external-dns.alpha.kubernetes.io/hostname: "generic-java-app.beta.cloud-platform.service.justice.gov.uk"
+      external-dns.alpha.kubernetes.io/hostname: "laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk"
       external-dns.alpha.kubernetes.io/aws-weight: "100"
-      external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-uat-green"
+      external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-api-green-laa-record-controlled-work-api-uat-green"
 
 
 podSecurityContext:
@@ -87,25 +86,24 @@ configMap:
 #     APP_ENV: dev
 #     LOG_LEVEL: debug
 
-  # TODO datastore added this
-# startupProbe:
-#   httpGet:
-#     path: /actuator/health
-#     port: http
-#   failureThreshold: 30
-#   periodSeconds: 10
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8181
+  failureThreshold: 30
+  periodSeconds: 10
 
 livenessProbe:
   httpGet:
     path: /actuator/health
-    port: http
+    port: 8181
   initialDelaySeconds: 30
   periodSeconds: 60
 
 readinessProbe:
   httpGet:
     path: /actuator/health
-    port: http
+    port: 8181
   initialDelaySeconds: 30
   periodSeconds: 60
 
@@ -117,5 +115,5 @@ certificate:
   enabled: false
 
 service:
-  port: 80
+  port: 8081
 
