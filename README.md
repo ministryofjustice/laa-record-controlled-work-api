@@ -43,12 +43,6 @@ Includes the following subprojects:
 - https://github.com/ministryofjustice/devsecops-hooks to scan for any secrets that may accidentally may have been commited.
 - [gitlint](https://github.com/jorisroovers/gitlint) to ensure commit conventions are followed
 
-- This hook will run automatically on git commit. To run it manually:
-
-   ```shell
-   make pre-commit
-   ```
-  
 ### Add GitHub Token
 
 Generate a Github PAT (Personal Access Token) to access the required plugin, via https://github.com/settings/tokens
