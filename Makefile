@@ -1,4 +1,4 @@
-.PHONY: setup-hooks build generate lint lint-build integration run dev docker-up
+.PHONY: setup-hooks build generate lint lint-build gitleaks integration run dev docker-up
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -13,6 +13,9 @@ lint:
 	./gradlew spotlessApply
 
 lint-build: lint build
+
+gitleaks:
+	prek run baseline --all-files
 
 integration:
 	./gradlew integrationTest
