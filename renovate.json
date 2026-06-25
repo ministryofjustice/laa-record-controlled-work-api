@@ -14,12 +14,10 @@
   ],
   "packageRules": [
     {
-      "description": "Automerge patch and minor updates to reduce noise",
+      "description": "Rebase PRs only when conflicted",
       "matchDatasources": ["maven", "gradle", "gradle-version"],
       "matchUpdateTypes": ["patch", "minor"],
       "minimumReleaseAge": "7 days",
-      "automerge": true,
-      "automergeType": "pr",
       "rebaseWhen": "conflicted"
     }
   ]
