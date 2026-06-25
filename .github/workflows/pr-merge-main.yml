@@ -3,6 +3,7 @@ name: CICD
 on:
   push:
     branches: [ "main" ]
+  merge_group:
   workflow_dispatch:
     
 permissions:
@@ -118,6 +119,7 @@ jobs:
           sarif_file: snyk-app.sarif
 
   build-push-deploy-uat:
+    if: github.event_name != 'merge_group' && !(github.event_name == 'pull_request' && github.actor == 'renovate[bot]')
     uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@main
     with:
       app_name: laa-record-controlled-work-api
