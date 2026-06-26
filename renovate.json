@@ -1,9 +1,24 @@
 {
   "extends": ["github>ministryofjustice/devsecops-actions"],
+  "schedule": [
+    "after 10pm every weekday",
+    "every weekend",
+    "before 5am every weekday"
+  ],
+  "timezone": "Europe/London",
   "hostRules": [
     {
       "matchHost": "https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common",
       "hostType": "maven"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Rebase PRs only when conflicted",
+      "matchDatasources": ["maven", "gradle", "gradle-version"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "minimumReleaseAge": "7 days",
+      "rebaseWhen": "conflicted"
     }
   ]
 }

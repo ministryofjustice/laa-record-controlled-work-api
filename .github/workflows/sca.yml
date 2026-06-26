@@ -62,6 +62,3 @@ jobs:
         #   codeql-config-file: ".github/config/codeql.yml"
           codeql-languages: "java"
           codeql-upload-findings: "always"
-
-
-          
