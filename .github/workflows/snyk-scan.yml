@@ -1,0 +1,46 @@
+# Workflow: SCA ⚡️
+# Description:
+#   Scheduled and on-demand Security Composition Analysis run.
+#   - Triggers: daily cron, PRs to main, workflow dispatch, branch protection rule.
+#   - sca: Checks out repo, installs node, runs npm ci, executes ministryofjustice/sca action with dependency review configuration.
+
+name: Snyk
+run-name: Snyk - Scan app and Docker image
+
+on:
+  workflow_call:
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+    env:
+      SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
+      SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
+      SNYK_TEST_EXCLUDE: build,generated
+      SNYK_TARGET_REFERENCE: main
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Fetch Snyk OAuth Token
+        uses: ./.github/actions/snyk-auth
+
+      - name: Run Snyk to check app for vulnerabilities
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 #v1.0.0
+        with:
+          command: code test
+          args: --severity-threshold=high
+
+      - name: Build a Docker image
+        run: |
+          docker build \
+            --secret id=git_token,env=GITHUB_TOKEN \
+            -t record-controlled-work:scan .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Snyk to check Docker image for vulnerabilities
+        uses: snyk/actions/docker@master
+        with:
+          image: record-controlled-work:scan
+          args: --file=Dockerfile --severity-threshold=high
