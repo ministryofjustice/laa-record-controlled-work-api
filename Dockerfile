@@ -1,5 +1,5 @@
 # Build stage
-FROM amazoncorretto:25-alpine AS builder
+FROM amazoncorretto:25.0.3-alpine@sha256:32d81edae73e1670244827c2f12e5bcf0d335f035b538455fe9d02eb0771d41b AS builder
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -15,7 +15,7 @@ RUN --mount=type=secret,id=git_token \
     chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
-FROM amazoncorretto:25-alpine
+FROM amazoncorretto:25.0.3-alpine@sha256:32d81edae73e1670244827c2f12e5bcf0d335f035b538455fe9d02eb0771d41b
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/
