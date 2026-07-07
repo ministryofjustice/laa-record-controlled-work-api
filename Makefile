@@ -1,4 +1,4 @@
-.PHONY: setup-hooks build generate lint lint-build integration run dev docker-up
+.PHONY: setup-hooks build generate lint lint-build integration run dev docker-up dep-insight
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -32,3 +32,6 @@ docker-build:
 
 docker-up:
 	op run --env-file=.env -- docker compose up --build
+
+dep-insight:
+	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"
