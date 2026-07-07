@@ -3,7 +3,11 @@ package uk.gov.justice.laa.rcw.generator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
-import uk.gov.justice.laa.rcw.model.*;
+import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.ApplicationStatus;
+import uk.gov.justice.laa.rcw.model.ClientDetails;
+import uk.gov.justice.laa.rcw.model.Declaration;
+import uk.gov.justice.laa.rcw.model.Evidence;
 
 /** Generator for an Application model for tests. */
 public class ApplicationGenerator {
