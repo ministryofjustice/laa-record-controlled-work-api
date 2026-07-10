@@ -55,7 +55,7 @@ dependencies {
 
     implementation 'ch.qos.logback:logback-core:1.5.37'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.23'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
     implementation 'org.mapstruct:mapstruct:1.6.3'
