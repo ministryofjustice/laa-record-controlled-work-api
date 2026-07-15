@@ -36,7 +36,7 @@ logging:
   level:
     root: ${ROOT_LOGGING_LEVEL:info}
     org.springframework: ${SPRING_LOGGING_LEVEL:info}
-    org.springframework.web.filter.CommonsRequestLoggingFilter: ${REQUEST_LOGGING_LEVEL:info}
+    org.springframework.boot.actuate: warn
     uk.gov.justice.laa.springboot.microservice: ${APP_LOGGING_LEVEL:info}
     uk.gov.justice.laa.rcw: ${APP_LOGGING_LEVEL:info}
   structured:
@@ -72,7 +72,6 @@ logging:
   level:
     root: ${ROOT_LOGGING_LEVEL:info}
     org.springframework: ${SPRING_LOGGING_LEVEL:info}
-    org.springframework.web.filter.CommonsRequestLoggingFilter: ${REQUEST_LOGGING_LEVEL:debug}
     uk.gov.justice.laa.springboot.microservice: ${APP_LOGGING_LEVEL:info}
     uk.gov.justice.laa.rcw: ${APP_LOGGING_LEVEL:info}
   structured:

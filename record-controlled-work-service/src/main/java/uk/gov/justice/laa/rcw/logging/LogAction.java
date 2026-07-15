@@ -12,6 +12,7 @@ public final class LogAction {
   public static final String APPLICATION_ERROR = "application.error";
 
   // Request actions
+  public static final String REQUEST_RECEIVED = "request.received";
   public static final String REQUEST_INVALID = "request.invalid";
   public static final String REQUEST_VALIDATION_FAILED = "request.validation-failed";
 }
