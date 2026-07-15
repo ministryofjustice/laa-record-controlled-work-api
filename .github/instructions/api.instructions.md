@@ -1,5 +1,4 @@
 ---
-description: "Use when modifying the OpenAPI specification, adding endpoints, or working with generated code. Covers API-first workflow, versioning, and regeneration."
 applyTo: "**/open-api-specification.yml"
 ---
 
