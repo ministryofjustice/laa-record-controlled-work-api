@@ -543,6 +543,7 @@ components:
       type: string
       enum:
         - DRAFT
+        - COMPLETE
 
 
     Item:

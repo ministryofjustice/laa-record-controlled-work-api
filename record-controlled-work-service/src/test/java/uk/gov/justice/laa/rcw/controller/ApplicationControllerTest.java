@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static uk.gov.justice.laa.rcw.model.ApplicationStatus.DRAFT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -72,9 +71,7 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsEmptyListWhenNoApplications() throws Exception {
-    when(mockApplicationService.getApplications(
-            1, 1, UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"), DRAFT))
-        .thenReturn(List.of());
+    when(mockApplicationService.getApplications(any(), any(), any(), any())).thenReturn(List.of());
 
     mockMvc
         .perform(get("/api/v1/applications"))

@@ -52,7 +52,7 @@ public class ApplicationService {
     return List.of(
         ApplicationOverview.builder()
             .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-            .name("In Progress Name")
+            .name("Hey im Recorded")
             .modifiedAt(OffsetDateTime.now())
             .applicationRefNumber("CW-111111")
             .build());
@@ -115,9 +115,9 @@ public class ApplicationService {
     return Optional.of(
         Application.builder()
             .id(applicationId)
-            .individualLegalAidNumber(UUID.randomUUID())
+            .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
             .providerFirmId(UUID.randomUUID())
-            .providerOfficeId(UUID.randomUUID())
+            .providerOfficeId(UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e"))
             .createdAt(OffsetDateTime.now())
             .createdBy("Random User")
             .clientDetails(clientDetails)
