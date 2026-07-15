@@ -1,6 +1,6 @@
 ---
 description: "Use when writing or modifying tests. Covers test frameworks, test types, naming conventions, and assertion patterns for unit, controller, mapper, and integration tests."
-applyTo: "**/test/**/*.java, **/integrationTest/**/*.java"
+applyTo: "**/test/**/*.java,**/integrationTest/**/*.java"
 ---
 
 # Testing
