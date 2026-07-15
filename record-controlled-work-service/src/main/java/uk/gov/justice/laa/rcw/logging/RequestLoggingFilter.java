@@ -36,7 +36,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
       long duration = System.currentTimeMillis() - startTime;
       log.info()
           .action(LogAction.REQUEST_RECEIVED)
-          .success()
+          .outcome("success")
           .with("http.request.method", method)
           .with("url.path", path)
           .with("http.response.status_code", response.getStatus())

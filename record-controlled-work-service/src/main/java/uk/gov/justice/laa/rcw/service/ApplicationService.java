@@ -53,7 +53,7 @@ public class ApplicationService {
                 .build());
     log.info()
         .action(APPLICATION_LIST)
-        .success()
+        .outcome("success")
         .log("Retrieved {} applications", applications.size());
     return applications;
   }
@@ -129,7 +129,7 @@ public class ApplicationService {
                 .build());
     log.info()
         .action(APPLICATION_FETCH)
-        .success()
+        .outcome("success")
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
     return application;
@@ -152,7 +152,7 @@ public class ApplicationService {
 
     log.info()
         .action(APPLICATION_CREATE)
-        .success()
+        .outcome("success")
         .with("application.id", responseBody.getId())
         .log("Created application {}", responseBody.getId());
     return responseBody;

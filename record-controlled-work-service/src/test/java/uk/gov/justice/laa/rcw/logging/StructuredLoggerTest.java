@@ -37,7 +37,7 @@ class StructuredLoggerTest {
 
   @Test
   void info_emitsAtInfoLevelWithRequiredFields() {
-    log.info().action(APPLICATION_LIST).success().log("Retrieved {} items", 3);
+    log.info().action(APPLICATION_LIST).outcome("success").log("Retrieved {} items", 3);
 
     ILoggingEvent event = singleEvent();
     assertThat(event.getLevel()).isEqualTo(Level.INFO);
@@ -48,14 +48,14 @@ class StructuredLoggerTest {
 
   @Test
   void info_withFailureOutcome_emitsFailure() {
-    log.info().action(APPLICATION_FETCH).failure().log("Degraded path");
+    log.info().action(APPLICATION_FETCH).outcome("failure").log("Degraded path");
 
     assertThat(keyValue(singleEvent(), "event.outcome")).isEqualTo("failure");
   }
 
   @Test
   void warn_emitsAtWarnLevelWithRequiredFields() {
-    log.warn().action(REQUEST_INVALID).failure().log("Invalid request: {}", 99L);
+    log.warn().action(REQUEST_INVALID).outcome("failure").log("Invalid request: {}", 99L);
 
     ILoggingEvent event = singleEvent();
     assertThat(event.getLevel()).isEqualTo(Level.WARN);
@@ -68,7 +68,7 @@ class StructuredLoggerTest {
   void debug_emitsAtDebugLevel() {
     logger.setLevel(Level.DEBUG);
 
-    log.debug().action(APPLICATION_FETCH).success().log("Cache hit for item {}", 7L);
+    log.debug().action(APPLICATION_FETCH).outcome("success").log("Cache hit for item {}", 7L);
 
     ILoggingEvent event = singleEvent();
     assertThat(event.getLevel()).isEqualTo(Level.DEBUG);
@@ -78,7 +78,7 @@ class StructuredLoggerTest {
 
   @Test
   void error_implicitlyUsesFailureOutcome() {
-    log.error().action(APPLICATION_ERROR).log("Something went wrong");
+    log.error().action(APPLICATION_ERROR).outcome("failure").log("Something went wrong");
 
     ILoggingEvent event = singleEvent();
     assertThat(event.getLevel()).isEqualTo(Level.ERROR);
@@ -90,7 +90,7 @@ class StructuredLoggerTest {
   void error_withCause_attachesThrowableAndImpliesFailure() {
     RuntimeException cause = new RuntimeException("database unavailable");
 
-    log.error(cause).action(APPLICATION_ERROR).log("Unexpected error");
+    log.error(cause).action(APPLICATION_ERROR).outcome("failure").log("Unexpected error");
 
     ILoggingEvent event = singleEvent();
     assertThat(event.getLevel()).isEqualTo(Level.ERROR);
@@ -103,7 +103,7 @@ class StructuredLoggerTest {
   void with_includesExtraKeyValuePairs() {
     log.info()
         .action(APPLICATION_FETCH)
-        .success()
+        .outcome("success")
         .with("item.id", 42L)
         .with("http.response.status_code", 200)
         .log("Retrieved item");
@@ -117,7 +117,7 @@ class StructuredLoggerTest {
   void with_preservesInsertionOrder() {
     log.info()
         .action(APPLICATION_FETCH)
-        .success()
+        .outcome("success")
         .with("first", 1)
         .with("second", 2)
         .with("third", 3)

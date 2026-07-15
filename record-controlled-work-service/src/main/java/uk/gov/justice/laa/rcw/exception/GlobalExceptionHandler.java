@@ -50,7 +50,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       @NonNull WebRequest request) {
     log.warn()
         .action(REQUEST_INVALID)
-        .failure()
+        .outcome("failure")
         .with("http.response.status_code", BAD_REQUEST.value())
         .with("url.path", getRequestPath(request))
         .log("Invalid request content");
@@ -65,7 +65,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       @NonNull WebRequest request) {
     log.warn()
         .action(REQUEST_VALIDATION_FAILED)
-        .failure()
+        .outcome("failure")
         .with("http.response.status_code", BAD_REQUEST.value())
         .with("url.path", getRequestPath(request))
         .log("Validation failed: {} error(s)", exception.getBindingResult().getErrorCount());
@@ -82,6 +82,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<String> handleGenericException(Exception exception) {
     log.error(exception)
         .action(APPLICATION_ERROR)
+        .outcome("failure")
         .with("http.response.status_code", INTERNAL_SERVER_ERROR.value())
         .log("An unexpected application error has occurred");
     return ResponseEntity.internalServerError()
