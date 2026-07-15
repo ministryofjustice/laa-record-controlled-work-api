@@ -49,8 +49,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   @Test
   void shouldCreateApplication() throws Exception {
 
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithoutName(null);
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
+
     mockMvc
         .perform(
             post("/api/v1/applications")
