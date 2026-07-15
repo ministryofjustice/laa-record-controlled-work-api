@@ -58,6 +58,11 @@ dependencies {
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-17972608
+    implementation 'tools.jackson.core:jackson-databind:3.1.5'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-17972609
+
     implementation 'org.mapstruct:mapstruct:1.6.3'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
