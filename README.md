@@ -62,10 +62,14 @@ project.ext.gitPackageKey = PAT_CREATED_ABOVE
 
 Go back to Github to authorize MOJ for SSO
 
-### Database scripts
+### Bruno Collection
 
-TODO
-The \*.sql scripts in `src/main/resources` have been included to provide an example database for demonstration purposes only and should be removed for your application.
+Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing
+
+For ease of use, a collection was added to the repo which can be opened through [Bruno](https://www.usebruno.com/) .
+
+This can be done by opening the collection located in the `bruno-collection` folder.
+you can also add the open
 
 ## Build And Run Application
 
@@ -187,27 +191,5 @@ sentry:
   environment: <configure environment name here>
 ```
 
-## Libraries Used
-
-- [Spring Boot Actuator](https://docs.spring.io/spring-boot/reference/actuator/index.html) - used to provide various endpoints to help monitor the application, such as view application health and information.
-- [Spring Boot Web](https://docs.spring.io/spring-boot/reference/web/index.html) - used to provide features for building the REST API implementation.
-- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/reference/jpa.html) - used to simplify database access and interaction, by providing an abstraction over persistence technologies, to help reduce boilerplate code.
-- [Springdoc OpenAPI](https://springdoc.org/) - used to generate OpenAPI documentation. It automatically generates Swagger UI, JSON documentation based on your Spring REST APIs.
-- used to capture application exception events at runtime, which can be monitored via the Sentry UI.
-- [Lombok](https://projectlombok.org/) - used to help to reduce boilerplate Java code by automatically generating common
-  methods like getters, setters, constructors etc. at compile-time using annotations.
-- [MapStruct](https://mapstruct.org/) - used for object mapping, specifically for converting between different Java object types, such as Data Transfer Objects (DTOs)
-  and Entity objects. It generates mapping code at compile code.
-- [H2](https://www.h2database.com/html/main.html) - used to provide an example database and should not be used in production.
-- [Sentry for Java SDK](https://docs.sentry.io/platforms/java/) - used to capture application exception events at runtime, which can be monitored via the Sentry UI.
-
-## ⚠️ Temporary Dependency Overrides
-
-The following Gradle dependency overrides are **temporary** and should be removed once the dependency versions are
-available in a future `laa-spring-boot-common` release.
-
-| Dependency                                  | Overridden Version | Reason                                                                                                                                    | Date Added |
-| ------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `com.fasterxml.jackson.core:jackson-core`   | `2.21.2`           | Fixes Snyk issue - [SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551](https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-15907551) | 2026-04-30 |
-| `org.apache.tomcat.embed:tomcat-embed-core` | `11.0.21`          | Fixes Snyk issues - [SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-15989820)      | 2026-04-30 |
-| `tools.jackson.core:jackson-core`           | `3.1.1`            | Fixes Snyk issue - [SNYK-JAVA-TOOLSJACKSONCORE-15907550](https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-15907550)               | 2026-04-30 |
+### Patterns and practices
+See [patterns and practices](docs/patterns-and-practices.md) for more information.

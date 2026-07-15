@@ -3,8 +3,7 @@ services:
     build:
       context: .
       secrets:
-        - github_actor
-        - github_token
+        - git_token
     ports:
       - "8081:8081"
       - "8181:8181"
@@ -15,7 +14,5 @@ services:
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 
 secrets:
-  github_actor:
-    environment: GITHUB_ACTOR
-  github_token:
+  git_token:
     environment: GITHUB_TOKEN

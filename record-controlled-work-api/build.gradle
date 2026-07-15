@@ -1,5 +1,5 @@
 plugins {
-    id 'org.openapi.generator' version '7.21.0'
+    id 'org.openapi.generator' version '7.23.0'
     id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin'
 }
 
@@ -21,6 +21,7 @@ openApiGenerate {
     generatorName = "spring"
     inputSpec = "$rootDir/record-controlled-work-api/open-api-specification.yml".toString()
     outputDir = "$rootDir/record-controlled-work-api/generated".toString()
+    cleanupOutput = true
     apiPackage = "uk.gov.justice.laa.rcw.api"
     invokerPackage = "uk.gov.justice.laa.rcw.invoker"
     modelPackage = "uk.gov.justice.laa.rcw.model"

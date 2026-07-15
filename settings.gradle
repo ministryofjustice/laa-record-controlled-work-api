@@ -4,7 +4,7 @@ pluginManagement {
             name = "gitHubPackages"
             url = 'https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common'
             credentials {
-                username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser')
+                username = System.getenv("GITHUB_ACTOR")?.trim() ?: settings.ext.find('project.ext.gitPackageUser') ?: 'x-token'
                 password = System.getenv("GITHUB_TOKEN")?.trim() ?: settings.ext.find('project.ext.gitPackageKey')
             }
         }
@@ -13,9 +13,9 @@ pluginManagement {
     }
 
     plugins {
-        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.2.6'
-        id 'org.openapi.generator' version '7.21.0'
-        id 'io.freefair.lombok' version '9.4.0'
+        id 'uk.gov.laa.springboot.laa-spring-boot-gradle-plugin' version '2.3.4'
+        id 'org.openapi.generator' version '7.23.0'
+        id 'io.freefair.lombok' version '9.5.0'
     }
 }
 

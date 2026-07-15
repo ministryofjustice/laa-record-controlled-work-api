@@ -1,5 +1,5 @@
 # Build stage
-FROM amazoncorretto:25-alpine AS builder
+FROM amazoncorretto:25.0.3-alpine@sha256:32d81edae73e1670244827c2f12e5bcf0d335f035b538455fe9d02eb0771d41b AS builder
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -9,14 +9,13 @@ COPY gradle/ gradle/
 COPY record-controlled-work-api/ record-controlled-work-api/
 COPY record-controlled-work-service/ record-controlled-work-service/
 
-RUN --mount=type=secret,id=github_actor \
-    --mount=type=secret,id=github_token \
-    export GITHUB_ACTOR=$(cat /run/secrets/github_actor) && \
-    export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+RUN --mount=type=secret,id=git_token \
+    export GITHUB_TOKEN=$(cat /run/secrets/git_token) && \
+    export GITHUB_ACTOR=x-token && \
     chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
-FROM amazoncorretto:25-alpine
+FROM amazoncorretto:25.0.3-alpine@sha256:32d81edae73e1670244827c2f12e5bcf0d335f035b538455fe9d02eb0771d41b
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/
