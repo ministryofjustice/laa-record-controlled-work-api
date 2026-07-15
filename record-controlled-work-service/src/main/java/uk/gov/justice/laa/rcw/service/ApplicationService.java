@@ -30,21 +30,31 @@ public class ApplicationService {
    *
    * @return the list of Applications
    */
-  public List<ApplicationOverview> getApplications() {
+  public List<ApplicationOverview> getApplications(
+      Integer page, Integer size, UUID officeId, ApplicationStatus status) {
     log.info("Retrieving all applications");
     // TODO: replace with downstream API call
+    if (status == ApplicationStatus.DRAFT) {
+      return List.of(
+          ApplicationOverview.builder()
+              .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
+              .name("Random Name")
+              .modifiedAt(OffsetDateTime.now())
+              .applicationRefNumber("CW-111111")
+              .build(),
+          ApplicationOverview.builder()
+              .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+              .name("Other Random Name")
+              .modifiedAt(OffsetDateTime.now())
+              .applicationRefNumber("CW-222222")
+              .build());
+    }
     return List.of(
         ApplicationOverview.builder()
             .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-            .name("Random Name")
+            .name("In Progress Name")
             .modifiedAt(OffsetDateTime.now())
             .applicationRefNumber("CW-111111")
-            .build(),
-        ApplicationOverview.builder()
-            .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-            .name("Other Random Name")
-            .modifiedAt(OffsetDateTime.now())
-            .applicationRefNumber("CW-222222")
             .build());
   }
 

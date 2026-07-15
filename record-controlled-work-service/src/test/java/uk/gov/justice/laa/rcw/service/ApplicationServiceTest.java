@@ -11,6 +11,7 @@ import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationStatus;
 
 class ApplicationServiceTest {
 
@@ -28,7 +29,9 @@ class ApplicationServiceTest {
                         .modifiedAt(OffsetDateTime.now())
                         .applicationRefNumber("CW-222222")));
 
-    List<ApplicationOverview> result = applicationService.getApplications();
+    List<ApplicationOverview> result =
+        applicationService.getApplications(
+            1, 1, UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"), ApplicationStatus.DRAFT);
 
     assertThat(result)
         .usingRecursiveComparison()

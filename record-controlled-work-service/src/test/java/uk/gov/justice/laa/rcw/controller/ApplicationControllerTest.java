@@ -1,12 +1,14 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.justice.laa.rcw.model.ApplicationStatus.DRAFT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -50,7 +52,8 @@ class ApplicationControllerTest {
                             .modifiedAt(OffsetDateTime.now()))
                 .applicationRefNumber("CW-222222"));
 
-    when(mockApplicationService.getApplications()).thenReturn(applications);
+    when(mockApplicationService.getApplications(any(), any(), any(), any()))
+        .thenReturn(applications);
 
     mockMvc
         .perform(get("/api/v1/applications"))
@@ -69,7 +72,9 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsEmptyListWhenNoApplications() throws Exception {
-    when(mockApplicationService.getApplications()).thenReturn(List.of());
+    when(mockApplicationService.getApplications(
+            1, 1, UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"), DRAFT))
+        .thenReturn(List.of());
 
     mockMvc
         .perform(get("/api/v1/applications"))
