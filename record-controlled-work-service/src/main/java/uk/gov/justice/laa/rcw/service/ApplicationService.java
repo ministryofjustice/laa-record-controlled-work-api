@@ -35,22 +35,35 @@ public class ApplicationService {
    *
    * @return the list of Applications
    */
-  public List<ApplicationOverview> getApplications() {
+  public List<ApplicationOverview> getApplications(
+      Integer page, Integer size, UUID officeId, ApplicationStatus status) {
     // TODO: replace with downstream API call
-    List<ApplicationOverview> applications =
-        List.of(
-            ApplicationOverview.builder()
-                .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-                .name("Random Name")
-                .modifiedAt(OffsetDateTime.now())
-                .applicationRefNumber("CW-111111")
-                .build(),
-            ApplicationOverview.builder()
-                .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-                .name("Other Random Name")
-                .modifiedAt(OffsetDateTime.now())
-                .applicationRefNumber("CW-222222")
-                .build());
+    List<ApplicationOverview> applications;
+    if (status == ApplicationStatus.DRAFT) {
+      applications =
+          List.of(
+              ApplicationOverview.builder()
+                  .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
+                  .name("Random Name")
+                  .modifiedAt(OffsetDateTime.now())
+                  .applicationRefNumber("CW-111111")
+                  .build(),
+              ApplicationOverview.builder()
+                  .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+                  .name("Other Random Name")
+                  .modifiedAt(OffsetDateTime.now())
+                  .applicationRefNumber("CW-222222")
+                  .build());
+    } else {
+      applications =
+          List.of(
+              ApplicationOverview.builder()
+                  .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
+                  .name("Hey im Recorded")
+                  .modifiedAt(OffsetDateTime.now())
+                  .applicationRefNumber("CW-111111")
+                  .build());
+    }
     log.info()
         .action(APPLICATION_LIST)
         .outcome("success")
@@ -115,9 +128,9 @@ public class ApplicationService {
         Optional.of(
             Application.builder()
                 .id(applicationId)
-                .individualLegalAidNumber(UUID.randomUUID())
+                .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
                 .providerFirmId(UUID.randomUUID())
-                .providerOfficeId(UUID.randomUUID())
+                .providerOfficeId(UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e"))
                 .createdAt(OffsetDateTime.now())
                 .createdBy("Random User")
                 .clientDetails(clientDetails)

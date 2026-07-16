@@ -7,7 +7,20 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/applications"
+  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{$randomUUID}}&status=DRAFT"
+  params:
+    - name: size
+      value: "1"
+      type: query
+    - name: page
+      value: "1"
+      type: query
+    - name: officeId
+      value: "{{$randomUUID}}"
+      type: query
+    - name: status
+      value: DRAFT
+      type: query
   auth: inherit
 
 runtime:

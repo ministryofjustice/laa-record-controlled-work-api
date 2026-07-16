@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,7 +51,8 @@ class ApplicationControllerTest {
                             .modifiedAt(OffsetDateTime.now()))
                 .applicationRefNumber("CW-222222"));
 
-    when(mockApplicationService.getApplications()).thenReturn(applications);
+    when(mockApplicationService.getApplications(any(), any(), any(), any()))
+        .thenReturn(applications);
 
     mockMvc
         .perform(get("/api/v1/applications"))
@@ -69,7 +71,7 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsEmptyListWhenNoApplications() throws Exception {
-    when(mockApplicationService.getApplications()).thenReturn(List.of());
+    when(mockApplicationService.getApplications(any(), any(), any(), any())).thenReturn(List.of());
 
     mockMvc
         .perform(get("/api/v1/applications"))
