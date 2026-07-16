@@ -1,10 +1,14 @@
 package uk.gov.justice.laa.rcw.exception;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_ERROR;
+import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_INVALID;
+import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_VALIDATION_FAILED;
 
 import java.net.URI;
-import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -16,11 +20,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** The global exception handler for all exceptions. */
 @RestControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+  private static final StructuredLogger log = StructuredLogger.of(GlobalExceptionHandler.class);
   private static final URI DEFAULT_PROBLEM_TYPE = URI.create("about:blank");
 
   /**
@@ -38,19 +44,31 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   @Override
   protected ResponseEntity<Object> handleHttpMessageNotReadable(
-      HttpMessageNotReadableException exception,
-      HttpHeaders headers,
-      HttpStatusCode status,
-      WebRequest request) {
+      @NonNull HttpMessageNotReadableException exception,
+      @NonNull HttpHeaders headers,
+      @NonNull HttpStatusCode status,
+      @NonNull WebRequest request) {
+    log.warn()
+        .action(REQUEST_INVALID)
+        .outcome("failure")
+        .with("http.response.status_code", BAD_REQUEST.value())
+        .with("url.path", getRequestPath(request))
+        .log("Invalid request content");
     return handleInvalidRequestContent(exception, headers, request);
   }
 
   @Override
   protected ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException exception,
-      HttpHeaders headers,
-      HttpStatusCode status,
-      WebRequest request) {
+      @NonNull HttpHeaders headers,
+      @NonNull HttpStatusCode status,
+      @NonNull WebRequest request) {
+    log.warn()
+        .action(REQUEST_VALIDATION_FAILED)
+        .outcome("failure")
+        .with("http.response.status_code", BAD_REQUEST.value())
+        .with("url.path", getRequestPath(request))
+        .log("Validation failed: {} error(s)", exception.getBindingResult().getErrorCount());
     return handleInvalidRequestContent(exception, headers, request);
   }
 
@@ -62,9 +80,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<String> handleGenericException(Exception exception) {
-    String logMessage = "An unexpected application error has occurred.";
-    log.error(logMessage, exception);
-    return ResponseEntity.internalServerError().body(logMessage);
+    log.error(exception)
+        .action(APPLICATION_ERROR)
+        .outcome("failure")
+        .with("http.response.status_code", INTERNAL_SERVER_ERROR.value())
+        .log("An unexpected application error has occurred");
+    return ResponseEntity.internalServerError()
+        .body("An unexpected application error has occurred.");
   }
 
   private ResponseEntity<Object> handleInvalidRequestContent(
@@ -88,5 +110,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       return URI.create(servletWebRequest.getRequest().getRequestURI());
     }
     return URI.create("");
+  }
+
+  private String getRequestPath(WebRequest request) {
+    if (request instanceof ServletWebRequest servletWebRequest) {
+      return servletWebRequest.getRequest().getRequestURI();
+    }
+    return "";
   }
 }

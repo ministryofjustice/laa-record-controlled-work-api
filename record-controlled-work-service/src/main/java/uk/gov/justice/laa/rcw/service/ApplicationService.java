@@ -1,13 +1,17 @@
 package uk.gov.justice.laa.rcw.service;
 
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
@@ -21,9 +25,10 @@ import uk.gov.justice.laa.rcw.model.Evidence;
 import uk.gov.justice.laa.rcw.model.EvidenceStatus;
 
 /** Service class for handling Application requests. */
-@Slf4j
 @Service
 public class ApplicationService {
+
+  private static final StructuredLogger log = StructuredLogger.of(ApplicationService.class);
 
   /**
    * Gets all Applications.
@@ -31,21 +36,26 @@ public class ApplicationService {
    * @return the list of Applications
    */
   public List<ApplicationOverview> getApplications() {
-    log.info("Retrieving all applications");
     // TODO: replace with downstream API call
-    return List.of(
-        ApplicationOverview.builder()
-            .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-            .name("Random Name")
-            .modifiedAt(OffsetDateTime.now())
-            .applicationRefNumber("CW-111111")
-            .build(),
-        ApplicationOverview.builder()
-            .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-            .name("Other Random Name")
-            .modifiedAt(OffsetDateTime.now())
-            .applicationRefNumber("CW-222222")
-            .build());
+    List<ApplicationOverview> applications =
+        List.of(
+            ApplicationOverview.builder()
+                .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
+                .name("Random Name")
+                .modifiedAt(OffsetDateTime.now())
+                .applicationRefNumber("CW-111111")
+                .build(),
+            ApplicationOverview.builder()
+                .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+                .name("Other Random Name")
+                .modifiedAt(OffsetDateTime.now())
+                .applicationRefNumber("CW-222222")
+                .build());
+    log.info()
+        .action(APPLICATION_LIST)
+        .outcome("success")
+        .log("Retrieved {} applications", applications.size());
+    return applications;
   }
 
   /**
@@ -54,7 +64,6 @@ public class ApplicationService {
    * @return {@link Optional} of {@link Application}
    */
   public Optional<Application> getApplication(UUID applicationId) {
-    log.info("Retrieving application");
     // TODO: replace with downstream API call
 
     Address address =
@@ -102,21 +111,28 @@ public class ApplicationService {
             .modifiedBy("James Bloggs")
             .build();
 
-    return Optional.of(
-        Application.builder()
-            .id(applicationId)
-            .individualLegalAidNumber(UUID.randomUUID())
-            .providerFirmId(UUID.randomUUID())
-            .providerOfficeId(UUID.randomUUID())
-            .createdAt(OffsetDateTime.now())
-            .createdBy("Random User")
-            .clientDetails(clientDetails)
-            .applicationStatus(ApplicationStatus.DRAFT)
-            .declaration(declaration)
-            .evidence(evidence)
-            .modifiedAt(OffsetDateTime.now())
-            .modifiedBy("Random User")
-            .build());
+    Optional<Application> application =
+        Optional.of(
+            Application.builder()
+                .id(applicationId)
+                .individualLegalAidNumber(UUID.randomUUID())
+                .providerFirmId(UUID.randomUUID())
+                .providerOfficeId(UUID.randomUUID())
+                .createdAt(OffsetDateTime.now())
+                .createdBy("Random User")
+                .clientDetails(clientDetails)
+                .applicationStatus(ApplicationStatus.DRAFT)
+                .declaration(declaration)
+                .evidence(evidence)
+                .modifiedAt(OffsetDateTime.now())
+                .modifiedBy("Random User")
+                .build());
+    log.info()
+        .action(APPLICATION_FETCH)
+        .outcome("success")
+        .with("application.id", applicationId)
+        .log("Retrieved application {}", applicationId);
+    return application;
   }
 
   /**
@@ -134,6 +150,11 @@ public class ApplicationService {
 
     responseBody.id(UUID.fromString("69e24085-60f9-43c5-9574-7544502f6905"));
 
+    log.info()
+        .action(APPLICATION_CREATE)
+        .outcome("success")
+        .with("application.id", responseBody.getId())
+        .log("Created application {}", responseBody.getId());
     return responseBody;
   }
 }
