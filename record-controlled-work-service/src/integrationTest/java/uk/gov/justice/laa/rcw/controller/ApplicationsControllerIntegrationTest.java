@@ -7,19 +7,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.transaction.annotation.Transactional;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
+import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExtensions;
 
 @SpringBootTest(classes = SpringBootMicroserviceApplication.class)
-@AutoConfigureMockMvc
-@Transactional
+@ExtensionMethod(MockHttpServletRequestBuilderExtensions.class)
 class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   @Test
