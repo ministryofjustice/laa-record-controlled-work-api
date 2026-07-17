@@ -12,9 +12,6 @@ http:
 
 runtime:
   scripts:
-    - type: before-request
-      code: |-
-        await bru.runRequest("Get Local Token")
     - type: tests
       code: |-
         test("should be 200 response", function () {

@@ -108,6 +108,6 @@ laa:
       resourceserver:
         jwt:
           tenants:
-            - issuer-uri: http://localhost:9090/default
+            - issuer-uri: ${MOCK_ISSUER:http://localhost:9090/default}
               audiences:
-                - default
+                - ${MOCK_AUDIENCE:default}

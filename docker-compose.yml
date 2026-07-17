@@ -15,8 +15,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - LAA_OAUTH2_ISSUER_URI=http://host.docker.internal:9090/default
-      - LAA_OAUTH2_AUDIENCE=default
+      - MOCK_ISSUER=http://host.docker.internal:9090/default
+      - MOCK_AUDIENCE=default
       - SERVER_PORT=8081
       - SPRING_PROFILES_ACTIVE=local
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
