@@ -1,0 +1,26 @@
+info:
+  name: Get Local Token
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{oauthTokenUrl}}"
+  body:
+    type: form-urlencoded
+    data:
+      - name: grant_type
+        value: client_credentials
+      - name: client_id
+        value: local-dev-client
+      - name: client_secret
+        value: local-dev-secret
+      - name: audience
+        value: default
+  auth: none
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        bru.setEnvVar("accessToken", res.getBody().access_token);

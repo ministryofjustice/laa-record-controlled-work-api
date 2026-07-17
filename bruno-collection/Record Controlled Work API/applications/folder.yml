@@ -4,4 +4,26 @@ info:
   seq: 1
 
 request:
-  auth: inherit
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+
+runtime:
+  scripts:
+    - type: pre-request
+      code: |-
+        const tokenUrl = bru.getEnvVar("oauthTokenUrl");
+        try {
+          const response = await bru.sendRequest({
+            method: "POST",
+            url: tokenUrl,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            data: "grant_type=client_credentials&client_id=local-dev-client&client_secret=local-dev-secret&audience=default"
+          });
+          console.log("Token response status:", response.status);
+          console.log("Token response data:", JSON.stringify(response.data));
+          bru.setEnvVar("accessToken", response.data.access_token);
+          console.log("accessToken set to:", bru.getEnvVar("accessToken"));
+        } catch (e) {
+          console.log("Token fetch failed:", e.message);
+        }

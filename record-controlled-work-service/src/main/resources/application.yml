@@ -110,4 +110,4 @@ laa:
           tenants:
             - issuer-uri: http://localhost:9090/default
               audiences:
-                - local-dev-audience
+                - default

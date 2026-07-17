@@ -2,3 +2,5 @@ name: local
 variables:
   - name: baseUrl
     value: http://localhost:8081
+  - name: oauthTokenUrl
+    value: http://host.docker.internal:9090/default/token
