@@ -5,6 +5,8 @@ plugins {
     id 'com.diffplug.spotless' version "8.8.0"
 }
 
+apply from: "$rootDir/dependency-overrides.gradle"
+
 // Replaces application.yml @version@  with version from gradle.properties
 processResources {
     filesMatching('application.yml') {
@@ -50,18 +52,6 @@ dependencies {
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
 
     implementation 'org.apache.commons:commons-lang3:3.20.0'
-
-    // Vulnerable transient dependencies override
-
-    implementation 'ch.qos.logback:logback-core:1.5.37'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-17972608
-    implementation 'tools.jackson.core:jackson-databind:3.1.5'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-17972609
 
     implementation 'org.mapstruct:mapstruct:1.6.3'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'

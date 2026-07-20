@@ -1,5 +1,6 @@
 {
   "extends": ["github>ministryofjustice/devsecops-actions"],
+  "ignorePaths": ["dependency-overrides.gradle"],
   "schedule": [
     "after 10pm every weekday",
     "every weekend",
