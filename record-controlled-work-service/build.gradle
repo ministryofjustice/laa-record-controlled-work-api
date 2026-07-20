@@ -5,7 +5,7 @@ plugins {
     id 'com.diffplug.spotless' version "8.8.0"
 }
 
-apply from: "$rootDir/dependency-overrides.gradle"
+apply from: "$rootDir/record-controlled-work-service/dependency-overrides.gradle"
 
 // Replaces application.yml @version@  with version from gradle.properties
 processResources {
