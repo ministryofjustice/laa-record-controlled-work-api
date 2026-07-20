@@ -29,7 +29,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .param("page", "1")
                 .param("size", "1")
                 .param("officeId", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-                .param("status", "DRAFT"))
+                .param("status", "DRAFT")
+                .withBearerReadToken())
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.*", hasSize(2)));
@@ -38,7 +39,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   @Test
   void shouldGetApplication() throws Exception {
     mockMvc
-        .perform(get("/api/v1/applications/a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
+        .perform(
+            get("/api/v1/applications/a1b2c3d4-e5f6-7890-abcd-ef1234567890").withBearerReadToken())
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
@@ -53,6 +55,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(
             post("/api/v1/applications")
+                .withBearerReadToken()
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(request))
                 .accept(MediaType.APPLICATION_JSON))

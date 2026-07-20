@@ -1,4 +1,4 @@
-.PHONY: setup-hooks build generate lint lint-build integration run dev docker-up dep-insight
+.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up dep-insight
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -16,6 +16,8 @@ lint-build: lint build
 
 integration:
 	./gradlew integrationTest
+
+test: lint-build integration
 
 run:
 	./gradlew bootRun
