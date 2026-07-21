@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.generator;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.Address;
@@ -28,7 +29,9 @@ public class ClientDetailsGenerator {
             .niNumber("QQ123456C")
             .hasFixedAddress(true)
             .address(address)
-            .dateOfBirth(LocalDate.of(1990, 1, 1));
+            .dateOfBirth(LocalDate.of(1990, 1, 1))
+            .createdAt(OffsetDateTime.now())
+            .modifiedAt(OffsetDateTime.now());
     if (customizer != null) {
       customizer.accept(builder);
     }

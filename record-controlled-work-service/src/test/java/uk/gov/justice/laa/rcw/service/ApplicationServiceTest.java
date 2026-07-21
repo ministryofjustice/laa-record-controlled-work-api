@@ -80,6 +80,8 @@ class ApplicationServiceTest {
             "value.createdAt",
             "value.modifiedAt",
             "value.clientDetails.id",
+            "value.clientDetails.createdAt",
+            "value.clientDetails.modifiedAt",
             "value.clientDetails.address.id",
             "value.clientDetails.address.createdAt",
             "value.clientDetails.address.modifiedAt",
