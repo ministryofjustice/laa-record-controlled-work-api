@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.rcw.generator;
 
-import java.time.LocalDate;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
@@ -9,28 +8,21 @@ public class CreateApplicationRequestGenerator {
 
   public static CreateApplicationRequestBody createWithName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
-    return createApplication(customizer).firstName("Joe").lastName("Bloggs").build();
+    return createApplication(customizer)
+        .clientDetails(ClientDetailsGenerator.createWithName(null))
+        .build();
   }
 
   public static CreateApplicationRequestBody createWithoutName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
-    return createApplication(customizer).build();
+    return createApplication(customizer)
+        .clientDetails(ClientDetailsGenerator.createWithoutName(null))
+        .build();
   }
 
   private static CreateApplicationRequestBody.Builder createApplication(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
-    var builder =
-        CreateApplicationRequestBody.builder()
-            .ecf("false")
-            .legalAidBefore("false")
-            .dateOfBirth(LocalDate.of(2000, 1, 1))
-            .hasNINumber("yes")
-            .niNumber("JN123456D")
-            .haveAHomeAddress("yes")
-            .addressLine1("123 Fake Street")
-            .townOrCity("Manchester")
-            .country("UK")
-            .postcode("TE55TT");
+    var builder = CreateApplicationRequestBody.builder().ecfFlag(false).legalAidBefore("false");
     if (customizer != null) {
       customizer.accept(builder);
     }

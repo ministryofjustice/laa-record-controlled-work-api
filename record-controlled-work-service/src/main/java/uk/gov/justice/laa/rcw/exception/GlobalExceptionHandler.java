@@ -9,6 +9,7 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_VALIDATION_FAILED
 
 import java.net.URI;
 import org.jspecify.annotations.NonNull;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -23,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** The global exception handler for all exceptions. */
+@Profile("!local") // disable local profiles to allow exceptions to propagate for development
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 

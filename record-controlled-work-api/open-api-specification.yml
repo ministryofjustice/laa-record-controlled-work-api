@@ -266,96 +266,36 @@ components:
 
     CreateApplicationRequestBody:
       required:
-        - ecf
+        - ecfFlag
         - legalAidBefore
-        - firstName
-        - lastName
-        - dateOfBirth
-        - hasNINumber
-        - haveAHomeAddress
-        - addressLine1
-        - country
+        - clientDetails
       properties:
-        ecf:
-          type: string
+        ecfFlag:
+          type: boolean
         legalAidBefore:
           type: string
         legalAidLast6Months:
+          type: boolean
+        reasonForReapplication:
           type: string
-        reasonForYes:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        dateOfBirth:
-          type: string
-          format: date
-        hasNINumber:
-          type: string
-        niNumber:
-          type: string
-        haveAHomeAddress:
-          type: string
-        addressLine1:
-          type: string
-        addressLine2:
-          type: string
-        addressLine3:
-          type: string
-        addressLine4:
-          type: string
-        townOrCity:
-          type: string
-        county:
-          type: string
-        postcode:
-          type: string
-        country:
-          type: string
+        clientDetails:
+          $ref: "#/components/schemas/ClientDetails"
 
     CreateApplicationResponseBody:
       properties:
         id:
           type: string
           format: uuid
-        ecf:
-          type: string
+        ecfFlag:
+          type: boolean
         legalAidBefore:
           type: string
         legalAidLast6Months:
+          type: boolean
+        reasonForReapplication:
           type: string
-        reasonForYes:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        dateOfBirth:
-          type: string
-          format: date
-        hasNINumber:
-          type: string
-        niNumber:
-          type: string
-        haveAHomeAddress:
-          type: string
-        addressLine1:
-          type: string
-        addressLine2:
-          type: string
-        addressLine3:
-          type: string
-        addressLine4:
-          type: string
-        townOrCity:
-          type: string
-        county:
-          type: string
-        postcode:
-          type: string
-        country:
-          type: string
+        clientDetails:
+          $ref: "#/components/schemas/ClientDetails"
 
     Applications:
       type: array
@@ -473,6 +413,11 @@ components:
           type: string
 
     ClientDetails:
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - hasFixedAddress
       type: object
       properties:
         id:
