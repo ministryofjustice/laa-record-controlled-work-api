@@ -4,4 +4,10 @@ info:
   seq: 1
 
 request:
-  auth: inherit
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+  scripts:
+    - type: before-request
+      code: |-
+        await bru.runRequest("Get Local Token")

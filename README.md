@@ -73,6 +73,14 @@ you can also add the open
 
 ## Build And Run Application
 
+### Prerequisites
+
+On first setup, add `host.docker.internal` to your `/etc/hosts` (Docker Desktop on Mac does not add this automatically):
+
+```bash
+echo '127.0.0.1 host.docker.internal' | sudo tee -a /etc/hosts
+```
+
 ### Build application
 
 `make build`
@@ -88,6 +96,21 @@ you can also add the open
 ### Run application via Docker
 
 `make docker-up`
+
+To get an access token and call the API locally:
+
+```bash
+TOKEN=$(curl -s -X POST http://host.docker.internal:9090/default/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=test&client_secret=test" \
+  | jq -r .access_token)
+
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/applications
+```
+
+The mock server automatically issues tokens with the `Applications.Read` role for `client_credentials` grants.
+
+Bruno has a pre-request script that enables bruno to generate access token on requests
 
 ### Debug application running via Docker
 
