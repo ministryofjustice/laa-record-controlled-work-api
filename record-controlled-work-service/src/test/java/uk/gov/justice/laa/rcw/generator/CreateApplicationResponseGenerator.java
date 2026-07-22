@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.rcw.generator;
 
-import java.time.LocalDate;
 import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
@@ -18,17 +17,9 @@ public class CreateApplicationResponseGenerator {
     var builder =
         CreateApplicationResponseBody.builder()
             .id(UUID.randomUUID())
-            .ecf("false")
-            .legalAidBefore("false")
-            .firstName("Joe")
-            .lastName("Bloggs")
-            .dateOfBirth(LocalDate.of(2000, 1, 1))
-            .hasNINumber("yes")
-            .niNumber("JN123456D")
-            .haveAHomeAddress("yes")
-            .addressLine1("123 Fake Street")
-            .townOrCity("Manchester")
-            .postcode("TE55TT");
+            .ecfFlag(false)
+            .legalAidBefore("no")
+            .clientDetails(ClientDetailsGenerator.createWithName(null));
     if (customizer != null) {
       customizer.accept(builder);
     }

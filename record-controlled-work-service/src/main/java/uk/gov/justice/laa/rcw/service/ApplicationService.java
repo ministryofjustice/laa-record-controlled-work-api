@@ -94,8 +94,9 @@ public class ApplicationService {
             .id(UUID.randomUUID())
             .firstName("Joe")
             .lastName("Bloggs")
-            .niNumber("AB123456Q")
+            .niNumber("QQ123456C")
             .dateOfBirth(LocalDate.of(1990, 1, 1))
+            .hasFixedAddress(true)
             .address(address)
             .build();
 

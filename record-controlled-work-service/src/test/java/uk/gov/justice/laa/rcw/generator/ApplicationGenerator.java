@@ -18,7 +18,7 @@ public class ApplicationGenerator {
 
   private static Application.Builder createApplication(Consumer<Application.Builder> customizer) {
 
-    ClientDetails clientDetails = ClientDetailsGenerator.create(null);
+    ClientDetails clientDetails = ClientDetailsGenerator.createWithName(null);
     Declaration declaration = DeclarationGenerator.create(null);
     Evidence evidence = EvidenceGenerator.create(null);
 

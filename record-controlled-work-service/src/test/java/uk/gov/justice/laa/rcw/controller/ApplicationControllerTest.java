@@ -127,7 +127,7 @@ class ApplicationControllerTest {
   void createApplication_returnsCreatedStatus_andApplication() throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     CreateApplicationResponseBody response = CreateApplicationResponseGenerator.create(null);
-    when(mockApplicationService.createApplication(request)).thenReturn(response);
+    when(mockApplicationService.createApplication(any())).thenReturn(response);
 
     ObjectMapper mapper =
         new ObjectMapper()
