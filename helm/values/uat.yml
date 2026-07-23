@@ -36,7 +36,8 @@ ingress:
       external-dns.alpha.kubernetes.io/hostname: "laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk"
       external-dns.alpha.kubernetes.io/aws-weight: "100"
       external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-api-green-laa-record-controlled-work-api-uat-green"
-      nginx.ingress.kubernetes.io/whitelist-source-range: "35.176.93.186/32, 18.169.147.172/32, 18.130.148.126/32, 35.176.148.126/32" # Alpha VPN ranges
+      # Alpha VPN ranges - HTTP via ingress only allowed on VPN.
+      nginx.ingress.kubernetes.io/whitelist-source-range: "35.176.93.186/32, 18.169.147.172/32, 18.130.148.126/32, 35.176.148.126/32"
 
 
 podSecurityContext:
