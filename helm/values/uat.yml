@@ -109,9 +109,32 @@ readinessProbe:
   initialDelaySeconds: 30
   periodSeconds: 60
 
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              component: ingress-controllers
+        - namespaceSelector:
+            matchLabels:
+              cloud-platform.justice.gov.uk/namespace: laa-record-controlled-work-uat
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: rcw
+      ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    - to:
+        - namespaceSelector: {}
+
 security:
   podSecurityStandard: baseline
-  networkIsolation: false
+  networkIsolation: true
 
 certificate:
   enabled: false
