@@ -6,6 +6,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 /** Generator for an Application model for tests. */
 public class CreateApplicationRequestGenerator {
 
+  /** Generator Application with name property. */
   public static CreateApplicationRequestBody createWithName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
     return createApplication(customizer)
@@ -13,6 +14,7 @@ public class CreateApplicationRequestGenerator {
         .build();
   }
 
+  /** Generator Application without name property. */
   public static CreateApplicationRequestBody createWithoutName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
     return createApplication(customizer)
