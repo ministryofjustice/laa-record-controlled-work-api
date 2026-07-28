@@ -7,6 +7,8 @@ build/
 .DS_Store
 
 record-controlled-work-api/generated
+record-controlled-work-api/bin
+record-controlled-work-service/bin
 
 ### IntelliJ IDEA ###
 .idea
