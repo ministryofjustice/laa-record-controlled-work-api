@@ -82,11 +82,17 @@ configMap:
 #   # -- Secret mount subPath
 #   subPath: ""
 
-# containerEnvironment:
-#   enabled: true
-#   variables:
-#     APP_ENV: dev
-#     LOG_LEVEL: debug
+containerEnvironment:
+  enabled: true
+  variables:
+    LOG_LEVEL: debug
+  secrets:
+    - name: ISSUER
+      secretName: rcw-api-env-secrets
+      key: ISSUER
+    - name: AUDIENCE
+      secretName: rcw-api-env-secrets
+      key: AUDIENCE
 
 startupProbe:
   httpGet:
