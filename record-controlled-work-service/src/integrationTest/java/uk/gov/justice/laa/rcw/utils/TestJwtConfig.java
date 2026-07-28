@@ -18,6 +18,6 @@ public class TestJwtConfig {
   public JwtDecoder jwtDecoder() {
     return StubJwtDecoder.of(
         new StubJwtToken(
-            ACCESS_TOKEN, "test-user", new String[] {"Applications.Read"}, null, Map.of()));
+            ACCESS_TOKEN, "test-user", null, null, Map.of("scp", "Applications.Read")));
   }
 }
