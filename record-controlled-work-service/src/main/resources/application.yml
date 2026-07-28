@@ -36,7 +36,12 @@ logging:
   level:
     root: ${ROOT_LOGGING_LEVEL:info}
     org.springframework: ${SPRING_LOGGING_LEVEL:info}
+    org.springframework.security: ${SPRING_SECURITY_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2: ${SPRING_SECURITY_OAUTH2_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2.jwt: ${SPRING_SECURITY_OAUTH2_JWT_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2.server.resource: ${SPRING_SECURITY_OAUTH2_SERVER_RESOURCE_LOGGING_LEVEL:debug}
     org.springframework.boot.actuate: warn
+    uk.gov.laa.springboot.oauth2: ${LAA_SPRINGBOOT_OAUTH2_LOGGING_LEVEL:debug}
     uk.gov.justice.laa.springboot.microservice: ${APP_LOGGING_LEVEL:info}
     uk.gov.justice.laa.rcw: ${APP_LOGGING_LEVEL:info}
   structured:
@@ -52,20 +57,21 @@ logging:
 laa:
   springboot.starter:
     oauth2:
+      scopes-claim-path: scp
       resourceserver:
         jwt:
           tenants:
-            - issuer-uri: https://login.microsoftonline.com/${ENTRA_TENNANT_ID:00000000-0000-0000-0000-000000000000}/2.0
+            - issuer-uri: ${ISSUER}
               audiences:
-                - ${ENTRA_API_AUDIENCE:api://placeholder-audience}
-      authorized-roles: '[
-        {
-          "name": "Applications.Read",
-          "uris": [
-            {"method":["GET","POST","PUT","PATCH","DELETE"],"uri":"/api/v1/**"}
-          ]
-        }
-      ]'
+                - ${AUDIENCE}
+      authorized-scopes: '[
+          {
+            "name": "Applications.Read",
+            "uris": [
+              {"method":["GET","POST","PUT","PATCH","DELETE"],"uri":"/api/v1/**"}
+            ]
+          }
+        ]'
       unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
                           "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico",
                           "/open-api-specification.yml" ]
@@ -94,6 +100,11 @@ logging:
   level:
     root: ${ROOT_LOGGING_LEVEL:info}
     org.springframework: ${SPRING_LOGGING_LEVEL:info}
+    org.springframework.security: ${SPRING_SECURITY_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2: ${SPRING_SECURITY_OAUTH2_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2.jwt: ${SPRING_SECURITY_OAUTH2_JWT_LOGGING_LEVEL:debug}
+    org.springframework.security.oauth2.server.resource: ${SPRING_SECURITY_OAUTH2_SERVER_RESOURCE_LOGGING_LEVEL:debug}
+    uk.gov.laa.springboot.oauth2: ${LAA_SPRINGBOOT_OAUTH2_LOGGING_LEVEL:debug}
     uk.gov.justice.laa.springboot.microservice: ${APP_LOGGING_LEVEL:info}
     uk.gov.justice.laa.rcw: ${APP_LOGGING_LEVEL:info}
   structured:
@@ -105,9 +116,10 @@ logging:
 laa:
   springboot.starter:
     oauth2:
+      scopes-claim-path: scp
       resourceserver:
         jwt:
           tenants:
-            - issuer-uri: ${MOCK_ISSUER:http://localhost:9090/default}
+            - issuer-uri: ${ISSUER:http://localhost:9090/default}
               audiences:
-                - ${MOCK_AUDIENCE:default}
+                - ${AUDIENCE:default}
