@@ -21,7 +21,8 @@
           "claims": {
             "aud": "default",
             "roles": [
-              "Applications.Read"
+              "Applications.Read",
+              "Applications.Write"
             ]
           }
         }

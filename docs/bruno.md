@@ -78,9 +78,23 @@ callback URL. Prerequisites:
 With the `local` environment selected, follow [Getting a token](#getting-a-token) as normal. The login
 window that opens is the mock server's debugger page: enter any username/subject and, optionally, add a
 `roles` claim (or any other claim) to simulate whatever enrichment you want to test - the mock server also
-automatically adds `aud: default` and `roles: ["Applications.Read"]` to every authorization_code token
-regardless of what you enter (see `mock-oauth2-config.json`), so a plain sign-in already satisfies the API's
-authorization checks.
+automatically adds `aud: default` and `roles: ["Applications.Read", "Applications.Write"]` to every
+authorization_code token regardless of what you enter (see `mock-oauth2-config.json`), so a plain sign-in
+already satisfies the API's authorization checks.
+
+### Scopes
+
+The API exposes both `Applications.Read` and `Applications.Write`. The folder's `oauthScope` variable
+requests both by default, so the one cached token works for read and write requests alike:
+
+- `local`: the mock server ignores the requested scope string and always issues both roles (see above), so
+  no changes are needed here.
+- `uat`: `oauthScope` in `uat.yml` already lists both `.../Applications.Read` and `.../Applications.Write`.
+
+If you need to test authorization boundaries with a token that's missing one of the scopes (e.g. to confirm
+a write endpoint rejects a read-only token), temporarily edit `oauthScope` down to the single scope you want
+in the environment, then click **Get Access Token** again to refresh the cached token - remember to restore
+it afterwards since it's shared by every request in the folder.
 
 ### UAT secrets
 
