@@ -64,12 +64,13 @@ Go back to Github to authorize MOJ for SSO
 
 ### Bruno Collection
 
-Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing
+Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing.
+A collection is checked into the repo and can be opened through [Bruno](https://www.usebruno.com/) by opening
+the `bruno-collection` folder.
 
-For ease of use, a collection was added to the repo which can be opened through [Bruno](https://www.usebruno.com/) .
-
-This can be done by opening the collection located in the `bruno-collection` folder.
-you can also add the open
+See [docs/bruno.md](docs/bruno.md) for full setup instructions, including how to select an environment,
+fetch an OAuth2 access token for `local`/`uat`, the Entra redirect URI requirement for `uat`, and how to
+inspect a cached token's decoded claims.
 
 ## Build And Run Application
 
@@ -109,8 +110,6 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/applications
 ```
 
 The mock server automatically issues tokens with the `Applications.Read` role for `client_credentials` grants.
-
-Bruno has a pre-request script that enables bruno to generate access token on requests
 
 ### Debug application running via Docker
 

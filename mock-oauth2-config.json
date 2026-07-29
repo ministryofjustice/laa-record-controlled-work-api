@@ -1,5 +1,5 @@
 {
-  "interactiveLogin": false,
+  "interactiveLogin": true,
   "tokenCallbacks": [
     {
       "issuerId": "default",
@@ -10,7 +10,19 @@
           "match": "client_credentials",
           "claims": {
             "aud": "default",
-            "roles": ["Applications.Read"]
+            "roles": [
+              "Applications.Read"
+            ]
+          }
+        },
+        {
+          "requestParam": "grant_type",
+          "match": "authorization_code",
+          "claims": {
+            "aud": "default",
+            "roles": [
+              "Applications.Read"
+            ]
           }
         }
       ]

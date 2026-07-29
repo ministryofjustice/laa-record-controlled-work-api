@@ -2,5 +2,13 @@ name: local
 variables:
   - name: baseUrl
     value: http://localhost:8081
+  - name: oauthAuthorizeUrl
+    value: http://host.docker.internal:9090/default/authorize
   - name: oauthTokenUrl
     value: http://host.docker.internal:9090/default/token
+  - name: oauthClientId
+    value: local-dev-client
+  - name: oauthClientSecret
+    value: local-dev-secret
+  - name: oauthScope
+    value: default
