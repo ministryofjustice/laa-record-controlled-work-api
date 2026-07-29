@@ -445,7 +445,6 @@ components:
 
     Address:
       required:
-        - id
         - addressLine1
         - country
       type: object
