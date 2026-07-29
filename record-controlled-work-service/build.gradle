@@ -11,7 +11,8 @@ repositories {
     maven {
         url = "https://maven.pkg.github.com/ministryofjustice/laa-info-and-advice-datastore"
         credentials {
-            username = project.ext.gitHubPackagesUsername
+            // GitHub Packages only validates the token below - username just needs to be non-empty
+            username = "github-packages"
             password = project.ext.gitHubPackagesPassword
         }
     }
@@ -58,7 +59,8 @@ dependencies {
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
 
-    implementation 'uk.gov.justice.laa.ia.datastore:info-and-advice-datastore-client:0.1.1'
+    // TODO: re-enable once OAuth2AuthorizedClientManager wiring is sorted (see DatastoreApiClientConfiguration) - currently breaks full context tests
+    // implementation 'uk.gov.justice.laa.ia.datastore:info-and-advice-datastore-client:0.1.1'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 

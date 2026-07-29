@@ -60,6 +60,10 @@ project.ext.gitPackageUser = YOUR_GITHUB_USERNAME
 project.ext.gitPackageKey = PAT_CREATED_ABOVE
 ```
 
+Alternatively, you can skip creating that file entirely: the plugin checks the `GITHUB_ACTOR` and `GITHUB_TOKEN` environment variables first, before falling back to `gradle.properties`. Set `GITHUB_ACTOR`/`GITHUB_TOKEN` in [.env](.env) (see the 1Password-backed `GITHUB_TOKEN` entry already there) and run Gradle via `op run --env-file=.env -- ./gradlew <task>`.
+
+> **Note:** The `info-and-advice-datastore-client` dependency in [record-controlled-work-service/build.gradle](record-controlled-work-service/build.gradle) is currently commented out (it needs an `OAuth2AuthorizedClientManager` bean that isn't wired up yet), so a GitHub token isn't required for local builds/tests right now. Once it's re-enabled, since it's a fixed (non-`SNAPSHOT`) version, Gradle caches it locally after the first authenticated resolution and won't need credentials again on later builds - run `make warm-deps` once (or after clearing your Gradle cache/bumping that dependency's version) to authenticate and populate the cache, then `./gradlew test` works without `op run` or `gradle.properties`.
+
 Go back to Github to authorize MOJ for SSO
 
 ### Bruno Collection
