@@ -28,8 +28,7 @@ dev:
 
 docker-build:
 	op run --env-file=.env -- docker build \
-		--secret id=github_actor,env=GITHUB_ACTOR \
-		--secret id=github_token,env=GITHUB_TOKEN \
+		--secret id=git_token,env=GITHUB_TOKEN \
 		-t laa-record-controlled-work-api .
 
 docker-up:

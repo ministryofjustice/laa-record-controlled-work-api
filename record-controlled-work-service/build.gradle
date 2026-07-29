@@ -7,6 +7,16 @@ plugins {
 
 apply from: "$rootDir/record-controlled-work-service/dependency-overrides.gradle"
 
+repositories {
+    maven {
+        url = "https://maven.pkg.github.com/ministryofjustice/laa-info-and-advice-datastore"
+        credentials {
+            username = project.ext.gitHubPackagesUsername
+            password = project.ext.gitHubPackagesPassword
+        }
+    }
+}
+
 // Replaces application.yml @version@  with version from gradle.properties
 processResources {
     filesMatching('application.yml') {
@@ -47,6 +57,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
+
+    implementation 'uk.gov.justice.laa.ia.datastore:info-and-advice-datastore-client:0.1.1'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
 
