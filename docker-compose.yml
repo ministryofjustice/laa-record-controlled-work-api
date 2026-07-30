@@ -12,6 +12,7 @@ services:
       - "5005:5005"
     depends_on:
       - mock-oauth2-server
+      - datastore-api
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -24,6 +25,42 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_SERVER_RESOURCE=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_JWT=DEBUG
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      - DATASTORE_URL=http://datastore-api:8080
+      - DATASTORE_TOKEN_URI=http://host.docker.internal:9090/default/token
+      - DATASTORE_CLIENT_ID=rcw-api
+      - DATASTORE_CLIENT_SECRET=not-used-by-mock-oauth2-server
+
+  datastore-api:
+    container_name: datastore-api
+    build:
+      context: ../laa-info-and-advice-datastore
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - mock-oauth2-server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/laa_info_advice_datastore
+      - DB_USERNAME=laa_user
+      - DB_PASSWORD=laa_password
+      - LAA_OAUTH2_ISSUER_URI=http://host.docker.internal:9090/default
+      - LAA_OAUTH2_AUDIENCE=default
+
+  postgres:
+    image: postgres:18
+    container_name: laa-info-and-advice-datastore
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: laa_info_advice_datastore
+      POSTGRES_USER: laa_user
+      POSTGRES_PASSWORD: laa_password
+    volumes:
+      - /var/lib/postgresql/18/docker
 
   mock-oauth2-server:
     image: ghcr.io/navikt/mock-oauth2-server:2.1.10

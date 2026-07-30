@@ -6,6 +6,12 @@ spring:
     name: laa-record-controlled-work
     version: @version@
 
+  autoconfigure:
+    # we only use OAuth2AuthorizedClientManager programmatically for the datastore OBO exchange,
+    # not Spring's default oauth2Login filter chain, which also breaks @WebMvcTest slices.
+    exclude:
+      - org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration
+
   # example database
   datasource:
     url: jdbc:h2:mem:itemsDb
@@ -17,6 +23,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+
+  security:
+    oauth2:
+      client:
+        registration:
+          datastore:
+            client-id: ${DATASTORE_CLIENT_ID:test-client}
+            client-secret: ${DATASTORE_CLIENT_SECRET:test-secret}
+            authorization-grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
+            scope: DataStore.Access
+        provider:
+          datastore:
+            token-uri: ${DATASTORE_TOKEN_URI:http://localhost:9090/default/token}
 
 management:
   server:
@@ -55,6 +74,11 @@ logging:
         node_name: ${HOSTNAME:unknown}
 
 laa:
+  datastore:
+    client:
+      base-url: ${DATASTORE_URL:http://localhost:8080}
+      client-registration-id: datastore
+
   springboot.starter:
     oauth2:
       scopes-claim-path: scp

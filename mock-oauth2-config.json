@@ -12,7 +12,8 @@
             "aud": "default",
             "roles": [
               "Applications.Read"
-            ]
+            ],
+            "providerFirmId": "942c2013-9a52-4b5d-8531-7749f286af8e"
           }
         },
         {
@@ -23,6 +24,17 @@
             "roles": [
               "Applications.Read",
               "Applications.Write"
+            ],
+            "providerFirmId": "942c2013-9a52-4b5d-8531-7749f286af8e"
+          }
+        },
+        {
+          "requestParam": "grant_type",
+          "match": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+          "claims": {
+            "aud": "default",
+            "roles": [
+              "DataStore.Access"
             ]
           }
         }

@@ -40,7 +40,9 @@ import uk.gov.justice.laa.rcw.service.ApplicationService;
           + "org.springframework.boot.security.oauth2.server.resource"
           + ".autoconfigure.OAuth2ResourceServerAutoConfiguration,"
           + "org.springframework.boot.security.oauth2.server.resource"
-          + ".autoconfigure.web.OAuth2ResourceServerWebSecurityAutoConfiguration"
+          + ".autoconfigure.web.OAuth2ResourceServerWebSecurityAutoConfiguration,"
+          + "org.springframework.boot.security.oauth2.client.autoconfigure.servlet"
+          + ".OAuth2ClientWebSecurityAutoConfiguration"
     })
 class ApplicationControllerTest {
 
