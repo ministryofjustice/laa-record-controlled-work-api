@@ -5,9 +5,20 @@ info:
 
 request:
   auth:
-    type: bearer
-    token: "{{accessToken}}"
-  scripts:
-    - type: before-request
-      code: |-
-        await bru.runRequest("Get Local Token")
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauthAuthorizeUrl}}"
+    accessTokenUrl: "{{oauthTokenUrl}}"
+    callbackUrl: "https://oauth.usebruno.com/callback"
+    credentials:
+      clientId: "{{oauthClientId}}"
+      clientSecret: "{{oauthClientSecret}}"
+    scope: "{{oauthScope}}"
+    pkce: {}
+    tokenConfig:
+      id: applications-token
+      placement:
+        header: Bearer
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: true

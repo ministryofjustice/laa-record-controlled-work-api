@@ -2,3 +2,20 @@ name: uat
 variables:
   - name: baseUrl
     value: laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk
+  - name: entraApiAudience
+    value: https://devlexternal.onmicrosoft.com/laa-record-controlled-work-api-uat
+  - name: oauthAuthorizeUrl
+    value: "https://login.microsoftonline.com/{{entraTenantId}}/oauth2/v2.0/authorize"
+  - name: oauthTokenUrl
+    value: "https://login.microsoftonline.com/{{entraTenantId}}/oauth2/v2.0/token"
+  - name: oauthScope
+    value: "{{entraApiAudience}}/Applications.Read {{entraApiAudience}}/Applications.Write offline_access openid profile"
+  - name: entraTenantId
+    value: "{{process.env.ENTRA_TENANT_ID}}"
+    type: secret
+  - name: oauthClientId
+    value: "{{process.env.ENTRA_CLIENT_ID}}"
+    type: secret
+  - name: oauthClientSecret
+    value: "{{process.env.ENTRA_CLIENT_SECRET}}"
+    type: secret

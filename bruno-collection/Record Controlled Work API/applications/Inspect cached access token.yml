@@ -1,0 +1,40 @@
+info:
+  name: Inspect cached access token
+  type: http
+  seq: 4
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{$randomUUID}}&status=DRAFT"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Decodes the cached OAuth2 access token so its claims can be checked (e.g. enriched claims, aud, roles)
+        // without sending it anywhere. Click "Get Access Token" on the applications folder first if this is empty.
+        const jwt = require("jsonwebtoken");
+
+        // Credential store key format is $oauth2.<tokenConfig.id>.<field> - see folder.yml's tokenConfig.id
+        const token = bru.getOauth2CredentialVar("$oauth2.applications-token.access_token");
+
+        if (!token) {
+          console.warn("No cached access token found - run 'Get Access Token' on the applications folder's Auth tab first.");
+        } else {
+          const decoded = jwt.decode(token, { complete: true });
+
+          console.log("Access token header:", JSON.stringify(decoded.header, null, 2));
+          console.log("Access token claims:", JSON.stringify(decoded.payload, null, 2));
+
+          bru.setVar("decodedAccessTokenHeader", decoded.header);
+          bru.setVar("decodedAccessTokenClaims", decoded.payload);
+        }
+    - type: tests
+      code: |-
+        test("access token should have claims", function () {
+          const claims = bru.getVar("decodedAccessTokenClaims");
+          expect(claims).to.be.an("object");
+        });

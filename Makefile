@@ -1,4 +1,4 @@
-.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up dep-insight
+.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up dep-insight warm-deps
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -28,8 +28,7 @@ dev:
 
 docker-build:
 	op run --env-file=.env -- docker build \
-		--secret id=github_actor,env=GITHUB_ACTOR \
-		--secret id=github_token,env=GITHUB_TOKEN \
+		--secret id=git_token,env=GITHUB_TOKEN \
 		-t laa-record-controlled-work-api .
 
 docker-up:
@@ -37,3 +36,8 @@ docker-up:
 
 dep-insight:
 	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"
+
+# One-off authenticated resolution of GitHub Packages deps, so ./gradlew works unauthenticated afterwards
+# (fixed-version deps stay cached until the Gradle cache is cleared or the version bumps).
+warm-deps:
+	op run --env-file=.env -- ./gradlew compileTestJava

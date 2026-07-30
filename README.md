@@ -60,16 +60,21 @@ project.ext.gitPackageUser = YOUR_GITHUB_USERNAME
 project.ext.gitPackageKey = PAT_CREATED_ABOVE
 ```
 
+Alternatively, you can skip creating that file entirely: the plugin checks the `GITHUB_ACTOR` and `GITHUB_TOKEN` environment variables first, before falling back to `gradle.properties`. Set `GITHUB_ACTOR`/`GITHUB_TOKEN` in [.env](.env) (see the 1Password-backed `GITHUB_TOKEN` entry already there) and run Gradle via `op run --env-file=.env -- ./gradlew <task>`.
+
+> **Note:** The `info-and-advice-datastore-client` dependency in [record-controlled-work-service/build.gradle](record-controlled-work-service/build.gradle) is currently commented out (it needs an `OAuth2AuthorizedClientManager` bean that isn't wired up yet), so a GitHub token isn't required for local builds/tests right now. Once it's re-enabled, since it's a fixed (non-`SNAPSHOT`) version, Gradle caches it locally after the first authenticated resolution and won't need credentials again on later builds - run `make warm-deps` once (or after clearing your Gradle cache/bumping that dependency's version) to authenticate and populate the cache, then `./gradlew test` works without `op run` or `gradle.properties`.
+
 Go back to Github to authorize MOJ for SSO
 
 ### Bruno Collection
 
-Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing
+Bruno is a Git-friendly, offline-first API client built for developers which will enable local api testing.
+A collection is checked into the repo and can be opened through [Bruno](https://www.usebruno.com/) by opening
+the `bruno-collection` folder.
 
-For ease of use, a collection was added to the repo which can be opened through [Bruno](https://www.usebruno.com/) .
-
-This can be done by opening the collection located in the `bruno-collection` folder.
-you can also add the open
+See [docs/bruno.md](docs/bruno.md) for full setup instructions, including how to select an environment,
+fetch an OAuth2 access token for `local`/`uat`, the Entra redirect URI requirement for `uat`, and how to
+inspect a cached token's decoded claims.
 
 ## Build And Run Application
 
@@ -109,8 +114,6 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/applications
 ```
 
 The mock server automatically issues tokens with the `Applications.Read` role for `client_credentials` grants.
-
-Bruno has a pre-request script that enables bruno to generate access token on requests
 
 ### Debug application running via Docker
 
