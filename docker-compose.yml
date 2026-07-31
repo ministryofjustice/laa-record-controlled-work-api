@@ -26,7 +26,9 @@ services:
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_SERVER_RESOURCE=DEBUG
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_JWT=DEBUG
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      # preferIPv4Stack avoids musl's parallel A/AAAA DNS lookups, which can hang/fail for
+      # public hosts (e.g. login.microsoftonline.com) on networks that drop IPv6 DNS queries.
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Djava.net.preferIPv4Stack=true
       - DATASTORE_URL=http://datastore-api:8080
       # RCW -> datastore jwt-bearer (OBO) exchange. Defaults to the mock OAuth2 server;
       # set these in .env to switch to a real Entra app registration (see .env.example).
@@ -54,6 +56,9 @@ services:
       # Defaults to the mock OAuth2 server; set these in .env to switch to Entra (see .env.example).
       - LAA_OAUTH2_ISSUER_URI=${DATASTORE_ENTRA_ISSUER_URI:-http://host.docker.internal:9090/default}
       - LAA_OAUTH2_AUDIENCE=${DATASTORE_ENTRA_AUDIENCE:-default}
+      # preferIPv4Stack avoids musl's parallel A/AAAA DNS lookups, which can hang/fail for
+      # public hosts (e.g. login.microsoftonline.com) on networks that drop IPv6 DNS queries.
+      - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
 
   postgres:
     image: postgres:18
