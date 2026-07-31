@@ -13,8 +13,13 @@ in the top-right of the Bruno window before sending any request:
 - `local` - targets the app running locally (`http://localhost:8081`) and signs in against the
   [mock-oauth2-server](https://github.com/navikt/mock-oauth2-server) started by `make docker-up`.
 - `uat` - targets the deployed UAT environment and signs in against the real Entra ID (Azure AD) dev tenant.
+- `local-entra` - targets the app running locally (`http://localhost:8081`), same as `local`, but signs in
+  against the real Entra dev tenant, same as `uat`. Use this to test the local Docker stack (including the
+  real datastore OBO exchange) with real Entra-issued tokens instead of the mock OAuth2 server. Requires
+  `docker-compose.yml`'s Entra vars to be set (see [.env.example](../.env.example)) before running
+  `make docker-up` - see [README.md](../README.md#run-application-via-docker).
 
-Both environments use the same folder-level OAuth2 config (see below) - only the URLs/credentials the
+All three environments use the same folder-level OAuth2 config (see below) - only the URLs/credentials the
 requests are interpolated from differ, so switching environments does not require any changes to auth setup.
 
 ## How authentication works
@@ -35,6 +40,11 @@ means:
    no button.
 2. Click **Get Access Token**. This button is at the very bottom of the Auth panel, so scroll down if you
    don't see it.
+
+By default this opens the sign-in page in Bruno's embedded browser window. If you'd rather sign in via your
+system's default browser, enable it once in **Preferences** (bottom of Bruno's left sidebar) > **General** >
+**Use System Browser for OAuth2**. This is a global Bruno app preference (not stored in the collection), and
+works with our existing `callbackUrl` without any other changes.
 3. A login window opens against the environment's IdP:
    - `local`: the mock OAuth2 server's debugger login page. You can type any username and set arbitrary
      claims (e.g. `roles`) directly on that page to simulate claim enrichment.
@@ -57,7 +67,8 @@ config sets an explicit `callbackUrl` of `https://oauth.usebruno.com/callback` (
 page, which simply relays the authorization code back to the desktop app - no data is sent to a third
 party beyond the code itself).
 
-This URL must be registered once on the **UI app registration** used for `uat` in the dev Entra tenant:
+This URL must be registered once on the **UI app registration** used for `uat` and `local-entra` in the dev
+Entra tenant (both sign in against the same app registration - only `baseUrl` differs):
 
 1. Entra ID > App registrations > (the UI app registration) > Authentication.
 2. Under **Platform configurations**, add a **Web** platform (if not already present).
@@ -65,6 +76,24 @@ This URL must be registered once on the **UI app registration** used for `uat` i
 
 Without this, sign-in fails after you authenticate, because Entra refuses to redirect back to an
 unregistered URI.
+
+### OBO admin consent requirement (`local-entra` only)
+
+`local-entra` exercises the real datastore OBO (on-behalf-of) exchange (see
+`DatastoreClientConfiguration`), which fails with `AADSTS65001` ("has not consented to use the
+application") until an Entra admin grants **admin consent** for the `Record Controlled Work API` app
+registration's `DataStore.Access` delegated permission on the Datastore API:
+
+1. Entra ID > App registrations > `Record Controlled Work API` > API permissions.
+2. Confirm the Datastore API's `DataStore.Access` delegated permission is listed (add it via **Add a
+   permission** > APIs my organization uses if not).
+3. Click **Grant admin consent for `<tenant>`** (requires an admin role such as Cloud Application
+   Administrator, Application Administrator, or Global Administrator).
+
+This is a one-time, tenant-wide grant - it covers every user (including ones created afterwards), so it
+doesn't need repeating per user or per new sign-in. Per-user consent doesn't apply here even though the
+permission allows it: the OBO call is a back-channel server-to-server request with no browser step, so
+there's never an interactive prompt for an individual user to accept.
 
 ### Local (mock OAuth2 server) flow
 
@@ -89,25 +118,26 @@ requests both by default, so the one cached token works for read and write reque
 
 - `local`: the mock server ignores the requested scope string and always issues both roles (see above), so
   no changes are needed here.
-- `uat`: `oauthScope` in `uat.yml` already lists both `.../Applications.Read` and `.../Applications.Write`.
+- `uat` / `local-entra`: `oauthScope` already lists both `.../Applications.Read` and `.../Applications.Write`.
 
 If you need to test authorization boundaries with a token that's missing one of the scopes (e.g. to confirm
 a write endpoint rejects a read-only token), temporarily edit `oauthScope` down to the single scope you want
 in the environment, then click **Get Access Token** again to refresh the cached token - remember to restore
 it afterwards since it's shared by every request in the folder.
 
-### UAT secrets
+### UAT / local-entra secrets
 
-The `uat` environment needs tenant/client credentials that must never be committed. These are loaded from
-a `.env` file at the root of the collection (`bruno-collection/.env`, git-ignored) via Bruno's built-in
-DotEnv support:
+The `uat` and `local-entra` environments need tenant/client credentials that must never be committed. These
+are loaded from a `.env` file at the root of the collection (`bruno-collection/.env`, git-ignored) via
+Bruno's built-in DotEnv support:
 
 1. Copy `bruno-collection/.env.sample` to `bruno-collection/.env`.
 2. Fill in `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` and `ENTRA_CLIENT_SECRET` from the UI app registration in
    the dev Entra tenant.
 
-Bruno loads this file automatically and the `uat` environment's secret variables reference it via
-`{{process.env.<NAME>}}`.
+Bruno loads this file automatically and both environments' secret variables reference it via
+`{{process.env.<NAME>}}`. Note this is a separate `.env` from the repo root one used to switch
+`docker-compose.yml` itself to Entra - see [README.md](../README.md#run-application-via-docker).
 
 ## Inspecting the cached access token
 
