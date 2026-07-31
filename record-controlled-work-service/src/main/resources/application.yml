@@ -29,8 +29,8 @@ spring:
       client:
         registration:
           datastore:
-            client-id: ${DATASTORE_CLIENT_ID:test-client}
-            client-secret: ${DATASTORE_CLIENT_SECRET:test-secret}
+            client-id: ${RCW_API_CLIENT_ID:test-client}
+            client-secret: ${RCW_API_CLIENT_SECRET:test-secret}
             authorization-grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
             scope: DataStore.Access
         provider:
