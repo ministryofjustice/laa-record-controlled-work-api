@@ -116,7 +116,7 @@ TOKEN=$(curl -s -X POST http://host.docker.internal:9090/default/token \
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/applications
 ```
 
-The mock server automatically issues tokens with the `Applications.Read` role for `client_credentials` grants.
+The mock server automatically issues tokens with the `Applications.Read` scope (`scp` claim) for `client_credentials` grants.
 
 You can also test this with the Bruno collection's `local` environment - see [docs/bruno.md](docs/bruno.md).
 

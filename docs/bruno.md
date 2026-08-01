@@ -30,7 +30,7 @@ means:
 
 - All requests in the folder share one sign-in and one cached token.
 - The token is fetched interactively (a browser/login window opens), which is required here because the
-  claims we care about (e.g. roles) are enriched by the identity provider (IdP) during an interactive
+  claims we care about (e.g. `scp` scopes) are enriched by the identity provider (IdP) during an interactive
   sign-in - a `client_credentials` (service-to-service, no-browser) grant would not pick these up.
 
 ### Getting a token
@@ -47,7 +47,7 @@ system's default browser, enable it once in **Preferences** (bottom of Bruno's l
 works with our existing `callbackUrl` without any other changes.
 3. A login window opens against the environment's IdP:
    - `local`: the mock OAuth2 server's debugger login page. You can type any username and set arbitrary
-     claims (e.g. `roles`) directly on that page to simulate claim enrichment.
+     claims (e.g. `scp`) directly on that page to simulate claim enrichment.
    - `uat`: the real Entra sign-in page for the dev tenant (`devlexternal.onmicrosoft.com`). Sign in with an
      account that has the required role assignment.
 4. Once signed in, Bruno stores the token against the folder and automatically attaches it (as an
@@ -105,25 +105,34 @@ callback URL. Prerequisites:
 2. Start the stack with `make docker-up` so `mock-oauth2-server` is running on `localhost:9090`.
 
 With the `local` environment selected, follow [Getting a token](#getting-a-token) as normal. The login
-window that opens is the mock server's debugger page: enter any username/subject and, optionally, add a
-`roles` claim (or any other claim) to simulate whatever enrichment you want to test - the mock server also
-automatically adds `aud: default` and `roles: ["Applications.Read", "Applications.Write"]` to every
-authorization_code token regardless of what you enter (see `mock-oauth2-config.json`), so a plain sign-in
-already satisfies the API's authorization checks.
+window that opens is the mock server's custom login page (`mock-oauth2-login.html`, wired in via
+`loginPagePath` in `mock-oauth2-config.json`), pre-filled with a default username/subject (`test-user`) and
+a default claims JSON (`aud`, `scp`, `providerFirmId`) so you can just click **Sign-in**. Unlike
+`client_credentials` and `jwt-bearer` grants (whose claims are fixed in `mock-oauth2-config.json` for
+non-interactive callers such as tests), the authorization_code grant has no config-level claims override -
+the claims box on the login page is the sole source of truth for these tokens. Edit its JSON before
+submitting to simulate different enrichment or to test authorization boundaries (e.g. remove
+`Applications.Write` from `scp` to confirm a write endpoint rejects a read-only token).
 
 ### Scopes
 
 The API exposes both `Applications.Read` and `Applications.Write`. The folder's `oauthScope` variable
 requests both by default, so the one cached token works for read and write requests alike:
 
-- `local`: the mock server ignores the requested scope string and always issues both roles (see above), so
-  no changes are needed here.
+- `local`: the mock server doesn't read `oauthScope` for the authorization_code grant - the `scp` claim
+  comes from the login page's claims box instead (see above), which defaults to both scopes.
 - `uat` / `local-entra`: `oauthScope` already lists both `.../Applications.Read` and `.../Applications.Write`.
 
 If you need to test authorization boundaries with a token that's missing one of the scopes (e.g. to confirm
-a write endpoint rejects a read-only token), temporarily edit `oauthScope` down to the single scope you want
-in the environment, then click **Get Access Token** again to refresh the cached token - remember to restore
-it afterwards since it's shared by every request in the folder.
+a write endpoint rejects a read-only token):
+
+- `local`: edit the `scp` value in the login page's claims box down to the single scope you want, then sign
+  in again to refresh the cached token.
+- `uat` / `local-entra`: temporarily edit `oauthScope` down to the single scope you want in the environment,
+  then click **Get Access Token** again to refresh the cached token.
+
+Remember to restore whichever default you changed afterwards, since the token is shared by every request in
+the folder.
 
 ### UAT / local-entra secrets
 
@@ -150,7 +159,7 @@ OAuth2 access token and prints its header and claims, without sending the token 
    - In Bruno's console (View > Show DevTools, or the console icon at the bottom of the response pane), or
    - In the **Runtime Variables** panel, under `decodedAccessTokenHeader` / `decodedAccessTokenClaims`.
 
-This is useful for confirming that claim enrichment (e.g. `roles`) is present on the token before debugging
+This is useful for confirming that claim enrichment (e.g. `scp`) is present on the token before debugging
 further down the stack.
 
 > **Note:** `local` and `uat` tokens are cached separately (they're fetched from different token URLs), but
