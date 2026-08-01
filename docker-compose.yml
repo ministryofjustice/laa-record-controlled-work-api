@@ -83,6 +83,7 @@ services:
       - JSON_CONFIG_PATH=/etc/mock-oauth2-config.json
     volumes:
       - ./mock-oauth2-config.json:/etc/mock-oauth2-config.json
+      - ./mock-oauth2-login.html:/etc/mock-oauth2-login.html
 
 secrets:
   git_token:

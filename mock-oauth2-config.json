@@ -1,5 +1,6 @@
 {
   "interactiveLogin": true,
+  "loginPagePath": "/etc/mock-oauth2-login.html",
   "tokenCallbacks": [
     {
       "issuerId": "default",
@@ -10,21 +11,7 @@
           "match": "client_credentials",
           "claims": {
             "aud": "default",
-            "roles": [
-              "Applications.Read"
-            ],
-            "providerFirmId": "942c2013-9a52-4b5d-8531-7749f286af8e"
-          }
-        },
-        {
-          "requestParam": "grant_type",
-          "match": "authorization_code",
-          "claims": {
-            "aud": "default",
-            "roles": [
-              "Applications.Read",
-              "Applications.Write"
-            ],
+            "scp": "Applications.Read",
             "providerFirmId": "942c2013-9a52-4b5d-8531-7749f286af8e"
           }
         },
@@ -33,9 +20,7 @@
           "match": "urn:ietf:params:oauth:grant-type:jwt-bearer",
           "claims": {
             "aud": "default",
-            "roles": [
-              "DataStore.Access"
-            ]
+            "scp": "DataStore.Access"
           }
         }
       ]
