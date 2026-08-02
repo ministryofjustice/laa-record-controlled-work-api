@@ -2,6 +2,9 @@
 
 dependencies {
     implementation 'ch.qos.logback:logback-core:1.5.37'
+    // logback-classic pinned to match logback-core; a version mismatch makes Logback dump its
+    // internal bootstrap status log to the console, breaking up the normal log output
+    implementation 'ch.qos.logback:logback-classic:1.5.37'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
