@@ -107,10 +107,10 @@ callback URL. Prerequisites:
 With the `local` environment selected, follow [Getting a token](#getting-a-token) as normal. The login
 window that opens is the mock server's custom login page (`mock-oauth2-login.html`, wired in via
 `loginPagePath` in `mock-oauth2-config.json`), pre-filled with a default username/subject (`test-user`) and
-a default claims JSON (`aud`, `scp`, `FIRM_CODE`) so you can just click **Sign-in**. Unlike
-`client_credentials` and `jwt-bearer` grants (whose claims are fixed in `mock-oauth2-config.json` for
-non-interactive callers such as tests), the authorization_code grant has no config-level claims override -
-the claims box on the login page is the sole source of truth for these tokens. Edit its JSON before
+a default claims JSON (`aud`, `scp`, `FIRM_CODE`) so you can just click **Sign-in**. Unlike the `jwt-bearer`
+grant (whose claims are fixed in `mock-oauth2-config.json` for the non-interactive RCW -> datastore OBO
+exchange), the authorization_code grant has no config-level claims override - the claims box on the login
+page is the sole source of truth for these tokens. Edit its JSON before
 submitting to simulate different enrichment or to test authorization boundaries (e.g. remove
 `Applications.Write` from `scp` to confirm a write endpoint rejects a read-only token).
 
