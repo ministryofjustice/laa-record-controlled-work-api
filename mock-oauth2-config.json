@@ -12,7 +12,7 @@
           "claims": {
             "aud": "default",
             "scp": "Applications.Read",
-            "providerFirmId": "942c2013-9a52-4b5d-8531-7749f286af8e"
+            "FIRM_CODE": "123456"
           }
         },
         {
@@ -20,7 +20,8 @@
           "match": "urn:ietf:params:oauth:grant-type:jwt-bearer",
           "claims": {
             "aud": "default",
-            "scp": "DataStore.Access"
+            "scp": "DataStore.Access",
+            "FIRM_CODE": "123456"
           }
         }
       ]
