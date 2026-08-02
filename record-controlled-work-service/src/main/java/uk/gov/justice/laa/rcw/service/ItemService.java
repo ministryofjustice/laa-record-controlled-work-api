@@ -1,21 +1,28 @@
 package uk.gov.justice.laa.rcw.service;
 
+import static uk.gov.justice.laa.rcw.logging.LogAction.ITEM_CREATE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.ITEM_DELETE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.ITEM_FETCH;
+import static uk.gov.justice.laa.rcw.logging.LogAction.ITEM_LIST;
+import static uk.gov.justice.laa.rcw.logging.LogAction.ITEM_UPDATE;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.rcw.entity.ItemEntity;
 import uk.gov.justice.laa.rcw.exception.ItemNotFoundException;
+import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ItemMapper;
 import uk.gov.justice.laa.rcw.model.Item;
 import uk.gov.justice.laa.rcw.model.ItemRequestBody;
 import uk.gov.justice.laa.rcw.repository.ItemRepository;
 
 /** Service class for handling items requests. */
-@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ItemService {
+
+  private static final StructuredLogger log = StructuredLogger.of(ItemService.class);
 
   private final ItemRepository itemRepository;
   private final ItemMapper itemMapper;
@@ -26,8 +33,9 @@ public class ItemService {
    * @return the list of items
    */
   public List<Item> getAllItems() {
-    log.info("Retrieving all items");
-    return itemRepository.findAll().stream().map(itemMapper::toItem).toList();
+    List<Item> items = itemRepository.findAll().stream().map(itemMapper::toItem).toList();
+    log.info().action(ITEM_LIST).outcome("success").log("Retrieved {} items", items.size());
+    return items;
   }
 
   /**
@@ -37,8 +45,12 @@ public class ItemService {
    * @return the requested item
    */
   public Item getItem(Long id) {
-    log.info("Retrieving item: {}", id);
     ItemEntity itemEntity = checkIfItemExist(id);
+    log.info()
+        .action(ITEM_FETCH)
+        .outcome("success")
+        .with("item.id", id)
+        .log("Retrieved item {}", id);
     return itemMapper.toItem(itemEntity);
   }
 
@@ -49,12 +61,15 @@ public class ItemService {
    * @return the id of the created item
    */
   public Long createItem(ItemRequestBody itemRequestBody) {
-    log.info("Creating item: {}", itemRequestBody.getName());
     ItemEntity itemEntity = new ItemEntity();
     itemEntity.setName(itemRequestBody.getName());
     itemEntity.setDescription(itemRequestBody.getDescription());
     ItemEntity createdItemEntity = itemRepository.save(itemEntity);
-    log.info("Created item with id: {}", createdItemEntity.getId());
+    log.info()
+        .action(ITEM_CREATE)
+        .outcome("success")
+        .with("item.id", createdItemEntity.getId())
+        .log("Created item {}", createdItemEntity.getId());
     return createdItemEntity.getId();
   }
 
@@ -65,12 +80,15 @@ public class ItemService {
    * @param itemRequestBody the updated item
    */
   public void updateItem(Long id, ItemRequestBody itemRequestBody) {
-    log.info("Updating item: {}", id);
     ItemEntity itemEntity = checkIfItemExist(id);
     itemEntity.setName(itemRequestBody.getName());
     itemEntity.setDescription(itemRequestBody.getDescription());
     itemRepository.save(itemEntity);
-    log.info("Updated item: {}", id);
+    log.info()
+        .action(ITEM_UPDATE)
+        .outcome("success")
+        .with("item.id", id)
+        .log("Updated item {}", id);
   }
 
   /**
@@ -79,15 +97,16 @@ public class ItemService {
    * @param id the id of the item to be deleted
    */
   public void deleteItem(Long id) {
-    log.info("Deleting item: {}", id);
     checkIfItemExist(id);
-
     itemRepository.deleteById(id);
-    log.info("Deleted item: {}", id);
+    log.info()
+        .action(ITEM_DELETE)
+        .outcome("success")
+        .with("item.id", id)
+        .log("Deleted item {}", id);
   }
 
   private ItemEntity checkIfItemExist(Long id) {
-    log.info("Checking if item exists: {}", id);
     return itemRepository
         .findById(id)
         .orElseThrow(
