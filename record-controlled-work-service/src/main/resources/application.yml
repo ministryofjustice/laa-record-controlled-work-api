@@ -98,7 +98,7 @@ laa:
         ]'
       unprotected-uris: [ "/actuator/**", "/swagger-ui.html",
                           "/swagger-ui/**", "/v3/api-docs/**", "/favicon.ico",
-                          "/open-api-specification.yml" ]
+                          "/open-api-specification.yml", "/error" ]
 
 
 ---
@@ -119,6 +119,12 @@ spring:
   config:
     activate:
       on-profile: local
+
+server:
+  error:
+    # GlobalExceptionHandler is disabled locally, so expose validation details on the /error forward
+    include-message: always
+    include-binding-errors: always
 
 logging:
   level:
