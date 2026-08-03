@@ -86,7 +86,6 @@ containerEnvironment:
   enabled: true
   variables:
     LOG_LEVEL: debug
-    # TODO: confirm the in-cluster URL of the datastore API for uat
     DATASTORE_URL: "http://laa-info-and-advice-datastore.laa-info-and-advice-datastore-uat.svc.cluster.local:8080"
   secrets:
     - name: ISSUER
