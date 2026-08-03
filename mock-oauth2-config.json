@@ -1,5 +1,6 @@
 {
   "interactiveLogin": true,
+  "loginPagePath": "/etc/mock-oauth2-login.html",
   "tokenCallbacks": [
     {
       "issuerId": "default",
@@ -7,23 +8,11 @@
       "requestMappings": [
         {
           "requestParam": "grant_type",
-          "match": "client_credentials",
+          "match": "urn:ietf:params:oauth:grant-type:jwt-bearer",
           "claims": {
             "aud": "default",
-            "roles": [
-              "Applications.Read"
-            ]
-          }
-        },
-        {
-          "requestParam": "grant_type",
-          "match": "authorization_code",
-          "claims": {
-            "aud": "default",
-            "roles": [
-              "Applications.Read",
-              "Applications.Write"
-            ]
+            "scp": "DataStore.Access",
+            "FIRM_CODE": "123456"
           }
         }
       ]

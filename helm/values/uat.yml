@@ -86,6 +86,7 @@ containerEnvironment:
   enabled: true
   variables:
     LOG_LEVEL: debug
+    DATASTORE_URL: "http://laa-info-and-advice-datastore.laa-info-and-advice-datastore-uat.svc.cluster.local:8080"
   secrets:
     - name: ISSUER
       secretName: rcw-api-env-secrets
@@ -93,6 +94,18 @@ containerEnvironment:
     - name: AUDIENCE
       secretName: rcw-api-env-secrets
       key: AUDIENCE
+    - name: DATASTORE_OAUTH_SCOPES
+      secretName: rcw-api-env-secrets
+      key: DATASTORE_OAUTH_SCOPES
+    - name: DATASTORE_TOKEN_URI
+      secretName: rcw-api-env-secrets
+      key: DATASTORE_TOKEN_URI
+    - name: RCW_API_CLIENT_ID
+      secretName: rcw-api-env-secrets
+      key: RCW_API_CLIENT_ID
+    - name: RCW_API_CLIENT_SECRET
+      secretName: rcw-api-env-secrets
+      key: RCW_API_CLIENT_SECRET
 
 startupProbe:
   httpGet:

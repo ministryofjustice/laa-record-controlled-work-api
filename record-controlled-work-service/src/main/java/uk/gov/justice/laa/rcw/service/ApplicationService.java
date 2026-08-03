@@ -9,9 +9,16 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
+import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
@@ -26,9 +33,13 @@ import uk.gov.justice.laa.rcw.model.EvidenceStatus;
 
 /** Service class for handling Application requests. */
 @Service
+@RequiredArgsConstructor
 public class ApplicationService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationService.class);
+
+  private final ApplicationApi applicationApi;
+  private final ApplicationMapper applicationMapper;
 
   /**
    * Gets all Applications.
@@ -37,38 +48,25 @@ public class ApplicationService {
    */
   public List<ApplicationOverview> getApplications(
       Integer page, Integer size, UUID officeId, ApplicationStatus status) {
-    // TODO: replace with downstream API call
-    List<ApplicationOverview> applications;
-    if (status == ApplicationStatus.DRAFT) {
-      applications =
-          List.of(
-              ApplicationOverview.builder()
-                  .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-                  .name("Random Name")
-                  .modifiedAt(OffsetDateTime.now())
-                  .applicationRefNumber("CW-111111")
-                  .build(),
-              ApplicationOverview.builder()
-                  .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-                  .name("Other Random Name")
-                  .modifiedAt(OffsetDateTime.now())
-                  .applicationRefNumber("CW-222222")
-                  .build());
-    } else {
-      applications =
-          List.of(
-              ApplicationOverview.builder()
-                  .id(UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
-                  .name("Hey im Recorded")
-                  .modifiedAt(OffsetDateTime.now())
-                  .applicationRefNumber("CW-111111")
-                  .build());
-    }
+    // status has no downstream equivalent yet, so it is currently ignored
+    ApplicationResponses responses =
+        applicationApi.getApplications(currentBearerToken(), page, size, officeId);
+    List<ApplicationOverview> applications =
+        responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
         .action(APPLICATION_LIST)
         .outcome("success")
         .log("Retrieved {} applications", applications.size());
     return applications;
+  }
+
+  /** Forwards the original incoming middleware token unchanged, as required by the datastore. */
+  private String currentBearerToken() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication instanceof AbstractOAuth2TokenAuthenticationToken<?> tokenAuth) {
+      return "Bearer " + tokenAuth.getToken().getTokenValue();
+    }
+    throw new IllegalStateException("No authenticated token available to forward to the datastore");
   }
 
   /**

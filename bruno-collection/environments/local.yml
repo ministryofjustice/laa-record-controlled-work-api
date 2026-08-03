@@ -11,4 +11,4 @@ variables:
   - name: oauthClientSecret
     value: local-dev-secret
   - name: oauthScope
-    value: default
+    value: openid default
