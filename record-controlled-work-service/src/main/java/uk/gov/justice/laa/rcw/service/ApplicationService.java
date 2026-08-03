@@ -128,7 +128,7 @@ public class ApplicationService {
             Application.builder()
                 .id(applicationId)
                 .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
-                .providerFirmId(UUID.randomUUID())
+                .providerFirmCode("123456")
                 .providerOfficeId(UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e"))
                 .createdAt(OffsetDateTime.now())
                 .createdBy("Random User")

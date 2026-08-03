@@ -130,7 +130,7 @@ class ApplicationServiceTest {
         .usingRecursiveComparison()
         .ignoringFields(
             "value.individualLegalAidNumber",
-            "value.providerFirmId",
+            "value.providerFirmCode",
             "value.providerOfficeId",
             "value.createdAt",
             "value.modifiedAt",

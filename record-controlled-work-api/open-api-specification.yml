@@ -307,7 +307,7 @@ components:
       required:
         - id
         - individualLegalAidNumber
-        - providerFirmId
+        - providerFirmCode
         - providerOfficeId
         - createdAt
         - createdBy
@@ -324,9 +324,8 @@ components:
         individualLegalAidNumber:
           type: string
           format: uuid
-        providerFirmId:
+        providerFirmCode:
           type: string
-          format: uuid
         providerOfficeId:
           type: string
           format: uuid
