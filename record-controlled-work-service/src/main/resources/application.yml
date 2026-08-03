@@ -32,7 +32,7 @@ spring:
             client-id: ${RCW_API_CLIENT_ID:test-client}
             client-secret: ${RCW_API_CLIENT_SECRET:test-secret}
             authorization-grant-type: urn:ietf:params:oauth:grant-type:jwt-bearer
-            scope: DataStore.Access
+            scope: ${DATASTORE_OAUTH_SCOPES:DataStore.Access}
         provider:
           datastore:
             token-uri: ${DATASTORE_TOKEN_URI:http://localhost:9090/default/token}

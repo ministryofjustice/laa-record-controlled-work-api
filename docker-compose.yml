@@ -35,6 +35,9 @@ services:
       - DATASTORE_TOKEN_URI=${DATASTORE_TOKEN_URI:-http://host.docker.internal:9090/default/token}
       - RCW_API_CLIENT_ID=${RCW_API_CLIENT_ID:-rcw-api}
       - RCW_API_CLIENT_SECRET=${RCW_API_CLIENT_SECRET:-not-used-by-mock-oauth2-server}
+      # Must be the datastore API's Application ID URI + scope name (e.g. api://<ds-client-id>/DataStore.Access)
+      # when targeting real Entra - an unqualified scope name resolves to Microsoft Graph instead (AADSTS65001).
+      - DATASTORE_OAUTH_SCOPES=${DATASTORE_OAUTH_SCOPES:-DataStore.Access}
 
   datastore-api:
     container_name: datastore-api
