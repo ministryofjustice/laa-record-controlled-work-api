@@ -59,6 +59,9 @@ services:
       # Defaults to the mock OAuth2 server; set these in .env to switch to Entra (see .env.example).
       - LAA_OAUTH2_ISSUER_URI=${DATASTORE_ENTRA_ISSUER_URI:-http://host.docker.internal:9090/default}
       - LAA_OAUTH2_AUDIENCE=${DATASTORE_ENTRA_AUDIENCE:-default}
+      # Datastore also trusts RCW's own audience, since RCW forwards its original incoming
+      # token unchanged as X-Authorization for the datastore's UserContextInterceptor to decode.
+      - TRUSTED_CALLER_AUDIENCE=${AUDIENCE:-default}
       # preferIPv4Stack avoids musl's parallel A/AAAA DNS lookups, which can hang/fail for
       # public hosts (e.g. login.microsoftonline.com) on networks that drop IPv6 DNS queries.
       - JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true
