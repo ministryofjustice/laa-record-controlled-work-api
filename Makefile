@@ -32,16 +32,11 @@ docker-build:
 		-t laa-record-controlled-work-api .
 
 docker-up:
-	op run --env-file=../laa-info-and-advice-datastore/.env --env-file=.env -- docker compose up --build
+	./docker/compose/up mock-issuer
 
 # Sign in via real Entra ID instead of the default mock-oauth2-server - see .env.entra.
-# .env.entra overrides .env because it's loaded after.
 docker-up-entra:
-	op run --env-file=../laa-info-and-advice-datastore/.env \
-				 --env-file=../laa-info-and-advice-datastore/.env.entra \
-				 --env-file=.env \
-				 --env-file=.env.entra \
-		-- docker compose up --build
+	./docker/compose/up entra
 
 dep-insight:
 	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"
