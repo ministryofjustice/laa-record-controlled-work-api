@@ -32,7 +32,7 @@ docker-build:
 		-t laa-record-controlled-work-api .
 
 docker-up:
-	op run --env-file=.env -- docker compose up --build
+	op run --env-file=../laa-info-and-advice-datastore/.env --env-file=.env -- docker compose up --build
 
 dep-insight:
 	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"

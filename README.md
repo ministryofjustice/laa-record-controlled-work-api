@@ -98,18 +98,27 @@ echo '127.0.0.1 host.docker.internal' | sudo tee -a /etc/hosts
 
 `make dev`
 
-### Run application via Docker
+### Run application via Docker Compose
 
 `make docker-up`
 
-This also starts the [laa-info-and-advice-datastore](https://github.com/ministryofjustice/laa-info-and-advice-datastore) API and its Postgres instance. The datastore is built from a sibling checkout at `../laa-info-and-advice-datastore`.
+`docker-compose.yml` is composed via `include` from the reusable building blocks in [docker/compose](docker/compose) and from the datastore's own building blocks in `../laa-info-and-advice-datastore/docker/compose`. 
+
+A sibling checkout of [laa-info-and-advice-datastore](https://github.com/ministryofjustice/laa-info-and-advice-datastore) with its own `.env` (see that repo's `.env.example`) is required. This also starts the datastore's Postgres instance.
+
+Each repository's `.env.example` file contains default local settings and separate commented Entra settings with 1Password CLI interpolation references, which are exported using `op run` before running docker-compose.
+
+> [!IMPORTANT]
+> Make sure you create the `.env` files in both repositories from their respective `.env.example` files so that `op run` can interpolate and export them both. 
+>
+> This is needed whether you are working locally or with Entra, as `op run` is the thing exporting the variables for docker-compose to use.
 
 The API only accepts access tokens obtained via an interactive Authorization Code sign-in (or a subsequent
 refresh) - there's no service-to-service grant configured, so getting a token requires a browser step. Use the Bruno collection's `local` environment to do this - see [docs/bruno.md](docs/bruno.md).
 
 #### Switching between the mock IdP and real Entra ID
 
-By default, both `rcw-api` and `datastore-api` validate/exchange tokens against the `mock-oauth2-server` container. To instead run the stack against real Entra ID (e.g. to test with tokens obtained via Bruno's `local-entra` environment), copy [.env.example](.env.example) to `.env` and uncomment the Entra block, then run `make docker-up` as normal - `docker-compose.yml` picks these up via environment variable substitution, falling back to the mock server defaults when unset.
+By default, both `rcw-api` and `info-and-advice-api` validate/exchange tokens against the `mock-oauth2-server` container (defined in [docker/compose/include.mock-oauth.yml](docker/compose/include.mock-oauth.yml), which supports interactive login and the jwt-bearer grant needed for the OBO exchange). To instead run the stack against real Entra ID (e.g. to test with tokens obtained via Bruno's `local-entra` environment), copy [.env.example](.env.example) to `.env` and uncomment the Entra block, and do the same in the datastore's own `.env` (`LAA_OAUTH2_ISSUER_URI`, `LAA_OAUTH2_AUDIENCE`, `TRUSTED_CALLER_AUDIENCE` - matching this repo's `AUDIENCE`), then run `make docker-up` as normal - variable substitution falls back to the mock server defaults when unset.
 
 ### Debug application running via Docker
 
