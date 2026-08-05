@@ -1,0 +1,47 @@
+# Reusable building block: the RCW API service on its own.
+# Other repos (e.g. laa-record-controlled-work) include this file directly, alongside
+# include.mock-oauth.yml and the datastore's own include files, to compose a full stack.
+services:
+  rcw-api:
+    container_name: rcw-api
+    build:
+      context: ../..
+      secrets:
+        - git_token
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+      - "8181:8181"
+      - "5005:5005"
+    depends_on:
+      - mock-oauth2-server
+      - info-and-advice-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Resource-server validation of the incoming token (RCW API's own audience).
+      # Defaults to the mock OAuth2 server; set ISSUER/AUDIENCE in .env to switch to Entra (see .env.example).
+      - ISSUER=${ISSUER:-http://host.docker.internal:9090/default}
+      - AUDIENCE=${AUDIENCE:-default}
+      - SERVER_PORT=8081
+      - SPRING_PROFILES_ACTIVE=local
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_SERVER_RESOURCE=DEBUG
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY_OAUTH2_JWT=DEBUG
+      # preferIPv4Stack avoids musl's parallel A/AAAA DNS lookups, which can hang/fail for
+      # public hosts (e.g. login.microsoftonline.com) on networks that drop IPv6 DNS queries.
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Djava.net.preferIPv4Stack=true
+      - DATASTORE_URL=http://info-and-advice-api:8080
+      # RCW -> datastore jwt-bearer (OBO) exchange. Defaults to the mock OAuth2 server;
+      # set these in .env to switch to a real Entra app registration (see .env.example).
+      - DATASTORE_TOKEN_URI=${DATASTORE_TOKEN_URI:-http://host.docker.internal:9090/default/token}
+      - RCW_API_CLIENT_ID=${RCW_API_CLIENT_ID:-rcw-api}
+      - RCW_API_CLIENT_SECRET=${RCW_API_CLIENT_SECRET:-not-used-by-mock-oauth2-server}
+      # Must be the datastore API's Application ID URI + scope name (e.g. api://<ds-client-id>/DataStore.Access)
+      # when targeting real Entra - an unqualified scope name resolves to Microsoft Graph instead (AADSTS65001).
+      - DATASTORE_OAUTH_SCOPES=${DATASTORE_OAUTH_SCOPES:-DataStore.Access}
+
+secrets:
+  git_token:
+    environment: GITHUB_TOKEN

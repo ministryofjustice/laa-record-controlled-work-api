@@ -1,4 +1,4 @@
-.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up dep-insight warm-deps
+.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up docker-up-entra dep-insight warm-deps
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -32,7 +32,11 @@ docker-build:
 		-t laa-record-controlled-work-api .
 
 docker-up:
-	op run --env-file=.env -- docker compose up --build
+	./docker/compose/up mock-issuer
+
+# Sign in via real Entra ID instead of the default mock-oauth2-server - see .env.entra.
+docker-up-entra:
+	./docker/compose/up entra
 
 dep-insight:
 	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"
