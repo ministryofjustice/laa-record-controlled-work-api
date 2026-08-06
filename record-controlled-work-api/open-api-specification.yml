@@ -27,7 +27,6 @@ paths:
           required: false
           schema:
             type: string
-            format: uuid
         - name: status
           in: query
           required: false
@@ -308,7 +307,7 @@ components:
         - id
         - individualLegalAidNumber
         - providerFirmCode
-        - providerOfficeId
+        - providerOfficeCode
         - createdAt
         - createdBy
         - modifiedAt
@@ -326,9 +325,8 @@ components:
           format: uuid
         providerFirmCode:
           type: string
-        providerOfficeId:
+        providerOfficeCode:
           type: string
-          format: uuid
         meansAssessmentId:
           type: string
           format: uuid

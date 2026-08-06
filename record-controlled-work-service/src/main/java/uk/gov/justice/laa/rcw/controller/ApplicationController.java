@@ -39,7 +39,7 @@ public class ApplicationController implements ApplicationsApi {
 
   @Override
   public ResponseEntity<List<ApplicationOverview>> getApplications(
-      Integer page, Integer size, UUID officeId, ApplicationStatus status) {
+      Integer page, Integer size, String officeId, ApplicationStatus status) {
     return ResponseEntity.ok(applicationService.getApplications(page, size, officeId, status));
   }
 

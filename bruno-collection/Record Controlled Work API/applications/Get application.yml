@@ -24,7 +24,7 @@ runtime:
           expect(application).to.have.property("id");
           expect(application).to.have.property("individualLegalAidNumber");
           expect(application).to.have.property("providerFirmCode");
-          expect(application).to.have.property("providerOfficeId");
+          expect(application).to.have.property("providerOfficeCode");
           expect(application).to.have.property("clientDetails");
           expect(application).to.have.property("ecfFlag");
           expect(application).to.have.property("applicationType");
@@ -69,7 +69,7 @@ examples:
               "id": "",
               "individualLegalAidNumber": "",
               "providerFirmCode": "",
-              "providerOfficeId": "",
+              "providerOfficeCode": "",
               "clientDetails": {
                 "address": {
                   "addressLine1": "",

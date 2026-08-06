@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.server.resource.authentication.Abstra
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Address;
@@ -47,10 +48,10 @@ public class ApplicationService {
    * @return the list of Applications
    */
   public List<ApplicationOverview> getApplications(
-      Integer page, Integer size, UUID officeId, ApplicationStatus status) {
-    // status has no downstream equivalent yet, so it is currently ignored
+      Integer page, Integer size, String officeId, ApplicationStatus status) {
     ApplicationResponses responses =
-        applicationApi.getApplications(currentBearerToken(), page, size, officeId);
+        applicationApi.getApplications(
+            currentBearerToken(), page, size, officeId, toApplicationState(status));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -58,6 +59,16 @@ public class ApplicationService {
         .outcome("success")
         .log("Retrieved {} applications", applications.size());
     return applications;
+  }
+
+  private ApplicationState toApplicationState(ApplicationStatus status) {
+    if (status == null) {
+      return null;
+    }
+    return switch (status) {
+      case DRAFT -> ApplicationState.DRAFT;
+      case COMPLETE -> ApplicationState.COMPLETED;
+    };
   }
 
   /** Forwards the original incoming middleware token unchanged, as required by the datastore. */
@@ -129,7 +140,7 @@ public class ApplicationService {
                 .id(applicationId)
                 .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
                 .providerFirmCode("123456")
-                .providerOfficeId(UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e"))
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .createdAt(OffsetDateTime.now())
                 .createdBy("Random User")
                 .clientDetails(clientDetails)

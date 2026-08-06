@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -65,7 +66,7 @@ class ApplicationServiceTest {
             .referenceNumber("CW-111111")
             .modifiedAt(modifiedAt)
             .build();
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of(summary)).build());
 
     List<ApplicationOverview> result =
@@ -83,7 +84,7 @@ class ApplicationServiceTest {
 
   @Test
   void shouldGetApplications_returnsEmptyListWhenNoContent() {
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
     List<ApplicationOverview> result = applicationService.getApplications(0, 25, null, null);
@@ -93,27 +94,30 @@ class ApplicationServiceTest {
 
   @Test
   void shouldGetApplications_forwardsPageSizeAndOfficeIdToDatastore() {
-    UUID officeId = UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e");
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any()))
+    String officeId = "22439e72-68d3-4770-b435-c352d883d21e";
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
-    applicationService.getApplications(2, 50, officeId, null);
+    applicationService.getApplications(2, 50, officeId, ApplicationStatus.COMPLETE);
 
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<Integer> sizeCaptor = ArgumentCaptor.forClass(Integer.class);
-    ArgumentCaptor<UUID> officeIdCaptor = ArgumentCaptor.forClass(UUID.class);
+    ArgumentCaptor<String> officeIdCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<ApplicationState> statusCaptor = ArgumentCaptor.forClass(ApplicationState.class);
     verify(mockApplicationApi)
         .getApplications(
             xAuthorizationCaptor.capture(),
             pageCaptor.capture(),
             sizeCaptor.capture(),
-            officeIdCaptor.capture());
+            officeIdCaptor.capture(),
+            statusCaptor.capture());
 
     assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
     assertThat(pageCaptor.getValue()).isEqualTo(2);
     assertThat(sizeCaptor.getValue()).isEqualTo(50);
     assertThat(officeIdCaptor.getValue()).isEqualTo(officeId);
+    assertThat(statusCaptor.getValue()).isEqualTo(ApplicationState.COMPLETED);
   }
 
   @Test
@@ -131,7 +135,7 @@ class ApplicationServiceTest {
         .ignoringFields(
             "value.individualLegalAidNumber",
             "value.providerFirmCode",
-            "value.providerOfficeId",
+            "value.providerOfficeCode",
             "value.createdAt",
             "value.modifiedAt",
             "value.clientDetails.id",

@@ -108,7 +108,7 @@ class ApplicationControllerTest {
             jsonPath("$.individualLegalAidNumber").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.modifiedAt").exists())
         .andExpect(jsonPath("$.createdAt").exists())
-        .andExpect(jsonPath("$.providerOfficeId").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.providerOfficeCode").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.providerFirmCode").value("123456"))
         .andExpect(jsonPath("$.modifiedBy").value("Random User"))
         .andExpect(jsonPath("$.createdBy").value("Random User"));

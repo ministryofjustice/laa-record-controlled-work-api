@@ -27,7 +27,7 @@ public class ApplicationGenerator {
             .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
             .individualLegalAidNumber(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
             .providerFirmCode("123456")
-            .providerOfficeId(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+            .providerOfficeCode("b2c3d4e5-f6a7-8901-bcde-f12345678901")
             .clientDetails(clientDetails)
             .applicationStatus(ApplicationStatus.DRAFT)
             .declaration(declaration)
