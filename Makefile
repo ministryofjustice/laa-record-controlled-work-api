@@ -1,4 +1,8 @@
-.PHONY: setup-hooks build generate lint lint-build integration test run dev docker-up docker-up-entra dep-insight warm-deps
+.PHONY: install-deps-cached setup-hooks build generate lint lint-build integration test run dev docker-up docker-up-entra dep-insight
+
+# One-off authenticated resolution of GitHub Packages deps, so ./gradlew works unauthenticated afterwards
+install-deps-cached:
+	GITHUB_ACTOR=default op run --env-file=.env -- ./gradlew clean compileTestJava
 
 setup-hooks:
 	./scripts/./setup-hooks.sh
@@ -40,8 +44,3 @@ docker-up-entra:
 
 dep-insight:
 	./gradlew :record-controlled-work-api:dependencies --configuration runtimeClasspath 2>&1 | grep -B 5 -A 5 "$(dep)"
-
-# One-off authenticated resolution of GitHub Packages deps, so ./gradlew works unauthenticated afterwards
-# (fixed-version deps stay cached until the Gradle cache is cleared or the version bumps).
-warm-deps:
-	op run --env-file=.env -- ./gradlew compileTestJava
