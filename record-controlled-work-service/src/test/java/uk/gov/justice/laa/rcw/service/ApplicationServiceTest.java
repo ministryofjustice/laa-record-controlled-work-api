@@ -116,6 +116,7 @@ class ApplicationServiceTest {
     applicationService.getApplications(
         2, 50, officeId, uk.gov.justice.laa.rcw.model.ApplicationState.COMPLETED);
 
+    // CHECKSTYLE.SUPPRESS: LocalVariableName
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<Integer> sizeCaptor = ArgumentCaptor.forClass(Integer.class);
@@ -151,6 +152,8 @@ class ApplicationServiceTest {
         .ignoringFields(
             "value.individualLegalAidNumber",
             "value.providerFirmCode",
+            "value.ecfFlag",
+            "value.applicationType",
             "value.providerOfficeCode",
             "value.createdAt",
             "value.modifiedAt",
