@@ -4,15 +4,17 @@ repos:
     hooks:
       - id: gradle-spotless-apply
         name: Gradle Spotless (format)
-        entry: ./gradlew
+        entry: ./scripts/run-staged-gradle-task.sh
         language: system
-        args: [ "spotlessApply" ]
-        pass_filenames: false
+        args: [ "spotlessApply", "spotlessFiles" ]
+        types: [ java ]
+        pass_filenames: true
 
       - id: checkstyle
         name: Checkstyle
-        entry: ./scripts/checkstyle-staged.sh
+        entry: ./scripts/run-staged-gradle-task.sh
         language: system
+        args: [ "checkstyleAll", "checkstyleFiles" ]
         types: [ java ]
         pass_filenames: true
 
