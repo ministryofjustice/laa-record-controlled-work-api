@@ -99,18 +99,19 @@ class ApplicationServiceTest {
 
     applicationService.getApplications(2, 50, officeId, null);
 
-    ArgumentCaptor<String> authorizationCaptor = ArgumentCaptor.forClass(String.class);
+    // CHECKSTYLE.SUPPRESS: LocalVariableName
+    ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<Integer> sizeCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<UUID> officeIdCaptor = ArgumentCaptor.forClass(UUID.class);
     verify(mockApplicationApi)
         .getApplications(
-            authorizationCaptor.capture(),
+            xAuthorizationCaptor.capture(),
             pageCaptor.capture(),
             sizeCaptor.capture(),
             officeIdCaptor.capture());
 
-    assertThat(authorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
     assertThat(pageCaptor.getValue()).isEqualTo(2);
     assertThat(sizeCaptor.getValue()).isEqualTo(50);
     assertThat(officeIdCaptor.getValue()).isEqualTo(officeId);
