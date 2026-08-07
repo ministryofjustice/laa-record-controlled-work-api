@@ -90,7 +90,13 @@ dependencies {
 
 spotless {
     java {
-        target 'src/*/java/**/*.java'
+        // When -PspotlessFiles is supplied (comma-separated paths, e.g. from the pre-commit
+        // hook), scope formatting to just those files instead of the whole source set.
+        if (project.hasProperty('spotlessFiles')) {
+            target project.property('spotlessFiles').split(',').collect { rootProject.file(it) }
+        } else {
+            target 'src/*/java/**/*.java'
+        }
         importOrder()
         removeUnusedImports()
         cleanthat()
@@ -102,4 +108,14 @@ tasks.register('checkstyleAll') {
     group = 'verification'
     description = 'Runs checkstyleMain, checkstyleTest, and checkstyleIntegrationTest.'
     dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest'] }
+}
+
+// When -PcheckstyleFiles is supplied (comma-separated paths, e.g. from the pre-commit hook),
+// scope Checkstyle to just those files instead of the whole source set.
+if (project.hasProperty('checkstyleFiles')) {
+    def targetPaths = project.property('checkstyleFiles').split(',').collect { rootProject.file(it).canonicalPath } as Set
+    tasks.withType(org.gradle.api.plugins.quality.Checkstyle).configureEach {
+        source = source.filter { targetPaths.contains(it.canonicalPath) }
+        onlyIf { !source.empty }
+    }
 }
