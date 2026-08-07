@@ -93,6 +93,7 @@ spotless {
         target 'src/*/java/**/*.java'
         importOrder()
         removeUnusedImports()
+        cleanthat()
         googleJavaFormat()
     }
 }
