@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.generator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
+
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
