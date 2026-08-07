@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
+import uk.gov.justice.laa.rcw.model.ClientDetailsStatus;
 
 /** Generator for setting for an ClientDetails model for tests. */
 public class ClientDetailsGenerator {
@@ -28,6 +29,7 @@ public class ClientDetailsGenerator {
             .id(UUID.randomUUID())
             .niNumber("QQ123456C")
             .hasFixedAddress(true)
+            .clientDetailsStatus(ClientDetailsStatus.NOT_STARTED)
             .address(address)
             .dateOfBirth(LocalDate.of(1990, 1, 1))
             .createdAt(OffsetDateTime.now())

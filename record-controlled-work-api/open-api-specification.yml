@@ -433,6 +433,8 @@ components:
           type: string
         hasFixedAddress:
           type: boolean
+        clientDetailsStatus:
+          $ref: "#/components/schemas/ClientDetailsStatus"
         address:
           $ref: "#/components/schemas/Address"
         createdAt:
@@ -475,6 +477,12 @@ components:
           format: date-time
 
     ClientDeclarationStatus:
+      type: string
+      enum:
+        - COMPLETE
+        - IN_PROGRESS
+        - NOT_STARTED
+    ClientDetailsStatus:
       type: string
       enum:
         - COMPLETE
