@@ -19,7 +19,7 @@ public class EvidenceGenerator {
             .id(UUID.randomUUID())
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
-            .evidenceStatus(EvidenceStatus.DRAFT)
+            .evidenceStatus(EvidenceStatus.NOT_STARTED)
             .payeIncomeEvidence(false)
             .otherIncomeEvidence(false)
             .housingCostsEvidence(false)

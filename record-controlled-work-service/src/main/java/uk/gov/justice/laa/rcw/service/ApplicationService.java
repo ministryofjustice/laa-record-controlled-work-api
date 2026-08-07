@@ -101,7 +101,7 @@ public class ApplicationService {
     Declaration declaration =
         Declaration.builder()
             .id(UUID.randomUUID())
-            .clientDeclarationStatus(ClientDeclarationStatus.DRAFT)
+            .clientDeclarationStatus(ClientDeclarationStatus.NOT_STARTED)
             .declarationConfirmation(false)
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
@@ -114,7 +114,7 @@ public class ApplicationService {
             .id(UUID.randomUUID())
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
-            .evidenceStatus(EvidenceStatus.DRAFT)
+            .evidenceStatus(EvidenceStatus.NOT_STARTED)
             .payeIncomeEvidence(false)
             .otherIncomeEvidence(false)
             .housingCostsEvidence(false)

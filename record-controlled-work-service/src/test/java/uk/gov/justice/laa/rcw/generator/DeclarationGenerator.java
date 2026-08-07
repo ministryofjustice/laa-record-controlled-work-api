@@ -17,7 +17,7 @@ public class DeclarationGenerator {
     var builder =
         Declaration.builder()
             .id(UUID.randomUUID())
-            .clientDeclarationStatus(ClientDeclarationStatus.DRAFT)
+            .clientDeclarationStatus(ClientDeclarationStatus.NOT_STARTED)
             .declarationConfirmation(false)
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())

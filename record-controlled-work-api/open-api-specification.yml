@@ -477,11 +477,15 @@ components:
     ClientDeclarationStatus:
       type: string
       enum:
-        - DRAFT
+        - COMPLETE
+        - IN_PROGRESS
+        - NOT_STARTED
     EvidenceStatus:
       type: string
       enum:
-        - DRAFT
+        - COMPLETE
+        - IN_PROGRESS
+        - NOT_STARTED
     ApplicationStatus:
       type: string
       enum:
