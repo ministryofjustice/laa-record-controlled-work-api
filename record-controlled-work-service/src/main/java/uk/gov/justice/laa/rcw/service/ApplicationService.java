@@ -10,9 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
@@ -38,6 +35,7 @@ public class ApplicationService {
 
   private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
+  private final BearerTokenProvider bearerTokenProvider;
 
   /**
    * Gets all Applications.
@@ -48,7 +46,11 @@ public class ApplicationService {
       Integer page, Integer size, String officeId, ApplicationState status) {
     ApplicationResponses responses =
         applicationApi.getApplications(
-            currentBearerToken(), page, size, officeId, toDatastoreApplicationState(status));
+            bearerTokenProvider.currentBearerToken(),
+            page,
+            size,
+            officeId,
+            toDatastoreApplicationState(status));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -67,15 +69,6 @@ public class ApplicationService {
       case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
       case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
     };
-  }
-
-  /** Forwards the original incoming middleware token unchanged, as required by the datastore. */
-  private String currentBearerToken() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication instanceof AbstractOAuth2TokenAuthenticationToken<?> tokenAuth) {
-      return "Bearer " + tokenAuth.getToken().getTokenValue();
-    }
-    throw new IllegalStateException("No authenticated token available to forward to the datastore");
   }
 
   /**
@@ -113,7 +106,8 @@ public class ApplicationService {
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder().eTag(etag).data(data).result(result).build();
     try {
-      applicationApi.updateMeansData(applicationId, currentBearerToken(), command);
+      applicationApi.updateMeansData(
+          applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw applicationNotFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
@@ -133,7 +127,7 @@ public class ApplicationService {
 
   private ApplicationResponse fetchApplication(UUID applicationId) {
     try {
-      return applicationApi.getApplication(applicationId, currentBearerToken());
+      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
     } catch (HttpClientErrorException.NotFound exception) {
       throw applicationNotFound(applicationId);
     }

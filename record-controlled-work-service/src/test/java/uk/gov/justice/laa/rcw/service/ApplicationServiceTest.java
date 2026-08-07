@@ -51,11 +51,13 @@ class ApplicationServiceTest {
   @Mock private ApplicationApi mockApplicationApi;
 
   private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
+  private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
   private ApplicationService applicationService;
 
   @BeforeEach
   void setUp() {
-    applicationService = new ApplicationService(mockApplicationApi, applicationMapper);
+    applicationService =
+        new ApplicationService(mockApplicationApi, applicationMapper, bearerTokenProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
