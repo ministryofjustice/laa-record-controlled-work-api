@@ -11,10 +11,10 @@ repos:
 
       - id: checkstyle
         name: Checkstyle
-        entry: ./gradlew
+        entry: ./scripts/checkstyle-staged.sh
         language: system
-        args: [ "checkstyleAll", "--quiet" ]
-        pass_filenames: false
+        types: [ java ]
+        pass_filenames: true
 
 # Source - https://stackoverflow.com/a/66411313
 # Posted by anthony sottile
