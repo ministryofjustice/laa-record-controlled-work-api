@@ -1,0 +1,143 @@
+info:
+  name: Update means
+  type: http
+  seq: 4
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+  body:
+    type: json
+    data: |-
+      {
+        "data": {},
+        "result": {}
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should be 204 response", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Success
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "data": {},
+            "result": {}
+          }
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ""
+  - name: 400 Response
+    description: Bad request
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {}
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: text
+        data: ""
+  - name: 401 Response
+    description: Unauthorized
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+    response:
+      status: 401
+      statusText: Unauthorized
+      body:
+        type: text
+        data: ""
+  - name: 403 Response
+    description: Forbidden
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+    response:
+      status: 403
+      statusText: Forbidden
+      body:
+        type: text
+        data: ""
+  - name: 404 Response
+    description: Not found
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "data": {},
+            "result": {}
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: text
+        data: ""
+  - name: 409 Response
+    description: Conflict
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "data": {},
+            "result": {}
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      body:
+        type: text
+        data: ""
+  - name: 500 Response
+    description: Internal server error
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/means"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "data": {},
+            "result": {}
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      body:
+        type: text
+        data: ""

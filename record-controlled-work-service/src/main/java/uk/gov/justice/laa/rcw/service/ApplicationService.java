@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.service;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -15,14 +16,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationStatus;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
@@ -47,10 +53,10 @@ public class ApplicationService {
    * @return the list of Applications
    */
   public List<ApplicationOverview> getApplications(
-      Integer page, Integer size, UUID officeId, ApplicationStatus status) {
-    // status has no downstream equivalent yet, so it is currently ignored
+      Integer page, Integer size, String officeId, ApplicationState status) {
     ApplicationResponses responses =
-        applicationApi.getApplications(currentBearerToken(), page, size, officeId);
+        applicationApi.getApplications(
+            currentBearerToken(), page, size, officeId, toDatastoreApplicationState(status));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -58,6 +64,17 @@ public class ApplicationService {
         .outcome("success")
         .log("Retrieved {} applications", applications.size());
     return applications;
+  }
+
+  private uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
+      ApplicationState status) {
+    if (status == null) {
+      return null;
+    }
+    return switch (status) {
+      case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
+      case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
+    };
   }
 
   /** Forwards the original incoming middleware token unchanged, as required by the datastore. */
@@ -129,11 +146,11 @@ public class ApplicationService {
                 .id(applicationId)
                 .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
                 .providerFirmCode("123456")
-                .providerOfficeId(UUID.fromString("22439e72-68d3-4770-b435-c352d883d21e"))
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .createdAt(OffsetDateTime.now())
                 .createdBy("Random User")
                 .clientDetails(clientDetails)
-                .applicationStatus(ApplicationStatus.DRAFT)
+                .applicationState(ApplicationState.DRAFT)
                 .declaration(declaration)
                 .evidence(evidence)
                 .ecfFlag(false)
@@ -147,6 +164,56 @@ public class ApplicationService {
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
     return application;
+  }
+
+  /**
+   * Updates the means data for an application. The datastore requires an eTag for optimistic
+   * concurrency, so the current application is fetched first to source it; if the update conflicts
+   * with a concurrent modification, the eTag is re-fetched and the update is retried once.
+   *
+   * @param applicationId the application id
+   * @param data the means Q&amp;A data
+   * @param result the means calculation result
+   */
+  public void updateMeans(UUID applicationId, Object data, Object result) {
+    updateMeans(applicationId, data, result, true);
+  }
+
+  private void updateMeans(
+      UUID applicationId, Object data, Object result, boolean retryOnConflict) {
+    Long etag = fetchApplication(applicationId).geteTag();
+    UpdateMeansDataCommand command =
+        UpdateMeansDataCommand.builder().eTag(etag).data(data).result(result).build();
+    try {
+      applicationApi.updateMeansData(applicationId, currentBearerToken(), command);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw applicationNotFound(applicationId);
+    } catch (HttpClientErrorException.Conflict exception) {
+      if (!retryOnConflict) {
+        throw new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
+      }
+      updateMeans(applicationId, data, result, false);
+      return;
+    }
+    log.info()
+        .action(APPLICATION_MEANS_UPDATE)
+        .outcome("success")
+        .with("application.id", applicationId)
+        .log("Updated means data for application {}", applicationId);
+  }
+
+  private ApplicationResponse fetchApplication(UUID applicationId) {
+    try {
+      return applicationApi.getApplication(applicationId, currentBearerToken());
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw applicationNotFound(applicationId);
+    }
+  }
+
+  private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
+    return new ApplicationNotFoundException(
+        "No application found with id: %s".formatted(applicationId));
   }
 
   /**

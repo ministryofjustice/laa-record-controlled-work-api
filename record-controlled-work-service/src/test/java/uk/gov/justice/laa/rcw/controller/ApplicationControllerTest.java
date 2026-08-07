@@ -2,9 +2,12 @@ package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +17,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
@@ -108,7 +114,7 @@ class ApplicationControllerTest {
             jsonPath("$.individualLegalAidNumber").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.modifiedAt").exists())
         .andExpect(jsonPath("$.createdAt").exists())
-        .andExpect(jsonPath("$.providerOfficeId").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.providerOfficeCode").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.providerFirmCode").value("123456"))
         .andExpect(jsonPath("$.modifiedBy").value("Random User"))
         .andExpect(jsonPath("$.createdBy").value("Random User"));
@@ -175,5 +181,98 @@ class ApplicationControllerTest {
                         + "\"status\":400,"
                         + "\"detail\":\"Invalid request content.\","
                         + "\"instance\":\"/api/v1/applications\"}"));
+  }
+
+  @Test
+  void updateApplicationMeans_returnsNoContent_andForwardsDataAndResultToService()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNoContent());
+
+    verify(mockApplicationService)
+        .updateMeans(
+            applicationId, Map.of("level_of_help", "controlled"), Map.of("indication", true));
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadRequest_whenDataIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"result": {"indication": true}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadRequest_whenResultIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"data": {"level_of_help": "controlled"}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsConflict_whenDatastoreEtagMismatchPersists() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .when(mockApplicationService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isConflict());
   }
 }

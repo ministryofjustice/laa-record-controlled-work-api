@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.Application;
-import uk.gov.justice.laa.rcw.model.ApplicationStatus;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Evidence;
@@ -27,9 +27,9 @@ public class ApplicationGenerator {
             .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
             .individualLegalAidNumber(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
             .providerFirmCode("123456")
-            .providerOfficeId(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+            .providerOfficeCode("b2c3d4e5-f6a7-8901-bcde-f12345678901")
             .clientDetails(clientDetails)
-            .applicationStatus(ApplicationStatus.DRAFT)
+            .applicationState(ApplicationState.DRAFT)
             .declaration(declaration)
             .evidence(evidence)
             .createdAt(OffsetDateTime.now())

@@ -27,12 +27,11 @@ paths:
           required: false
           schema:
             type: string
-            format: uuid
         - name: status
           in: query
           required: false
           schema:
-            $ref: "#/components/schemas/ApplicationStatus"
+            $ref: "#/components/schemas/ApplicationState"
       responses:
         '200':
           description: 'Success'
@@ -105,6 +104,41 @@ paths:
           description: Not found
         '500':
           description: Internal server error
+
+  /api/v1/applications/{id}/means:
+    put:
+      tags:
+        - applications
+      summary: Update the means data for an application
+      operationId: updateApplicationMeans
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeansDataRequestBody"
+      responses:
+        '204':
+          description: 'Application means data updated successfully'
+        '400':
+          description: 'Bad request'
+        '401':
+          description: 'Unauthorized'
+        '403':
+          description: 'Forbidden'
+        '404':
+          description: 'Not found'
+        '409':
+          description: 'Conflict'
+        '500':
+          description: 'Internal server error'
 
   /api/v1/items:
     get:
@@ -308,7 +342,7 @@ components:
         - id
         - individualLegalAidNumber
         - providerFirmCode
-        - providerOfficeId
+        - providerOfficeCode
         - createdAt
         - createdBy
         - modifiedAt
@@ -326,16 +360,15 @@ components:
           format: uuid
         providerFirmCode:
           type: string
-        providerOfficeId:
+        providerOfficeCode:
           type: string
-          format: uuid
         meansAssessmentId:
           type: string
           format: uuid
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"
-        applicationStatus:
-          $ref: "#/components/schemas/ApplicationStatus"
+        applicationState:
+          $ref: "#/components/schemas/ApplicationState"
         declaration:
           $ref: "#/components/schemas/Declaration"
         evidence:
@@ -362,6 +395,17 @@ components:
           format: date-time
         modifiedBy:
           type: string
+
+    UpdateMeansDataRequestBody:
+      type: object
+      required:
+        - data
+        - result
+      properties:
+        data:
+          type: object
+        result:
+          type: object
 
     Declaration:
       type: object
@@ -482,11 +526,11 @@ components:
       type: string
       enum:
         - DRAFT
-    ApplicationStatus:
+    ApplicationState:
       type: string
       enum:
         - DRAFT
-        - COMPLETE
+        - COMPLETED
 
 
     Item:

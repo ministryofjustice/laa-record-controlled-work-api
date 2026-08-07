@@ -9,6 +9,7 @@ public final class LogAction {
   public static final String APPLICATION_LIST = "application.list";
   public static final String APPLICATION_FETCH = "application.fetch";
   public static final String APPLICATION_CREATE = "application.create";
+  public static final String APPLICATION_MEANS_UPDATE = "application.means-update";
   public static final String APPLICATION_ERROR = "application.error";
 
   // Request actions
