@@ -314,7 +314,7 @@ components:
         - modifiedAt
         - modifiedBy
         - clientDetails
-        - applicationState
+        - applicationStatus
         - ecfFlag
         - applicationType
       properties:
