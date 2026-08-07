@@ -5,8 +5,6 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,17 +23,11 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
-import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
-import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
-import uk.gov.justice.laa.rcw.model.Declaration;
-import uk.gov.justice.laa.rcw.model.Evidence;
-import uk.gov.justice.laa.rcw.model.EvidenceStatus;
 
 /** Service class for handling Application requests. */
 @Service
@@ -92,72 +84,8 @@ public class ApplicationService {
    * @return {@link Optional} of {@link Application}
    */
   public Optional<Application> getApplication(UUID applicationId) {
-    // TODO: replace with downstream API call
-
-    Address address =
-        Address.builder()
-            .id(UUID.randomUUID())
-            .addressLine1("10 Downing Street")
-            .addressLine2("Prime ministers address")
-            .postCode("SW1A 2AA")
-            .townOrCity("London")
-            .country("GB")
-            .build();
-
-    ClientDetails clientDetails =
-        ClientDetails.builder()
-            .id(UUID.randomUUID())
-            .firstName("Joe")
-            .lastName("Bloggs")
-            .niNumber("QQ123456C")
-            .dateOfBirth(LocalDate.of(1990, 1, 1))
-            .hasFixedAddress(true)
-            .address(address)
-            .build();
-
-    Declaration declaration =
-        Declaration.builder()
-            .id(UUID.randomUUID())
-            .clientDeclarationStatus(ClientDeclarationStatus.DRAFT)
-            .declarationConfirmation(false)
-            .createdAt(OffsetDateTime.now())
-            .modifiedAt(OffsetDateTime.now())
-            .createdBy("Joe Bloggs")
-            .modifiedBy("James Bloggs")
-            .build();
-
-    Evidence evidence =
-        Evidence.builder()
-            .id(UUID.randomUUID())
-            .createdAt(OffsetDateTime.now())
-            .modifiedAt(OffsetDateTime.now())
-            .evidenceStatus(EvidenceStatus.DRAFT)
-            .payeIncomeEvidence(false)
-            .otherIncomeEvidence(false)
-            .housingCostsEvidence(false)
-            .capitalEvidence(false)
-            .createdBy("Joe Bloggs")
-            .modifiedBy("James Bloggs")
-            .build();
-
     Optional<Application> application =
-        Optional.of(
-            Application.builder()
-                .id(applicationId)
-                .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
-                .providerFirmCode("123456")
-                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
-                .createdAt(OffsetDateTime.now())
-                .createdBy("Random User")
-                .clientDetails(clientDetails)
-                .applicationState(ApplicationState.DRAFT)
-                .declaration(declaration)
-                .evidence(evidence)
-                .ecfFlag(false)
-                .applicationType("UNKNOWN")
-                .modifiedAt(OffsetDateTime.now())
-                .modifiedBy("Random User")
-                .build());
+        Optional.of(StubApplicationFactory.stubApplication(applicationId));
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
