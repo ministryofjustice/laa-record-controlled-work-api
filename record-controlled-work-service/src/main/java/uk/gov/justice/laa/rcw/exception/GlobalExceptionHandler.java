@@ -41,8 +41,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ItemNotFoundException.class)
   public ResponseEntity<Object> handleItemNotFound(
       ItemNotFoundException exception, WebRequest request) {
-    ProblemDetail problemDetail = buildProblemDetail(NOT_FOUND, exception.getMessage(), request);
-    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), NOT_FOUND, request);
+    return handleKnownException(exception, NOT_FOUND, request);
   }
 
   /**
@@ -54,8 +53,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationNotFoundException.class)
   public ResponseEntity<Object> handleApplicationNotFound(
       ApplicationNotFoundException exception, WebRequest request) {
-    ProblemDetail problemDetail = buildProblemDetail(NOT_FOUND, exception.getMessage(), request);
-    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), NOT_FOUND, request);
+    return handleKnownException(exception, NOT_FOUND, request);
   }
 
   /**
@@ -67,8 +65,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationConflictException.class)
   public ResponseEntity<Object> handleApplicationConflict(
       ApplicationConflictException exception, WebRequest request) {
-    ProblemDetail problemDetail = buildProblemDetail(CONFLICT, exception.getMessage(), request);
-    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), CONFLICT, request);
+    return handleKnownException(exception, CONFLICT, request);
   }
 
   @Override
@@ -123,6 +120,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail problemDetail =
         buildProblemDetail(BAD_REQUEST, "Invalid request content.", request);
     return handleExceptionInternal(exception, problemDetail, headers, BAD_REQUEST, request);
+  }
+
+  private ResponseEntity<Object> handleKnownException(
+      RuntimeException exception, HttpStatusCode status, WebRequest request) {
+    ProblemDetail problemDetail = buildProblemDetail(status, exception.getMessage(), request);
+    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), status, request);
   }
 
   private ProblemDetail buildProblemDetail(
