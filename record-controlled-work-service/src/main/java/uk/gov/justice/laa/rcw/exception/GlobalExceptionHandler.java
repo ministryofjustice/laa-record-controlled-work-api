@@ -1,16 +1,14 @@
 package uk.gov.justice.laa.rcw.exception;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_ERROR;
-import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_INVALID;
-import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_VALIDATION_FAILED;
-
 import java.net.URI;
+
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +19,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_ERROR;
+import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_INVALID;
+import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_VALIDATION_FAILED;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** The global exception handler for all exceptions. */

@@ -1,23 +1,30 @@
 package uk.gov.justice.laa.rcw.service;
 
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+
+import lombok.RequiredArgsConstructor;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Address;
