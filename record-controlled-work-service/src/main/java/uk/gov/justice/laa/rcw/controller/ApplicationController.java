@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -19,7 +18,6 @@ import uk.gov.justice.laa.rcw.service.ApplicationService;
 /** Controller for handling application requests. */
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 public class ApplicationController implements ApplicationsApi {
 
   private final ApplicationService applicationService;

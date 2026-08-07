@@ -11,6 +11,13 @@ public final class LogAction {
   public static final String APPLICATION_CREATE = "application.create";
   public static final String APPLICATION_ERROR = "application.error";
 
+  // Item actions
+  public static final String ITEM_LIST = "item.list";
+  public static final String ITEM_FETCH = "item.fetch";
+  public static final String ITEM_CREATE = "item.create";
+  public static final String ITEM_UPDATE = "item.update";
+  public static final String ITEM_DELETE = "item.delete";
+
   // Request actions
   public static final String REQUEST_RECEIVED = "request.received";
   public static final String REQUEST_INVALID = "request.invalid";
