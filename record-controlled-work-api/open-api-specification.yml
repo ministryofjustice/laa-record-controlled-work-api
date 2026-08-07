@@ -31,7 +31,7 @@ paths:
           in: query
           required: false
           schema:
-            $ref: "#/components/schemas/ApplicationStatus"
+            $ref: "#/components/schemas/ApplicationState"
       responses:
         '200':
           description: 'Success'
@@ -367,8 +367,8 @@ components:
           format: uuid
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"
-        applicationStatus:
-          $ref: "#/components/schemas/ApplicationStatus"
+        applicationState:
+          $ref: "#/components/schemas/ApplicationState"
         declaration:
           $ref: "#/components/schemas/Declaration"
         evidence:
@@ -526,11 +526,11 @@ components:
       type: string
       enum:
         - DRAFT
-    ApplicationStatus:
+    ApplicationState:
       type: string
       enum:
         - DRAFT
-        - COMPLETE
+        - COMPLETED
 
 
     Item:
