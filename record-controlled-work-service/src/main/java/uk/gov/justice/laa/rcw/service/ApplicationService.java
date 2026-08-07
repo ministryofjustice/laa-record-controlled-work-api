@@ -136,6 +136,8 @@ public class ApplicationService {
                 .applicationStatus(ApplicationStatus.DRAFT)
                 .declaration(declaration)
                 .evidence(evidence)
+                .ecfFlag(false)
+                .applicationType("UNKNOWN")
                 .modifiedAt(OffsetDateTime.now())
                 .modifiedBy("Random User")
                 .build());
