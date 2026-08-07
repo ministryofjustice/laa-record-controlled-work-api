@@ -50,7 +50,7 @@ public class ApplicationService {
             page,
             size,
             officeId,
-            toDatastoreApplicationState(status));
+            applicationMapper.toDatastoreApplicationState(status));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -58,17 +58,6 @@ public class ApplicationService {
         .outcome("success")
         .log("Retrieved {} applications", applications.size());
     return applications;
-  }
-
-  private uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
-      ApplicationState status) {
-    if (status == null) {
-      return null;
-    }
-    return switch (status) {
-      case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
-      case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
-    };
   }
 
   /**
