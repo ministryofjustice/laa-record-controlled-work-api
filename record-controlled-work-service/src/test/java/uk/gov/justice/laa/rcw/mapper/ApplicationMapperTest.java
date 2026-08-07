@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 
 class ApplicationMapperTest {
 
@@ -66,5 +67,22 @@ class ApplicationMapperTest {
     ApplicationOverview result = applicationMapper.toApplicationOverview(applicationSummary);
 
     assertThat(result.getName()).isEmpty();
+  }
+
+  @Test
+  void shouldMapDraftStatusToDatastoreApplicationState() {
+    assertThat(applicationMapper.toDatastoreApplicationState(ApplicationState.DRAFT))
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT);
+  }
+
+  @Test
+  void shouldMapCompletedStatusToDatastoreApplicationState() {
+    assertThat(applicationMapper.toDatastoreApplicationState(ApplicationState.COMPLETED))
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED);
+  }
+
+  @Test
+  void shouldMapNullStatusToNull() {
+    assertThat(applicationMapper.toDatastoreApplicationState(null)).isNull();
   }
 }
