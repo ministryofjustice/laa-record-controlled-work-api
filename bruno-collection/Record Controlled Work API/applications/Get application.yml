@@ -32,7 +32,7 @@ runtime:
           expect(application).to.have.property("createdBy");
           expect(application).to.have.property("modifiedAt");
           expect(application).to.have.property("modifiedBy");
-          expect(application).to.have.property("applicationStatus");
+          expect(application).to.have.property("applicationState");
           expect(application).to.have.property("contribution");
           expect(application).to.have.property("declaration");
           expect(application).to.have.property("evidence");
@@ -99,7 +99,7 @@ examples:
               "createdBy": "",
               "modifiedAt": "",
               "modifiedBy": "",
-              "applicationStatus": "",
+              "applicationState": "",
               "contribution": "",
               "declaration": {
                 "clientDeclarationStatus": "",
