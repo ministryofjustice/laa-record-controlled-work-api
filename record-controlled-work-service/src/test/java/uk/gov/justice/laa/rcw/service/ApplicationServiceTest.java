@@ -1,27 +1,27 @@
 package uk.gov.justice.laa.rcw.service;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import org.mockito.Mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.HttpClientErrorException;
-
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
@@ -43,7 +42,6 @@ import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationServiceTest {
@@ -84,7 +82,8 @@ class ApplicationServiceTest {
         .thenReturn(ApplicationResponses.builder().content(List.of(summary)).build());
 
     List<ApplicationOverview> result =
-        applicationService.getApplications(1, 25, null, ApplicationStatus.DRAFT);
+        applicationService.getApplications(
+            1, 25, null, uk.gov.justice.laa.rcw.model.ApplicationState.DRAFT);
 
     assertThat(result)
         .containsExactly(
@@ -112,7 +111,8 @@ class ApplicationServiceTest {
     when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
-    applicationService.getApplications(2, 50, officeId, ApplicationStatus.COMPLETE);
+    applicationService.getApplications(
+        2, 50, officeId, uk.gov.justice.laa.rcw.model.ApplicationState.COMPLETED);
 
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);

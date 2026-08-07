@@ -3,17 +3,15 @@ package uk.gov.justice.laa.rcw.controller;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationStatus;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
@@ -42,7 +40,7 @@ public class ApplicationController implements ApplicationsApi {
 
   @Override
   public ResponseEntity<List<ApplicationOverview>> getApplications(
-      Integer page, Integer size, String officeId, ApplicationStatus status) {
+      Integer page, Integer size, String officeId, ApplicationState status) {
     return ResponseEntity.ok(applicationService.getApplications(page, size, officeId, status));
   }
 

@@ -1,36 +1,34 @@
 package uk.gov.justice.laa.rcw.service;
 
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
+
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-
-import lombok.RequiredArgsConstructor;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
-import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_FETCH;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationStatus;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
@@ -55,10 +53,10 @@ public class ApplicationService {
    * @return the list of Applications
    */
   public List<ApplicationOverview> getApplications(
-      Integer page, Integer size, String officeId, ApplicationStatus status) {
+      Integer page, Integer size, String officeId, ApplicationState status) {
     ApplicationResponses responses =
         applicationApi.getApplications(
-            currentBearerToken(), page, size, officeId, toApplicationState(status));
+            currentBearerToken(), page, size, officeId, toDatastoreApplicationState(status));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -68,13 +66,14 @@ public class ApplicationService {
     return applications;
   }
 
-  private ApplicationState toApplicationState(ApplicationStatus status) {
+  private uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
+      ApplicationState status) {
     if (status == null) {
       return null;
     }
     return switch (status) {
-      case DRAFT -> ApplicationState.DRAFT;
-      case COMPLETE -> ApplicationState.COMPLETED;
+      case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
+      case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
     };
   }
 
@@ -151,7 +150,7 @@ public class ApplicationService {
                 .createdAt(OffsetDateTime.now())
                 .createdBy("Random User")
                 .clientDetails(clientDetails)
-                .applicationStatus(ApplicationStatus.DRAFT)
+                .applicationState(ApplicationState.DRAFT)
                 .declaration(declaration)
                 .evidence(evidence)
                 .modifiedAt(OffsetDateTime.now())
