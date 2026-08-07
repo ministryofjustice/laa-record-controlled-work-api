@@ -370,7 +370,7 @@ components:
           type: string
           format: uuid
         clientDeclarationStatus:
-          $ref: "#/components/schemas/ClientDeclarationStatus"
+          $ref: "#/components/schemas/Status"
         declarationConfirmation:
           type: boolean
         createdAt:
@@ -391,7 +391,7 @@ components:
           type: string
           format: uuid
         evidenceStatus:
-          $ref: "#/components/schemas/EvidenceStatus"
+          $ref: "#/components/schemas/Status"
         payeIncomeEvidence:
           type: boolean
         otherIncomeEvidence:
@@ -434,7 +434,7 @@ components:
         hasFixedAddress:
           type: boolean
         clientDetailsStatus:
-          $ref: "#/components/schemas/ClientDetailsStatus"
+          $ref: "#/components/schemas/Status"
         address:
           $ref: "#/components/schemas/Address"
         createdAt:
@@ -476,19 +476,7 @@ components:
           type: string
           format: date-time
 
-    ClientDeclarationStatus:
-      type: string
-      enum:
-        - COMPLETE
-        - IN_PROGRESS
-        - NOT_STARTED
-    ClientDetailsStatus:
-      type: string
-      enum:
-        - COMPLETE
-        - IN_PROGRESS
-        - NOT_STARTED
-    EvidenceStatus:
+    Status:
       type: string
       enum:
         - COMPLETE

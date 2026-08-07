@@ -23,14 +23,12 @@ import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationStatus;
-import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
-import uk.gov.justice.laa.rcw.model.ClientDetailsStatus;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Evidence;
-import uk.gov.justice.laa.rcw.model.EvidenceStatus;
+import uk.gov.justice.laa.rcw.model.Status;
 
 /** Service class for handling Application requests. */
 @Service
@@ -96,14 +94,14 @@ public class ApplicationService {
             .niNumber("QQ123456C")
             .dateOfBirth(LocalDate.of(1990, 1, 1))
             .hasFixedAddress(true)
-            .clientDetailsStatus(ClientDetailsStatus.NOT_STARTED)
+            .clientDetailsStatus(Status.NOT_STARTED)
             .address(address)
             .build();
 
     Declaration declaration =
         Declaration.builder()
             .id(UUID.randomUUID())
-            .clientDeclarationStatus(ClientDeclarationStatus.NOT_STARTED)
+            .clientDeclarationStatus(Status.NOT_STARTED)
             .declarationConfirmation(false)
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
@@ -116,7 +114,7 @@ public class ApplicationService {
             .id(UUID.randomUUID())
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
-            .evidenceStatus(EvidenceStatus.NOT_STARTED)
+            .evidenceStatus(Status.NOT_STARTED)
             .payeIncomeEvidence(false)
             .otherIncomeEvidence(false)
             .housingCostsEvidence(false)

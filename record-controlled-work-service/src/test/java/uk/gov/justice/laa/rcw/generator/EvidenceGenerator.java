@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.Evidence;
-import uk.gov.justice.laa.rcw.model.EvidenceStatus;
+import uk.gov.justice.laa.rcw.model.Status;
 
 /** Generator for setting for an Evidence model for tests. */
 public class EvidenceGenerator {
@@ -19,7 +19,7 @@ public class EvidenceGenerator {
             .id(UUID.randomUUID())
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
-            .evidenceStatus(EvidenceStatus.NOT_STARTED)
+            .evidenceStatus(Status.NOT_STARTED)
             .payeIncomeEvidence(false)
             .otherIncomeEvidence(false)
             .housingCostsEvidence(false)
