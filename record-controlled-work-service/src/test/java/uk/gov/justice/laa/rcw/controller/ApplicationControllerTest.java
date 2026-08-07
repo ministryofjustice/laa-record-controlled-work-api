@@ -37,7 +37,9 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
-import uk.gov.justice.laa.rcw.service.ApplicationService;
+import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
+import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 
 @WebMvcTest(ApplicationController.class)
 @TestPropertySource(
@@ -54,7 +56,9 @@ class ApplicationControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
-  @MockitoBean private ApplicationService mockApplicationService;
+  @MockitoBean private ApplicationQueryService mockApplicationQueryService;
+  @MockitoBean private ApplicationMeansService mockApplicationMeansService;
+  @MockitoBean private ApplicationCreationService mockApplicationCreationService;
 
   @Test
   void getApplications_returnsOkStatusAndAllApplications() throws Exception {
@@ -68,7 +72,7 @@ class ApplicationControllerTest {
                             .modifiedAt(OffsetDateTime.now()))
                 .applicationRefNumber("CW-222222"));
 
-    when(mockApplicationService.getApplications(any(), any(), any(), any()))
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any()))
         .thenReturn(applications);
 
     mockMvc
@@ -88,7 +92,8 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsEmptyListWhenNoApplications() throws Exception {
-    when(mockApplicationService.getApplications(any(), any(), any(), any())).thenReturn(List.of());
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any()))
+        .thenReturn(List.of());
 
     mockMvc
         .perform(get("/api/v1/applications"))
@@ -102,7 +107,7 @@ class ApplicationControllerTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
 
-    when(mockApplicationService.getApplication(applicationId))
+    when(mockApplicationQueryService.getApplication(applicationId))
         .thenReturn(Optional.of(applicationResponse));
 
     mockMvc
@@ -124,7 +129,7 @@ class ApplicationControllerTest {
   void getApplicationWithId_returnsNotFoundWhenApplicationDoesNotExist() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
 
-    when(mockApplicationService.getApplication(applicationId)).thenReturn(Optional.empty());
+    when(mockApplicationQueryService.getApplication(applicationId)).thenReturn(Optional.empty());
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
@@ -135,7 +140,7 @@ class ApplicationControllerTest {
   void createApplication_returnsCreatedStatus_andApplication() throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     CreateApplicationResponseBody response = CreateApplicationResponseGenerator.create(null);
-    when(mockApplicationService.createApplication(any())).thenReturn(response);
+    when(mockApplicationCreationService.createApplication(any())).thenReturn(response);
 
     ObjectMapper mapper =
         new ObjectMapper()
@@ -199,7 +204,7 @@ class ApplicationControllerTest {
                 .content(requestBody))
         .andExpect(status().isNoContent());
 
-    verify(mockApplicationService)
+    verify(mockApplicationMeansService)
         .updateMeans(
             applicationId, Map.of("level_of_help", "controlled"), Map.of("indication", true));
   }
@@ -240,7 +245,7 @@ class ApplicationControllerTest {
   void updateApplicationMeans_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
-        .when(mockApplicationService)
+        .when(mockApplicationMeansService)
         .updateMeans(any(), any(), any());
     String requestBody =
         """
@@ -261,7 +266,7 @@ class ApplicationControllerTest {
     doThrow(
             new ApplicationConflictException(
                 "Application %s was modified concurrently".formatted(applicationId)))
-        .when(mockApplicationService)
+        .when(mockApplicationMeansService)
         .updateMeans(any(), any(), any());
     String requestBody =
         """

@@ -14,20 +14,24 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
-import uk.gov.justice.laa.rcw.service.ApplicationService;
+import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
+import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 
 /** Controller for handling application requests. */
 @RestController
 @RequiredArgsConstructor
 public class ApplicationController implements ApplicationsApi {
 
-  private final ApplicationService applicationService;
+  private final ApplicationQueryService applicationQueryService;
+  private final ApplicationMeansService applicationMeansService;
+  private final ApplicationCreationService applicationCreationService;
 
   @Override
   public ResponseEntity<CreateApplicationResponseBody> createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
     CreateApplicationResponseBody responseBody =
-        applicationService.createApplication(applicationRequestBody);
+        applicationCreationService.createApplication(applicationRequestBody);
     URI uri =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/api/v1/applications/{id}")
@@ -39,12 +43,12 @@ public class ApplicationController implements ApplicationsApi {
   @Override
   public ResponseEntity<List<ApplicationOverview>> getApplications(
       Integer page, Integer size, String officeId, ApplicationState status) {
-    return ResponseEntity.ok(applicationService.getApplications(page, size, officeId, status));
+    return ResponseEntity.ok(applicationQueryService.getApplications(page, size, officeId, status));
   }
 
   @Override
   public ResponseEntity<Application> getApplication(UUID id) {
-    return applicationService
+    return applicationQueryService
         .getApplication(id)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
@@ -53,7 +57,7 @@ public class ApplicationController implements ApplicationsApi {
   @Override
   public ResponseEntity<Void> updateApplicationMeans(
       UUID id, UpdateMeansDataRequestBody updateMeansDataRequestBody) {
-    applicationService.updateMeans(
+    applicationMeansService.updateMeans(
         id, updateMeansDataRequestBody.getData(), updateMeansDataRequestBody.getResult());
     return ResponseEntity.noContent().build();
   }
