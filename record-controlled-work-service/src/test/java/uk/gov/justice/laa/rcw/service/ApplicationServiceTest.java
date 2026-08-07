@@ -166,4 +166,109 @@ class ApplicationServiceTest {
             "value.evidence.modifiedAt")
         .isEqualTo(expected);
   }
+
+  @Test
+  void shouldUpdateMeans_fetchesETagAndForwardsDataAndResultToDatastore() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    Map<String, Object> data = Map.of("level_of_help", "controlled");
+    Map<String, Object> result = Map.of("indication", true);
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(7L).build());
+
+    applicationService.updateMeans(applicationId, data, result);
+
+    ArgumentCaptor<String> getXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockApplicationApi).getApplication(eq(applicationId), getXAuthorizationCaptor.capture());
+    assertThat(getXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+
+    ArgumentCaptor<String> updateXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
+    verify(mockApplicationApi)
+        .updateMeansData(
+            eq(applicationId), updateXAuthorizationCaptor.capture(), commandCaptor.capture());
+    assertThat(updateXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    assertThat(commandCaptor.getValue())
+        .isEqualTo(UpdateMeansDataCommand.builder().eTag(7L).data(data).result(result).build());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
+
+    assertThatThrownBy(() -> applicationService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationNotFoundException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(notFound())
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(() -> applicationService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationNotFoundException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateMeans_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    Map<String, Object> data = Map.of("level_of_help", "controlled");
+    Map<String, Object> result = Map.of("indication", true);
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build())
+        .thenReturn(ApplicationResponse.builder().eTag(2L).build());
+    doThrow(conflict())
+        .doNothing()
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    applicationService.updateMeans(applicationId, data, result);
+
+    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
+    verify(mockApplicationApi, times(2))
+        .updateMeansData(eq(applicationId), anyString(), commandCaptor.capture());
+    assertThat(commandCaptor.getAllValues())
+        .extracting(UpdateMeansDataCommand::geteTag)
+        .containsExactly(1L, 2L);
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(conflict())
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(() -> applicationService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationApi, times(2)).updateMeansData(eq(applicationId), anyString(), any());
+  }
+
+  private static HttpClientErrorException.NotFound notFound() {
+    return (HttpClientErrorException.NotFound)
+        HttpClientErrorException.create(
+            HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.Conflict conflict() {
+    return (HttpClientErrorException.Conflict)
+        HttpClientErrorException.create(
+            HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
+  }
 }

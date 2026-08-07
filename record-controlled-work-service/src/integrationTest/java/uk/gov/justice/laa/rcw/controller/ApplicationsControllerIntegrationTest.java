@@ -173,4 +173,84 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated());
   }
+
+  @Test
+  void shouldUpdateApplicationMeans_fetchesETagAndPersistsDataAndResult() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+                    """))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(
+        WireMock.putRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {"eTag": 5, "data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+                    """)));
+  }
+
+  @Test
+  void shouldReturnNotFound_whenUpdatingMeansForAnApplicationThatDoesNotExist() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(WireMock.notFound()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void shouldRetryOnceThenReturnConflict_whenDatastoreEtagMismatchPersists() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .willReturn(WireMock.aResponse().withStatus(409)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + applicationId)));
+    DATASTORE.verify(
+        2,
+        putRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data")));
+  }
 }

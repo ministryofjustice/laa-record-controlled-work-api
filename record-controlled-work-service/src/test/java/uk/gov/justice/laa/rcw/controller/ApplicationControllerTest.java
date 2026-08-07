@@ -184,4 +184,97 @@ class ApplicationControllerTest {
                         + "\"detail\":\"Invalid request content.\","
                         + "\"instance\":\"/api/v1/applications\"}"));
   }
+
+  @Test
+  void updateApplicationMeans_returnsNoContent_andForwardsDataAndResultToService()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNoContent());
+
+    verify(mockApplicationService)
+        .updateMeans(
+            applicationId, Map.of("level_of_help", "controlled"), Map.of("indication", true));
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadRequest_whenDataIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"result": {"indication": true}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadRequest_whenResultIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"data": {"level_of_help": "controlled"}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsConflict_whenDatastoreEtagMismatchPersists() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .when(mockApplicationService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isConflict());
+  }
 }

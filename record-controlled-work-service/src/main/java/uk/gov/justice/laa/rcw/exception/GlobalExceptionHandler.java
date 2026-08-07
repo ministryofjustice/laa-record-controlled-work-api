@@ -46,6 +46,32 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), NOT_FOUND, request);
   }
 
+  /**
+   * The handler for ApplicationNotFoundException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationNotFoundException.class)
+  public ResponseEntity<Object> handleApplicationNotFound(
+      ApplicationNotFoundException exception, WebRequest request) {
+    ProblemDetail problemDetail = buildProblemDetail(NOT_FOUND, exception.getMessage(), request);
+    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), NOT_FOUND, request);
+  }
+
+  /**
+   * The handler for ApplicationConflictException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationConflictException.class)
+  public ResponseEntity<Object> handleApplicationConflict(
+      ApplicationConflictException exception, WebRequest request) {
+    ProblemDetail problemDetail = buildProblemDetail(CONFLICT, exception.getMessage(), request);
+    return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), CONFLICT, request);
+  }
+
   @Override
   protected ResponseEntity<Object> handleHttpMessageNotReadable(
       @NonNull HttpMessageNotReadableException exception,
