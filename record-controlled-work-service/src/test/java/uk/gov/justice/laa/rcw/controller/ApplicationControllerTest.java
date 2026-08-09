@@ -32,11 +32,9 @@ import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
-import uk.gov.justice.laa.rcw.generator.CreateApplicationResponseGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
@@ -139,7 +137,7 @@ class ApplicationControllerTest {
   @Test
   void createApplication_returnsCreatedStatus_andApplication() throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
-    CreateApplicationResponseBody response = CreateApplicationResponseGenerator.create(null);
+    Application response = ApplicationGenerator.create(null);
     when(mockApplicationCreationService.createApplication(any())).thenReturn(response);
 
     ObjectMapper mapper =
@@ -155,7 +153,14 @@ class ApplicationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mappedRequest)
                 .accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isCreated());
+        .andExpect(status().isCreated())
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string(
+                    "Location",
+                    org.hamcrest.Matchers.endsWith(
+                        "/api/v1/applications/%s".formatted(response.getId()))))
+        .andExpect(content().string(""));
   }
 
   @Test

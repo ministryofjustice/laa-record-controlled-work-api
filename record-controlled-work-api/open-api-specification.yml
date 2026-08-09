@@ -61,10 +61,11 @@ paths:
       responses:
         '201':
           description: 'Created'
-          content:
-            application/json:
+          headers:
+            Location:
+              description: Canonical RCW application URL for the created application
               schema:
-                $ref: "#/components/schemas/CreateApplicationResponseBody"
+                type: string
         '400':
           description: 'Bad request'
         '401':
@@ -299,9 +300,11 @@ components:
           format: date-time
 
     CreateApplicationRequestBody:
+      type: object
       required:
         - ecfFlag
         - legalAidBefore
+        - providerOfficeCode
         - clientDetails
       properties:
         ecfFlag:
@@ -311,6 +314,8 @@ components:
         legalAidLast6Months:
           type: boolean
         reasonForReapplication:
+          type: string
+        providerOfficeCode:
           type: string
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"

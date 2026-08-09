@@ -12,7 +12,6 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
@@ -28,16 +27,15 @@ public class ApplicationController implements ApplicationsApi {
   private final ApplicationCreationService applicationCreationService;
 
   @Override
-  public ResponseEntity<CreateApplicationResponseBody> createApplication(
+  public ResponseEntity<Void> createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
-    CreateApplicationResponseBody responseBody =
-        applicationCreationService.createApplication(applicationRequestBody);
+    Application application = applicationCreationService.createApplication(applicationRequestBody);
     URI uri =
         ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/api/v1/applications/{id}")
-            .buildAndExpand(responseBody.getId())
+            .path("/{id}")
+            .buildAndExpand(application.getId())
             .toUri();
-    return ResponseEntity.created(uri).body(responseBody);
+    return ResponseEntity.created(uri).build();
   }
 
   @Override
