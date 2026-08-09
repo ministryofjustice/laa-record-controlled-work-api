@@ -24,6 +24,15 @@ spring:
     hibernate:
       ddl-auto: none
 
+  jackson:
+    factory:
+      constraints:
+        read:
+          # bounds JSON request bodies (e.g. means data/result) against oversized payloads
+          max-document-length: 262144 # 256KB
+          max-nesting-depth: 20
+          max-string-length: 65536 # 64KB
+
   security:
     oauth2:
       client:
