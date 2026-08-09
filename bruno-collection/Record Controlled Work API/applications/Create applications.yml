@@ -22,7 +22,7 @@ http:
           "firstName": "Joe",
           "lastName": "Bloggs",
           "dateOfBirth": "1990-01-01",
-          "niNumber": "QQ123456C",
+          "niNumber": "AB123456C",
           "hasFixedAddress": true,
           "address": {
             "addressLine1": "10 Downing Street",
@@ -79,7 +79,7 @@ examples:
               "firstName": "Joe",
               "lastName": "Bloggs",
               "dateOfBirth": "1990-01-01",
-              "niNumber": "QQ123456C",
+              "niNumber": "AB123456C",
               "hasFixedAddress": true,
               "address": {
                 "addressLine1": "10 Downing Street",
