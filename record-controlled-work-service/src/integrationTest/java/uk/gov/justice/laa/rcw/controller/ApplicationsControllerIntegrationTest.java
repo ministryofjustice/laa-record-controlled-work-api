@@ -227,7 +227,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .string(
                     "Location",
                     org.hamcrest.Matchers.endsWith("/api/v1/applications/" + applicationId)))
-        .andExpect(content().string(""));
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value(applicationId));
 
     DATASTORE.verify(
         postRequestedFor(urlPathEqualTo("/api/v0/applications:start-application"))

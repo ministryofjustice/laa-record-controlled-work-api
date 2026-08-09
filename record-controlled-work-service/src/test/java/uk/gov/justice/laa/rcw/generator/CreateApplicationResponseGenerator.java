@@ -14,12 +14,7 @@ public class CreateApplicationResponseGenerator {
 
   private static CreateApplicationResponseBody.Builder createApplication(
       Consumer<CreateApplicationResponseBody.Builder> customizer) {
-    var builder =
-        CreateApplicationResponseBody.builder()
-            .id(UUID.randomUUID())
-            .ecfFlag(false)
-            .legalAidBefore("no")
-            .clientDetails(ClientDetailsGenerator.createWithName(null));
+    var builder = CreateApplicationResponseBody.builder().id(UUID.randomUUID());
     if (customizer != null) {
       customizer.accept(builder);
     }

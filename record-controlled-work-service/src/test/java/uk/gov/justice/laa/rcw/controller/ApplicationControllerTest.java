@@ -160,7 +160,8 @@ class ApplicationControllerTest {
                     "Location",
                     org.hamcrest.Matchers.endsWith(
                         "/api/v1/applications/%s".formatted(response.getId()))))
-        .andExpect(content().string(""));
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value(response.getId().toString()));
   }
 
   @Test

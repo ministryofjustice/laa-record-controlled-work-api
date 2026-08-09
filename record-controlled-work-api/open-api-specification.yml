@@ -61,6 +61,10 @@ paths:
       responses:
         '201':
           description: 'Created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApplicationResponseBody'
           headers:
             Location:
               description: Canonical RCW application URL for the created application
@@ -325,20 +329,13 @@ components:
           $ref: "#/components/schemas/ClientDetails"
 
     CreateApplicationResponseBody:
+      type: object
+      required:
+        - id
       properties:
         id:
           type: string
           format: uuid
-        ecfFlag:
-          type: boolean
-        legalAidBefore:
-          type: string
-        legalAidLast6Months:
-          type: boolean
-        reasonForReapplication:
-          type: string
-        clientDetails:
-          $ref: "#/components/schemas/ClientDetails"
 
     Applications:
       type: array
