@@ -373,6 +373,8 @@ components:
           $ref: "#/components/schemas/Declaration"
         evidence:
           $ref: "#/components/schemas/Evidence"
+        eligibility:
+          $ref: "#/components/schemas/Eligibility"
         reasonForReapplication:
           type: string
         meansAssessmentRequired:
@@ -401,6 +403,14 @@ components:
       required:
         - data
         - result
+      properties:
+        data:
+          type: object
+        result:
+          type: object
+
+    Eligibility:
+      type: object
       properties:
         data:
           type: object

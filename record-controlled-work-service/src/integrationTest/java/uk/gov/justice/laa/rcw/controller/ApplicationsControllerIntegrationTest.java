@@ -150,13 +150,47 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void shouldGetApplication() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "individualLegalAidNumber": "ebd50ba0-9ed9-4003-83a8-c11ac07d9e32",
+                        "providerFirmCode": "123456",
+                        "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
+                        "ecfFlag": false,
+                        "applicationType": "CONTROLLED_WORK",
+                        "eligibilityResult": {
+                            "data": {"level_of_help": "controlled"},
+                            "result": {"indication": true}
+                        }
+                    }
+                    """
+                        .formatted(applicationId))));
+
     mockMvc
-        .perform(
-            get("/api/v1/applications/a1b2c3d4-e5f6-7890-abcd-ef1234567890").withBearerReadToken())
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
-            jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"));
+            jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
+        .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
+        .andExpect(jsonPath("$.eligibility.result.indication").value(true));
+  }
+
+  @Test
+  void shouldReturnNotFound_whenGettingApplicationThatDoesNotExist() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(WireMock.notFound()));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
+        .andExpect(status().isNotFound());
   }
 
   @Test

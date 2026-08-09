@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
@@ -56,8 +57,16 @@ public class ApplicationQueryService {
    * @return {@link Optional} of {@link Application}
    */
   public Optional<Application> getApplication(UUID applicationId) {
-    Optional<Application> application =
-        Optional.of(StubApplicationFactory.stubApplication(applicationId));
+    Optional<Application> application;
+    try {
+      application =
+          Optional.of(
+              applicationMapper.toApplication(
+                  applicationApi.getApplication(
+                      applicationId, bearerTokenProvider.currentBearerToken())));
+    } catch (HttpClientErrorException.NotFound exception) {
+      return Optional.empty();
+    }
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
