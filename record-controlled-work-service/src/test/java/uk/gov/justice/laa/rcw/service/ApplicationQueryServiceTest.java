@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,14 +18,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
-import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -127,35 +131,50 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Optional<Application> expected =
-        Optional.of(ApplicationGenerator.create(b -> b.id(applicationId)));
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .id(applicationId)
+                .providerFirmCode("123456")
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
+                .ecfFlag(false)
+                .applicationType("CONTROLLED_WORK")
+                .createdBy("Random User")
+                .modifiedBy("Random User")
+                .build());
 
     Optional<Application> result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isPresent();
+    assertThat(result.get().getId()).isEqualTo(applicationId);
+    assertThat(result.get().getProviderFirmCode()).isEqualTo("123456");
+    assertThat(result.get().getApplicationType()).isEqualTo("CONTROLLED_WORK");
+  }
 
-    assertThat(result)
-        .usingRecursiveComparison()
-        .ignoringFields(
-            "value.individualLegalAidNumber",
-            "value.providerFirmCode",
-            "value.ecfFlag",
-            "value.applicationType",
-            "value.providerOfficeCode",
-            "value.createdAt",
-            "value.modifiedAt",
-            "value.clientDetails.id",
-            "value.clientDetails.createdAt",
-            "value.clientDetails.modifiedAt",
-            "value.clientDetails.address.id",
-            "value.clientDetails.address.createdAt",
-            "value.clientDetails.address.modifiedAt",
-            "value.declaration.id",
-            "value.declaration.createdAt",
-            "value.declaration.modifiedAt",
-            "value.evidence.id",
-            "value.evidence.createdAt",
-            "value.evidence.modifiedAt")
-        .isEqualTo(expected);
+  @Test
+  void shouldGetApplicationById_forwardsBearerToken() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().id(applicationId).build());
+
+    applicationQueryService.getApplication(applicationId);
+
+    // CHECKSTYLE.SUPPRESS: LocalVariableName
+    ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockApplicationApi).getApplication(eq(applicationId), xAuthorizationCaptor.capture());
+    assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+  }
+
+  @Test
+  void shouldGetApplicationById_returnsEmptyWhenDatastoreReturnsNotFound() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenThrow(
+            HttpClientErrorException.create(
+                HttpStatus.NOT_FOUND, "Not found", HttpHeaders.EMPTY, new byte[0], null));
+
+    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+
+    assertThat(result).isEmpty();
   }
 }
