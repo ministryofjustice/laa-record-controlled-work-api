@@ -305,6 +305,7 @@ components:
         - ecfFlag
         - legalAidBefore
         - providerOfficeCode
+        - scopingQuestions
         - clientDetails
       properties:
         ecfFlag:
@@ -317,6 +318,9 @@ components:
           type: string
         providerOfficeCode:
           type: string
+        scopingQuestions:
+          type: object
+          additionalProperties: true
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"
 

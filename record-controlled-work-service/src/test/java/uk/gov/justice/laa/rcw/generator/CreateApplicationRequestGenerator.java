@@ -1,5 +1,6 @@
 package uk.gov.justice.laa.rcw.generator;
 
+import java.util.Map;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
@@ -28,6 +29,7 @@ public class CreateApplicationRequestGenerator {
         CreateApplicationRequestBody.builder()
             .ecfFlag(false)
             .legalAidBefore("false")
+            .scopingQuestions(Map.of("priorLegalAid", "same_matter"))
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e");
     if (customizer != null) {
       customizer.accept(builder);

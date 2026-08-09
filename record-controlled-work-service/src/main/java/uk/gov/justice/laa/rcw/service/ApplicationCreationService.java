@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -28,10 +29,18 @@ public class ApplicationCreationService {
    * @return the created application
    */
   public Application createApplication(CreateApplicationRequestBody applicationRequestBody) {
+    String bearerToken = bearerTokenProvider.currentBearerToken();
     ApplicationResponse applicationResponse =
         applicationApi.startApplication(
-            bearerTokenProvider.currentBearerToken(),
-            applicationMapper.toStartApplicationCommand(applicationRequestBody));
+            bearerToken, applicationMapper.toStartApplicationCommand(applicationRequestBody));
+
+    applicationApi.updateScopingData(
+        applicationResponse.getId(),
+        bearerToken,
+        UpdateScopingDataCommand.builder()
+            .eTag(applicationResponse.geteTag())
+            .scopingQuestions(applicationRequestBody.getScopingQuestions())
+            .build());
 
     Application application = applicationMapper.toApplication(applicationResponse);
 

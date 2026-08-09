@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import java.util.Map;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -163,8 +165,14 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   @Test
   void shouldCreateApplication() throws Exception {
 
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
+    CreateApplicationRequestBody request =
+        CreateApplicationRequestGenerator.createWithName(
+            builder -> builder.scopingQuestions(Map.of("priorLegalAid", "same_matter")));
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
+    DATASTORE.stubFor(
+        WireMock.patch(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+            .willReturn(WireMock.noContent()));
 
     DATASTORE.stubFor(
         WireMock.post(urlPathEqualTo("/api/v0/applications:start-application"))
@@ -197,6 +205,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                             "applicationState": "DRAFT",
                                             "ecfFlag": false,
                                             "applicationType": "RCW",
+                                            "eTag": 0,
                                             "createdAt": "2026-08-09T00:00:00Z",
                                             "createdBy": "Random User",
                                             "modifiedAt": "2026-08-09T00:00:00Z",
@@ -250,6 +259,22 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "22439e72-68d3-4770-b435-c352d883d21e"
                                         }
                                         """)));
+
+    DATASTORE.verify(
+        patchRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 0,
+                        "scopingQuestions": {
+                            "priorLegalAid": "same_matter"
+                        }
+                    }
+                    """)));
   }
 
   @Test

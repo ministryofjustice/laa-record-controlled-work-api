@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -55,7 +57,9 @@ class ApplicationCreationServiceTest {
 
   @Test
   void shouldCreateApplication_forwardsRequestToDatastore() {
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
+    CreateApplicationRequestBody request =
+        CreateApplicationRequestGenerator.createWithName(
+            builder -> builder.scopingQuestions(Map.of("priorLegalAid", "same_matter")));
     StartApplicationCommand command =
         StartApplicationCommand.builder()
             .providerOfficeCode(request.getProviderOfficeCode())
@@ -69,6 +73,7 @@ class ApplicationCreationServiceTest {
             .providerFirmCode("123456")
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
             .applicationType("RCW")
+            .eTag(0L)
             .build();
     Application expectedApplication =
         ApplicationGenerator.create(b -> b.id(datastoreResponse.getId()));
@@ -82,10 +87,18 @@ class ApplicationCreationServiceTest {
     ArgumentCaptor<String> authorizationHeaderCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<StartApplicationCommand> commandCaptor =
         ArgumentCaptor.forClass(StartApplicationCommand.class);
+    ArgumentCaptor<UpdateScopingDataCommand> scopingCommandCaptor =
+        ArgumentCaptor.forClass(UpdateScopingDataCommand.class);
     verify(mockApplicationApi)
         .startApplication(authorizationHeaderCaptor.capture(), commandCaptor.capture());
+    verify(mockApplicationApi)
+        .updateScopingData(
+            any(), authorizationHeaderCaptor.capture(), scopingCommandCaptor.capture());
     assertThat(authorizationHeaderCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
     assertThat(commandCaptor.getValue()).isEqualTo(command);
+    assertThat(scopingCommandCaptor.getValue().geteTag()).isEqualTo(0L);
+    assertThat(scopingCommandCaptor.getValue().getScopingQuestions())
+        .isEqualTo(Map.of("priorLegalAid", "same_matter"));
     assertThat(result).isEqualTo(expectedApplication);
   }
 }

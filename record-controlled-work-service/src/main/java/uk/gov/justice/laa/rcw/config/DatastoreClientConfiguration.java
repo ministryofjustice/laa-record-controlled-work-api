@@ -8,6 +8,7 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
@@ -84,7 +85,7 @@ public class DatastoreClientConfiguration {
   public ApplicationApi applicationApi(
       DatastoreClientProperties props,
       OAuth2AuthorizedClientManager datastoreAuthorizedClientManager) {
-    RestTemplate restTemplate = new RestTemplate();
+    RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
     restTemplate
         .getInterceptors()
         .add(
