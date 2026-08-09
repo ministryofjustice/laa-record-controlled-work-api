@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -43,6 +44,22 @@ class GlobalExceptionHandlerTest {
     assertThat(result.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
     assertThat(result.getBody()).isNotNull();
     assertThat(result.getBody()).isEqualTo("An unexpected application error has occurred.");
+  }
+
+  @Test
+  void handleApplicationForbidden_returnsForbiddenStatusAndErrorMessage() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("PUT", "/api/v1/applications/99/means");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleApplicationForbidden(
+            new ApplicationForbiddenException("Not authorized to update application 99"),
+            new ServletWebRequest(request));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(FORBIDDEN);
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assert body != null;
+    assertThat(body.getDetail()).isEqualTo("Not authorized to update application 99");
   }
 
   @Test

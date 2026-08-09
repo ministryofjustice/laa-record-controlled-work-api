@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.exception;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -69,6 +70,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<Object> handleApplicationConflict(
       ApplicationConflictException exception, WebRequest request) {
     return handleKnownException(exception, CONFLICT, request);
+  }
+
+  /**
+   * The handler for ApplicationForbiddenException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationForbiddenException.class)
+  public ResponseEntity<Object> handleApplicationForbidden(
+      ApplicationForbiddenException exception, WebRequest request) {
+    return handleKnownException(exception, FORBIDDEN, request);
   }
 
   /**
