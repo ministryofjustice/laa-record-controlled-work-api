@@ -26,11 +26,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationMeansServiceTest {
@@ -148,6 +153,86 @@ class ApplicationMeansServiceTest {
     verify(mockApplicationApi, times(2)).updateMeansData(eq(applicationId), anyString(), any());
   }
 
+  @Test
+  void shouldUpdateMeans_throwsApplicationBadRequestException_whenFetchingApplicationReturns400() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationBadRequestException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationBadRequestException_whenDatastoreUpdateReturns400() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(badRequest())
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationBadRequestException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationUpstreamErrorException_whenFetchingReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenThrow(serverError());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationUpstreamErrorException_whenDatastoreUpdateReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(serverError())
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationUnavailableException_whenFetchingFailsToConnect() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenThrow(new ResourceAccessException("Connection refused"));
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationUnavailableException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationUnavailableException_whenDatastoreUpdateFailsToConnect() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(new ResourceAccessException("Connection refused"))
+        .when(mockApplicationApi)
+        .updateMeansData(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationUnavailableException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
   private static HttpClientErrorException.NotFound notFound() {
     return (HttpClientErrorException.NotFound)
         HttpClientErrorException.create(
@@ -158,5 +243,15 @@ class ApplicationMeansServiceTest {
     return (HttpClientErrorException.Conflict)
         HttpClientErrorException.create(
             HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.BadRequest badRequest() {
+    return (HttpClientErrorException.BadRequest)
+        HttpClientErrorException.create(
+            HttpStatus.BAD_REQUEST, "Bad Request", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpServerErrorException serverError() {
+    return new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
   }
 }

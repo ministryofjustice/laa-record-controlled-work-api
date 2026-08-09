@@ -1,9 +1,12 @@
 package uk.gov.justice.laa.rcw.exception;
 
+import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_DOWNSTREAM_ERROR;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_ERROR;
 import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_INVALID;
 import static uk.gov.justice.laa.rcw.logging.LogAction.REQUEST_VALIDATION_FAILED;
@@ -66,6 +69,57 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ResponseEntity<Object> handleApplicationConflict(
       ApplicationConflictException exception, WebRequest request) {
     return handleKnownException(exception, CONFLICT, request);
+  }
+
+  /**
+   * The handler for ApplicationBadRequestException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationBadRequestException.class)
+  public ResponseEntity<Object> handleApplicationBadRequest(
+      ApplicationBadRequestException exception, WebRequest request) {
+    log.error(exception)
+        .action(APPLICATION_ERROR)
+        .outcome("failure")
+        .with("http.response.status_code", BAD_REQUEST.value())
+        .log("Datastore rejected the request as invalid");
+    return handleKnownException(exception, BAD_REQUEST, request);
+  }
+
+  /**
+   * The handler for ApplicationUpstreamErrorException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationUpstreamErrorException.class)
+  public ResponseEntity<Object> handleApplicationUpstreamError(
+      ApplicationUpstreamErrorException exception, WebRequest request) {
+    log.warn()
+        .action(APPLICATION_DOWNSTREAM_ERROR)
+        .outcome("failure")
+        .with("http.response.status_code", BAD_GATEWAY.value())
+        .log("Datastore returned an error");
+    return handleKnownException(exception, BAD_GATEWAY, request);
+  }
+
+  /**
+   * The handler for ApplicationUnavailableException.
+   *
+   * @param exception the exception
+   * @return the response status with error message
+   */
+  @ExceptionHandler(ApplicationUnavailableException.class)
+  public ResponseEntity<Object> handleApplicationUnavailable(
+      ApplicationUnavailableException exception, WebRequest request) {
+    log.warn()
+        .action(APPLICATION_DOWNSTREAM_ERROR)
+        .outcome("failure")
+        .with("http.response.status_code", SERVICE_UNAVAILABLE.value())
+        .log("Datastore is unavailable");
+    return handleKnownException(exception, SERVICE_UNAVAILABLE, request);
   }
 
   @Override

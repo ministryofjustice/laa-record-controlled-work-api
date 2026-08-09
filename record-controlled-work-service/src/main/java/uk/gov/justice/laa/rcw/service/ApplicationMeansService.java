@@ -6,11 +6,16 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** Service class for updating application means data. */
@@ -53,6 +58,12 @@ public class ApplicationMeansService {
       }
       updateMeans(applicationId, data, result, false);
       return;
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw applicationBadRequest(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw applicationUpstreamError(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw applicationUnavailable(applicationId);
     }
     log.info()
         .action(APPLICATION_MEANS_UPDATE)
@@ -66,11 +77,32 @@ public class ApplicationMeansService {
       return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
     } catch (HttpClientErrorException.NotFound exception) {
       throw applicationNotFound(applicationId);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw applicationBadRequest(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw applicationUpstreamError(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw applicationUnavailable(applicationId);
     }
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
+  }
+
+  private ApplicationBadRequestException applicationBadRequest(UUID applicationId) {
+    return new ApplicationBadRequestException(
+        "Datastore rejected the request for application %s".formatted(applicationId));
+  }
+
+  private ApplicationUpstreamErrorException applicationUpstreamError(UUID applicationId) {
+    return new ApplicationUpstreamErrorException(
+        "Datastore returned an error for application %s".formatted(applicationId));
+  }
+
+  private ApplicationUnavailableException applicationUnavailable(UUID applicationId) {
+    return new ApplicationUnavailableException(
+        "Datastore is unavailable for application %s".formatted(applicationId));
   }
 }

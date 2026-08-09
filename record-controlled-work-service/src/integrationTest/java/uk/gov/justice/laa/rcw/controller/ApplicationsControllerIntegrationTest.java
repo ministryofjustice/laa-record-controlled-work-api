@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.http.Fault;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -255,5 +256,68 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         2,
         putRequestedFor(
             urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data")));
+  }
+
+  @Test
+  void shouldReturnBadRequest_whenDatastoreRejectsTheUpdateAsInvalid() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .willReturn(WireMock.aResponse().withStatus(400)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnBadGateway_whenDatastoreReturnsAServerError() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .willReturn(WireMock.aResponse().withStatus(500)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isBadGateway());
+  }
+
+  @Test
+  void shouldReturnServiceUnavailable_whenDatastoreCannotBeReached() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(WireMock.aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isServiceUnavailable());
   }
 }
