@@ -242,6 +242,35 @@ class ApplicationControllerTest {
   }
 
   @Test
+  void updateApplicationMeans_returnsBadRequest_whenPayloadExceedsMaxDocumentLength()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    // each value stays under max-string-length so only max-document-length is exercised
+    String longValue = "a".repeat(60_000);
+    String requestBody =
+        """
+        {
+            "data": {
+                "note1": "%s",
+                "note2": "%s",
+                "note3": "%s",
+                "note4": "%s",
+                "note5": "%s"
+            },
+            "result": {}
+        }
+        """
+            .formatted(longValue, longValue, longValue, longValue, longValue);
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void updateApplicationMeans_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
