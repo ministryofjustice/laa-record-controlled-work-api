@@ -11,6 +11,7 @@ public final class LogAction {
   public static final String APPLICATION_CREATE = "application.create";
   public static final String APPLICATION_MEANS_UPDATE = "application.means-update";
   public static final String APPLICATION_ERROR = "application.error";
+  public static final String APPLICATION_DOWNSTREAM_ERROR = "application.downstream-error";
 
   // Request actions
   public static final String REQUEST_RECEIVED = "request.received";
