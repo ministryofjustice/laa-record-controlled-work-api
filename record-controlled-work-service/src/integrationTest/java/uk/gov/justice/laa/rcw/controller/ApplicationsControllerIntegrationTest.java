@@ -179,7 +179,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
-            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
             .willReturn(WireMock.noContent()));
@@ -231,11 +234,36 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldReturnForbidden_whenUpdatingMeansForApplicationInAnotherOffice() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"OTHER-OFFICE\"}"
+                        .formatted(applicationId))));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void shouldRetryOnceThenReturnConflict_whenDatastoreEtagMismatchPersists() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
-            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
             .willReturn(WireMock.aResponse().withStatus(409)));
@@ -263,7 +291,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
-            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
             .willReturn(WireMock.aResponse().withStatus(400)));
@@ -285,7 +316,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
-            .willReturn(okJson("{\"id\": \"%s\", \"eTag\": 5}".formatted(applicationId))));
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
             .willReturn(WireMock.aResponse().withStatus(500)));

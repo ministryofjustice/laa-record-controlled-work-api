@@ -13,6 +13,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
@@ -27,6 +28,7 @@ public class ApplicationMeansService {
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
+  private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
    * Updates the means data for an application. The datastore requires an eTag for optimistic
@@ -43,9 +45,14 @@ public class ApplicationMeansService {
 
   private void updateMeans(
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
-    Long etag = fetchApplication(applicationId).geteTag();
+    ApplicationResponse application = fetchApplication(applicationId);
+    checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     UpdateMeansDataCommand command =
-        UpdateMeansDataCommand.builder().eTag(etag).data(data).result(result).build();
+        UpdateMeansDataCommand.builder()
+            .eTag(application.geteTag())
+            .data(data)
+            .result(result)
+            .build();
     try {
       applicationApi.updateMeansData(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
@@ -89,6 +96,13 @@ public class ApplicationMeansService {
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
+  }
+
+  private void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
+    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
+      throw new ApplicationForbiddenException(
+          "Not authorized to update application %s".formatted(applicationId));
+    }
   }
 
   private ApplicationBadRequestException applicationBadRequest(UUID applicationId) {

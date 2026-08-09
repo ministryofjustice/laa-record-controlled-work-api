@@ -29,6 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
@@ -290,6 +291,30 @@ class ApplicationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsForbidden_whenUserNotAuthorizedForOffice() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isForbidden())
+        .andExpect(
+            jsonPath("$.detail")
+                .value("Not authorized to update application %s".formatted(applicationId)));
   }
 
   @Test
