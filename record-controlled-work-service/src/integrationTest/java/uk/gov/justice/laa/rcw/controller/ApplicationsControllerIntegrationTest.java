@@ -287,6 +287,40 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldReturnConflict_whenApplicationAlreadyRecorded() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "eTag": 5,
+                      "providerOfficeCode": "%s",
+                      "applicationState": "COMPLETED"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"data": {}, "result": {}}
+                    """))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(
+        0,
+        putRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data")));
+  }
+
+  @Test
   void shouldReturnBadRequest_whenDatastoreRejectsTheUpdateAsInvalid() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(

@@ -10,6 +10,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
@@ -47,6 +48,7 @@ public class ApplicationMeansService {
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
     ApplicationResponse application = fetchApplication(applicationId);
     checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
+    checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder()
             .eTag(application.geteTag())
@@ -102,6 +104,14 @@ public class ApplicationMeansService {
     if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
       throw new ApplicationForbiddenException(
           "Not authorized to update application %s".formatted(applicationId));
+    }
+  }
+
+  private void checkNotAlreadyRecorded(UUID applicationId, ApplicationState applicationState) {
+    if (applicationState == ApplicationState.COMPLETED) {
+      throw new ApplicationConflictException(
+          "Application %s has already been recorded and cannot be updated"
+              .formatted(applicationId));
     }
   }
 

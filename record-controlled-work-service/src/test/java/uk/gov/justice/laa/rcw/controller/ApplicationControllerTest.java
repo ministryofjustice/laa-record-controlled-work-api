@@ -339,6 +339,28 @@ class ApplicationControllerTest {
   }
 
   @Test
+  void updateApplicationMeans_returnsConflict_whenApplicationAlreadyRecorded() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s has already been recorded and cannot be updated"
+                    .formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   void updateApplicationMeans_returnsBadRequest_whenDatastoreRejectsTheRequest() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     doThrow(

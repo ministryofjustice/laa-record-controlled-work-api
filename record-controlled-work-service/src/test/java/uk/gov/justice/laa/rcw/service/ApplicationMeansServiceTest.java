@@ -32,6 +32,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
@@ -181,6 +182,24 @@ class ApplicationMeansServiceTest {
 
     verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
     verify(mockApplicationApi, times(2)).updateMeansData(eq(applicationId), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateMeans_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(ApplicationState.COMPLETED)
+                .build());
+
+    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
   }
 
   @Test
