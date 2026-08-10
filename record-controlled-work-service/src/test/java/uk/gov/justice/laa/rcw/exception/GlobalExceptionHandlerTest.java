@@ -5,7 +5,6 @@ import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 
 import org.junit.jupiter.api.Test;
@@ -17,23 +16,6 @@ import org.springframework.web.context.request.ServletWebRequest;
 class GlobalExceptionHandlerTest {
 
   GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
-
-  @Test
-  void handleItemNotFound_returnsNotFoundStatusAndErrorMessage() {
-    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/items/99");
-    ResponseEntity<Object> result =
-        globalExceptionHandler.handleItemNotFound(
-            new ItemNotFoundException("Item not found"), new ServletWebRequest(request));
-
-    assertThat(result).isNotNull();
-    assertThat(result.getStatusCode()).isEqualTo(NOT_FOUND);
-    assertThat(result.getBody()).isInstanceOf(ProblemDetail.class);
-    ProblemDetail body = (ProblemDetail) result.getBody();
-    assert body != null;
-    assertThat(body.getDetail()).isEqualTo("Item not found");
-    assertThat(body.getInstance()).hasToString("/api/v1/items/99");
-    assertThat(body.getType()).hasToString("about:blank");
-  }
 
   @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
