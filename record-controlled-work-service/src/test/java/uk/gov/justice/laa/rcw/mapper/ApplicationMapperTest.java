@@ -156,6 +156,7 @@ class ApplicationMapperTest {
             .meansAssessmentRequired(true)
             .typeOfNonMeans(false)
             .contribution("100.00")
+            .scopingQuestions(Map.of("priorLegalAid", "same_matter"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .createdAt(now)
@@ -175,6 +176,7 @@ class ApplicationMapperTest {
     assertThat(result.getMeansAssessmentRequired()).isTrue();
     assertThat(result.getTypeOfNonMeans()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
+    assertThat(result.getScopingQuestions()).isEqualTo(Map.of("priorLegalAid", "same_matter"));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");

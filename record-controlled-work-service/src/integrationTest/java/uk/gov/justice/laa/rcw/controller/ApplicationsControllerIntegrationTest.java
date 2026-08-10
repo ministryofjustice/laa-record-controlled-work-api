@@ -165,6 +165,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "individualLegalAidNumber": "ebd50ba0-9ed9-4003-83a8-c11ac07d9e32",
                         "providerFirmCode": "123456",
                         "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
+                        "scopingQuestions": {
+                            "priorLegalAid": "same_matter"
+                        },
                         "applicationType": "CONTROLLED_WORK",
                         "eligibilityResult": {
                             "data": {"level_of_help": "controlled"},
@@ -180,6 +183,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
             jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
+        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("same_matter"))
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
   }

@@ -385,6 +385,8 @@ components:
           type: boolean
         contribution:
           type: string
+        scopingQuestions:
+          type: object
         applicationType:
           type: string
         createdAt:
