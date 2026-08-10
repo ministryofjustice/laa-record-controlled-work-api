@@ -214,39 +214,39 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                                        {
-                                            "id": "%s",
-                                            "individualLegalAidNumber": "%s",
-                                            "providerFirmCode": "123456",
-                                            "providerOfficeCode":
-                                                "22439e72-68d3-4770-b435-c352d883d21e",
-                                            "client": {
-                                                "individualLegalAidNumber": "%s",
-                                                "firstName": "Joe",
-                                                "lastName": "Bloggs",
-                                                "dateOfBirth": "1990-01-01",
-                                                "niNumber": "AB123456C",
-                                                "noFixedAbode": false,
-                                                "address": {
-                                                    "addressLine1": "10 Downing Street",
-                                                    "addressLine2": "Prime ministers address",
-                                                    "postCode": "SW1A 2AA",
-                                                    "townOrCity": "London",
-                                                    "country": "GB"
-                                                },
-                                                "createdAt": "2026-08-09T00:00:00Z",
-                                                "modifiedAt": "2026-08-09T00:00:00Z"
-                                            },
-                                            "applicationState": "DRAFT",
-                                            "ecfFlag": false,
-                                            "applicationType": "RCW",
-                                            "eTag": 0,
-                                            "createdAt": "2026-08-09T00:00:00Z",
-                                            "createdBy": "Random User",
-                                            "modifiedAt": "2026-08-09T00:00:00Z",
-                                            "modifiedBy": "Random User"
-                                        }
-                                        """
+                    {
+                        "id": "%s",
+                        "individualLegalAidNumber": "%s",
+                        "providerFirmCode": "123456",
+                        "providerOfficeCode":
+                            "22439e72-68d3-4770-b435-c352d883d21e",
+                        "client": {
+                            "individualLegalAidNumber": "%s",
+                            "firstName": "Joe",
+                            "lastName": "Bloggs",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": "AB123456C",
+                            "noFixedAbode": false,
+                            "address": {
+                                "addressLine1": "10 Downing Street",
+                                "addressLine2": "Prime ministers address",
+                                "postCode": "SW1A 2AA",
+                                "townOrCity": "London",
+                                "country": "GB"
+                            },
+                            "createdAt": "2026-08-09T00:00:00Z",
+                            "modifiedAt": "2026-08-09T00:00:00Z"
+                        },
+                        "applicationState": "DRAFT",
+                        "ecfFlag": false,
+                        "applicationType": "RCW",
+                        "eTag": 0,
+                        "createdAt": "2026-08-09T00:00:00Z",
+                        "createdBy": "Random User",
+                        "modifiedAt": "2026-08-09T00:00:00Z",
+                        "modifiedBy": "Random User"
+                    }
+                    """
                         .formatted(applicationId, applicationId, applicationId))));
 
     mockMvc
@@ -272,29 +272,29 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .withRequestBody(
                 equalToJson(
                     """
-                                        {
-                                            "client": {
-                                                "firstName": "Joe",
-                                                "lastName": "Bloggs",
-                                                "dateOfBirth": "1990-01-01",
-                                                "nationalInsuranceNumber": "AB123456C",
-                                                "noFixedAbode": false,
-                                                "createAddressCommand": {
-                                                    "addressLine1": "10 Downing Street",
-                                                    "addressLine2": "Prime ministers address",
-                                                    "addressLine3": null,
-                                                    "addressLine4": null,
-                                                    "postCode": "SW1A 2AA",
-                                                    "county": null,
-                                                    "townOrCity": "London",
-                                                    "country": "GB"
-                                                }
-                                            },
-                                            "applicationType": "RCW",
-                                            "providerOfficeCode":
-                                                "22439e72-68d3-4770-b435-c352d883d21e"
-                                        }
-                                        """)));
+                    {
+                        "client": {
+                            "firstName": "Joe",
+                            "lastName": "Bloggs",
+                            "dateOfBirth": "1990-01-01",
+                            "nationalInsuranceNumber": "AB123456C",
+                            "noFixedAbode": false,
+                            "createAddressCommand": {
+                                "addressLine1": "10 Downing Street",
+                                "addressLine2": "Prime ministers address",
+                                "addressLine3": null,
+                                "addressLine4": null,
+                                "postCode": "SW1A 2AA",
+                                "county": null,
+                                "townOrCity": "London",
+                                "country": "GB"
+                            }
+                        },
+                        "applicationType": "RCW",
+                        "providerOfficeCode":
+                            "22439e72-68d3-4770-b435-c352d883d21e"
+                    }
+                    """)));
 
     DATASTORE.verify(
         patchRequestedFor(
