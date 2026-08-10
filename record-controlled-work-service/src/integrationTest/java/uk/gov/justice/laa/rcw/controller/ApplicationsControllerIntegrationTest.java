@@ -165,7 +165,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "individualLegalAidNumber": "ebd50ba0-9ed9-4003-83a8-c11ac07d9e32",
                         "providerFirmCode": "123456",
                         "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
-                        "ecfFlag": false,
                         "applicationType": "CONTROLLED_WORK",
                         "eligibilityResult": {
                             "data": {"level_of_help": "controlled"},
@@ -238,7 +237,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "modifiedAt": "2026-08-09T00:00:00Z"
                         },
                         "applicationState": "DRAFT",
-                        "ecfFlag": false,
                         "applicationType": "RCW",
                         "eTag": 0,
                         "createdAt": "2026-08-09T00:00:00Z",

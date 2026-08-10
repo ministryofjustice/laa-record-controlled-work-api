@@ -26,7 +26,6 @@ runtime:
           expect(application).to.have.property("providerFirmCode");
           expect(application).to.have.property("providerOfficeCode");
           expect(application).to.have.property("clientDetails");
-          expect(application).to.have.property("ecfFlag");
           expect(application).to.have.property("applicationType");
           expect(application).to.have.property("createdAt");
           expect(application).to.have.property("createdBy");
@@ -93,7 +92,6 @@ examples:
                 "modifiedAt": "",
                 "niNumber": ""
               },
-              "ecfFlag": "",
               "applicationType": "",
               "createdAt": "",
               "createdBy": "",

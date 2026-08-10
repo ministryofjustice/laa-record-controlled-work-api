@@ -155,7 +155,6 @@ class ApplicationMapperTest {
             .reasonForReapplication("Change in circumstances")
             .meansAssessmentRequired(true)
             .typeOfNonMeans(false)
-            .ecfFlag(false)
             .contribution("100.00")
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
@@ -175,7 +174,6 @@ class ApplicationMapperTest {
     assertThat(result.getReasonForReapplication()).isEqualTo("Change in circumstances");
     assertThat(result.getMeansAssessmentRequired()).isTrue();
     assertThat(result.getTypeOfNonMeans()).isFalse();
-    assertThat(result.getEcfFlag()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
@@ -219,7 +217,6 @@ class ApplicationMapperTest {
             .client(client)
             .providerFirmCode("123456")
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
-            .ecfFlag(false)
             .applicationType("CONTROLLED_WORK")
             .createdAt(MODIFIED_AT)
             .createdBy("Random User")
@@ -241,7 +238,6 @@ class ApplicationMapperTest {
             .client(ClientDetails.builder().build())
             .providerFirmCode("123456")
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
-            .ecfFlag(false)
             .applicationType("CONTROLLED_WORK")
             .createdAt(MODIFIED_AT)
             .createdBy("Random User")
