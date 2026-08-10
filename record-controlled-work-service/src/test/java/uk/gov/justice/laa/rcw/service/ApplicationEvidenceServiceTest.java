@@ -1,0 +1,397 @@
+package uk.gov.justice.laa.rcw.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
+
+@ExtendWith(MockitoExtension.class)
+class ApplicationEvidenceServiceTest {
+
+  private static final String ORIGINAL_TOKEN = "original-incoming-token";
+  private static final String AUTHORIZED_OFFICE_CODE = "AB12CD";
+
+  @Mock private ApplicationApi mockApplicationApi;
+  @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
+
+  private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
+  private ApplicationEvidenceService applicationEvidenceService;
+
+  @BeforeEach
+  void setUp() {
+    applicationEvidenceService =
+        new ApplicationEvidenceService(
+            mockApplicationApi, bearerTokenProvider, mockAuthorizedOfficesProvider);
+    Jwt jwt =
+        Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    lenient()
+        .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
+  }
+
+  @AfterEach
+  void tearDown() {
+    SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  void shouldUpdateEvidence_fetchesETagAndForwardsFieldsToDatastore() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceRequestBody requestBody =
+        new UpdateEvidenceRequestBody()
+            .evidenceExemptionCode("EXEMPT")
+            .evidenceExemptionReason("reason")
+            .incomeEvidenceChecklist(Map.of("payslips", true))
+            .expenditureCapitalEvidenceChecklist(Map.of("bankStatements", true));
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(7L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+
+    applicationEvidenceService.updateEvidence(applicationId, requestBody);
+
+    ArgumentCaptor<String> getXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    verify(mockApplicationApi).getApplication(eq(applicationId), getXAuthorizationCaptor.capture());
+    assertThat(getXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+
+    ArgumentCaptor<String> updateXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<UpdateEvidenceCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateEvidenceCommand.class);
+    verify(mockApplicationApi)
+        .updateEvidence(
+            eq(applicationId), updateXAuthorizationCaptor.capture(), commandCaptor.capture());
+    assertThat(updateXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    assertThat(commandCaptor.getValue())
+        .isEqualTo(
+            UpdateEvidenceCommand.builder()
+                .eTag(7L)
+                .evidenceExemptionCode("EXEMPT")
+                .evidenceExemptionReason("reason")
+                .incomeEvidenceChecklist(Map.of("payslips", true))
+                .expenditureCapitalEvidenceChecklist(Map.of("bankStatements", true))
+                .build());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationNotFoundException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(notFound())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationNotFoundException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateEvidence_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build())
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(2L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(conflict())
+        .doNothing()
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    applicationEvidenceService.updateEvidence(applicationId, new UpdateEvidenceRequestBody());
+
+    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    ArgumentCaptor<UpdateEvidenceCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateEvidenceCommand.class);
+    verify(mockApplicationApi, times(2))
+        .updateEvidence(eq(applicationId), anyString(), commandCaptor.capture());
+    assertThat(commandCaptor.getAllValues())
+        .extracting(UpdateEvidenceCommand::geteTag)
+        .containsExactly(1L, 2L);
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(conflict())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationApi, times(2)).updateEvidence(eq(applicationId), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(ApplicationState.COMPLETED)
+                .build());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsBadRequestException_whenFetchingApplicationReturns400() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationBadRequestException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationBadRequestException_whenDatastoreUpdateReturns400() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(badRequest())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationBadRequestException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenFetchingReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenThrow(serverError());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void
+      shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenDatastoreUpdateReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(serverError())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationUnavailableException_whenFetchingFailsToConnect() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenThrow(new ResourceAccessException("Connection refused"));
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationUnavailableException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsUnavailableException_whenDatastoreUpdateFailsToConnect() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    doThrow(new ResourceAccessException("Connection refused"))
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), anyString(), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationUnavailableException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationForbiddenException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .build());
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
+
+    assertThatThrownBy(
+            () ->
+                applicationEvidenceService.updateEvidence(
+                    applicationId, new UpdateEvidenceRequestBody()))
+        .isInstanceOf(ApplicationForbiddenException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationApi, never()).updateEvidence(any(), anyString(), any());
+  }
+
+  private static HttpClientErrorException.NotFound notFound() {
+    return (HttpClientErrorException.NotFound)
+        HttpClientErrorException.create(
+            HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.Conflict conflict() {
+    return (HttpClientErrorException.Conflict)
+        HttpClientErrorException.create(
+            HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.BadRequest badRequest() {
+    return (HttpClientErrorException.BadRequest)
+        HttpClientErrorException.create(
+            HttpStatus.BAD_REQUEST, "Bad Request", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpServerErrorException serverError() {
+    return new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
+  }
+}
