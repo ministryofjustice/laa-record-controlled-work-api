@@ -83,70 +83,29 @@ public interface ApplicationMapper {
   }
 
   /** Maps the RCW application status to the datastore's equivalent enum. */
-  default uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
-      ApplicationState status) {
-    if (status == null) {
-      return null;
-    }
-    return switch (status) {
-      case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
-      case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
-    };
-  }
+  uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
+      ApplicationState status);
 
   /** Maps the RCW create request to the datastore start-application command. */
-  default StartApplicationCommand toStartApplicationCommand(
-      CreateApplicationRequestBody createApplicationRequestBody) {
-    return StartApplicationCommand.builder()
-        .client(toCreateClientCommand(createApplicationRequestBody.getClientDetails()))
-        .applicationType(StartApplicationCommand.ApplicationTypeEnum.RCW)
-        .providerOfficeCode(createApplicationRequestBody.getProviderOfficeCode())
-        .build();
-  }
+  @Mapping(target = "client", source = "clientDetails")
+  @Mapping(
+      target = "applicationType",
+      expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
+  StartApplicationCommand toStartApplicationCommand(
+      CreateApplicationRequestBody createApplicationRequestBody);
 
   /** Maps the RCW client details to the datastore create client command. */
-  default CreateClientCommand toCreateClientCommand(ClientDetails clientDetails) {
-    if (clientDetails == null) {
-      return null;
-    }
-
-    return CreateClientCommand.builder()
-        .firstName(clientDetails.getFirstName())
-        .lastName(clientDetails.getLastName())
-        .dateOfBirth(clientDetails.getDateOfBirth())
-        .nationalInsuranceNumber(clientDetails.getNiNumber())
-        .noFixedAbode(!Boolean.TRUE.equals(clientDetails.getHasFixedAddress()))
-        .createAddressCommand(toCreateAddressCommand(clientDetails.getAddress()))
-        .build();
-  }
+  @Mapping(target = "nationalInsuranceNumber", source = "niNumber")
+  @Mapping(
+      target = "noFixedAbode",
+      expression = "java(!Boolean.TRUE.equals(clientDetails.getHasFixedAddress()))")
+  @Mapping(target = "createAddressCommand", source = "address")
+  CreateClientCommand toCreateClientCommand(ClientDetails clientDetails);
 
   /** Maps the RCW address to the datastore create address command. */
-  default CreateAddressCommand toCreateAddressCommand(Address address) {
-    if (address == null) {
-      return null;
-    }
-
-    return CreateAddressCommand.builder()
-        .addressLine1(address.getAddressLine1())
-        .addressLine2(address.getAddressLine2())
-        .addressLine3(address.getAddressLine3())
-        .addressLine4(address.getAddressLine4())
-        .townOrCity(address.getTownOrCity())
-        .postCode(address.getPostCode())
-        .county(address.getCounty())
-        .country(address.getCountry())
-        .build();
-  }
+  CreateAddressCommand toCreateAddressCommand(Address address);
 
   /** Maps datastore application state back to the RCW application state. */
-  default ApplicationState toApplicationState(
-      uk.gov.justice.laa.ia.datastore.client.model.ApplicationState status) {
-    if (status == null) {
-      return null;
-    }
-    return switch (status) {
-      case DRAFT -> ApplicationState.DRAFT;
-      case COMPLETED -> ApplicationState.COMPLETED;
-    };
-  }
+  ApplicationState toApplicationState(
+      uk.gov.justice.laa.ia.datastore.client.model.ApplicationState status);
 }
