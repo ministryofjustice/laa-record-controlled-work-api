@@ -225,7 +225,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "firstName": "Joe",
                                                 "lastName": "Bloggs",
                                                 "dateOfBirth": "1990-01-01",
-                                                "niNumber": "QQ123456C",
+                                                "niNumber": "AB123456C",
                                                 "noFixedAbode": false,
                                                 "address": {
                                                     "addressLine1": "10 Downing Street",
@@ -277,7 +277,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "firstName": "Joe",
                                                 "lastName": "Bloggs",
                                                 "dateOfBirth": "1990-01-01",
-                                                "nationalInsuranceNumber": "QQ123456C",
+                                                "nationalInsuranceNumber": "AB123456C",
                                                 "noFixedAbode": false,
                                                 "createAddressCommand": {
                                                     "addressLine1": "10 Downing Street",
