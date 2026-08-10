@@ -27,7 +27,6 @@ public class CreateApplicationRequestGenerator {
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
     var builder =
         CreateApplicationRequestBody.builder()
-            .ecfFlag(false)
             .legalAidBefore("false")
             .scopingQuestions(Map.of("priorLegalAid", "same_matter"))
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e");

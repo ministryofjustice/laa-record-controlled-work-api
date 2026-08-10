@@ -306,14 +306,11 @@ components:
     CreateApplicationRequestBody:
       type: object
       required:
-        - ecfFlag
         - legalAidBefore
         - providerOfficeCode
         - scopingQuestions
         - clientDetails
       properties:
-        ecfFlag:
-          type: boolean
         legalAidBefore:
           type: string
         legalAidLast6Months:
@@ -355,7 +352,6 @@ components:
         - modifiedBy
         - clientDetails
         - applicationState
-        - ecfFlag
         - applicationType
       properties:
         id:
@@ -387,10 +383,10 @@ components:
           type: boolean
         typeOfNonMeans:
           type: boolean
-        ecfFlag:
-          type: boolean
         contribution:
           type: string
+        scopingQuestions:
+          type: object
         applicationType:
           type: string
         createdAt:

@@ -137,7 +137,6 @@ class ApplicationQueryServiceTest {
                 .id(applicationId)
                 .providerFirmCode("123456")
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
-                .ecfFlag(false)
                 .applicationType("CONTROLLED_WORK")
                 .createdBy("Random User")
                 .modifiedBy("Random User")
