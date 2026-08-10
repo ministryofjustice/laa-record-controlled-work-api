@@ -481,6 +481,9 @@ components:
           format: date
         niNumber:
           type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '[A-CEGHJ-NOPR-TW-Z]{2}[0-9]{6}[ABCDs]{1}'
         hasFixedAddress:
           type: boolean
         address:
@@ -517,6 +520,7 @@ components:
           type: string
         country:
           type: string
+          maxLength: 2
         createdAt:
           type: string
           format: date-time
