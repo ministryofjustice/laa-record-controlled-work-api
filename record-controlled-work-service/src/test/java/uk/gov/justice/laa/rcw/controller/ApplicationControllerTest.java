@@ -27,8 +27,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
@@ -248,6 +252,35 @@ class ApplicationControllerTest {
   }
 
   @Test
+  void updateApplicationMeans_returnsBadRequest_whenPayloadExceedsMaxDocumentLength()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    // each value stays under max-string-length so only max-document-length is exercised
+    String longValue = "a".repeat(60_000);
+    String requestBody =
+        """
+        {
+            "data": {
+                "note1": "%s",
+                "note2": "%s",
+                "note3": "%s",
+                "note4": "%s",
+                "note5": "%s"
+            },
+            "result": {}
+        }
+        """
+            .formatted(longValue, longValue, longValue, longValue, longValue);
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void updateApplicationMeans_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
@@ -264,6 +297,30 @@ class ApplicationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsForbidden_whenUserNotAuthorizedForOffice() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isForbidden())
+        .andExpect(
+            jsonPath("$.detail")
+                .value("Not authorized to update application %s".formatted(applicationId)));
   }
 
   @Test
@@ -285,5 +342,92 @@ class ApplicationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isConflict());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsConflict_whenApplicationAlreadyRecorded() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s has already been recorded and cannot be updated"
+                    .formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadRequest_whenDatastoreRejectsTheRequest() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationBadRequestException(
+                "Datastore rejected the request for application %s".formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsBadGateway_whenDatastoreReturnsAServerError()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an error for application %s".formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isBadGateway());
+  }
+
+  @Test
+  void updateApplicationMeans_returnsServiceUnavailable_whenDatastoreCannotBeReached()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUnavailableException(
+                "Datastore is unavailable for application %s".formatted(applicationId)))
+        .when(mockApplicationMeansService)
+        .updateMeans(any(), any(), any());
+    String requestBody =
+        """
+        {"data": {}, "result": {}}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isServiceUnavailable());
   }
 }
