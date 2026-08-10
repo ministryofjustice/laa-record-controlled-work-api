@@ -355,7 +355,6 @@ components:
         - modifiedBy
         - clientDetails
         - applicationState
-        - ecfFlag
         - applicationType
       properties:
         id:
@@ -389,6 +388,7 @@ components:
           type: boolean
         ecfFlag:
           type: boolean
+          nullable: true
         contribution:
           type: string
         applicationType:
