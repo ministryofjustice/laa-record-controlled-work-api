@@ -64,7 +64,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateApplicationResponseBody"
+                $ref: '#/components/schemas/CreateApplicationResponseBody'
+          headers:
+            Location:
+              description: Canonical RCW application URL for the created application
+              schema:
+                type: string
         '400':
           description: 'Bad request'
         '401':
@@ -299,9 +304,12 @@ components:
           format: date-time
 
     CreateApplicationRequestBody:
+      type: object
       required:
         - ecfFlag
         - legalAidBefore
+        - providerOfficeCode
+        - scopingQuestions
         - clientDetails
       properties:
         ecfFlag:
@@ -312,24 +320,22 @@ components:
           type: boolean
         reasonForReapplication:
           type: string
+        providerOfficeCode:
+          type: string
+        scopingQuestions:
+          type: object
+          additionalProperties: true
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"
 
     CreateApplicationResponseBody:
+      type: object
+      required:
+        - id
       properties:
         id:
           type: string
           format: uuid
-        ecfFlag:
-          type: boolean
-        legalAidBefore:
-          type: string
-        legalAidLast6Months:
-          type: boolean
-        reasonForReapplication:
-          type: string
-        clientDetails:
-          $ref: "#/components/schemas/ClientDetails"
 
     Applications:
       type: array
@@ -485,6 +491,9 @@ components:
           format: date
         niNumber:
           type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '[A-CEGHJ-NOPR-TW-Z]{2}[0-9]{6}[ABCDs]{1}'
         hasFixedAddress:
           type: boolean
         address:
@@ -521,6 +530,7 @@ components:
           type: string
         country:
           type: string
+          maxLength: 2
         createdAt:
           type: string
           format: date-time

@@ -8,13 +8,17 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
+import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
+import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Eligibility;
 
@@ -79,14 +83,29 @@ public interface ApplicationMapper {
   }
 
   /** Maps the RCW application status to the datastore's equivalent enum. */
-  default uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
-      ApplicationState status) {
-    if (status == null) {
-      return null;
-    }
-    return switch (status) {
-      case DRAFT -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT;
-      case COMPLETED -> uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED;
-    };
-  }
+  uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
+      ApplicationState status);
+
+  /** Maps the RCW create request to the datastore start-application command. */
+  @Mapping(target = "client", source = "clientDetails")
+  @Mapping(
+      target = "applicationType",
+      expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
+  StartApplicationCommand toStartApplicationCommand(
+      CreateApplicationRequestBody createApplicationRequestBody);
+
+  /** Maps the RCW client details to the datastore create client command. */
+  @Mapping(target = "nationalInsuranceNumber", source = "niNumber")
+  @Mapping(
+      target = "noFixedAbode",
+      expression = "java(!Boolean.TRUE.equals(clientDetails.getHasFixedAddress()))")
+  @Mapping(target = "createAddressCommand", source = "address")
+  CreateClientCommand toCreateClientCommand(ClientDetails clientDetails);
+
+  /** Maps the RCW address to the datastore create address command. */
+  CreateAddressCommand toCreateAddressCommand(Address address);
+
+  /** Maps datastore application state back to the RCW application state. */
+  ApplicationState toApplicationState(
+      uk.gov.justice.laa.ia.datastore.client.model.ApplicationState status);
 }

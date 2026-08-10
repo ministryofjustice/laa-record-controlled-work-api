@@ -12,8 +12,14 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.ia.datastore.client.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.ia.datastore.client.model.ClientDetails;
+import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
+import uk.gov.justice.laa.rcw.generator.AddressGenerator;
+import uk.gov.justice.laa.rcw.generator.ClientDetailsGenerator;
+import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -23,7 +29,8 @@ class ApplicationMapperTest {
   private static final UUID APPLICATION_ID =
       UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
   private static final String REFERENCE_NUMBER = "CW-111111";
-  private static final OffsetDateTime MODIFIED_AT = OffsetDateTime.now();
+  private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2024-01-01T09:00:00Z");
+  private static final OffsetDateTime MODIFIED_AT = OffsetDateTime.parse("2024-01-02T10:00:00Z");
 
   private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
 
@@ -248,5 +255,158 @@ class ApplicationMapperTest {
     assertThat(result.getEligibility()).isNull();
     assertThat(result.getEvidence()).isNull();
     assertThat(result.getClientDetails().getAddress()).isNull();
+  }
+
+  @Test
+  void shouldMapCreateRequestBodyToStartApplicationCommand() {
+    var request = CreateApplicationRequestGenerator.createWithName(null);
+
+    StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
+
+    assertThat(result.getApplicationType())
+        .isEqualTo(StartApplicationCommand.ApplicationTypeEnum.RCW);
+    assertThat(result.getProviderOfficeCode()).isEqualTo(request.getProviderOfficeCode());
+    assertThat(result.getClient()).isNotNull();
+  }
+
+  @Test
+  void shouldMapClientDetailsToCreateClientCommand() {
+    uk.gov.justice.laa.rcw.model.ClientDetails clientDetails =
+        ClientDetailsGenerator.createWithName(null);
+
+    CreateClientCommand result = applicationMapper.toCreateClientCommand(clientDetails);
+
+    assertThat(result.getFirstName()).isEqualTo(clientDetails.getFirstName());
+    assertThat(result.getLastName()).isEqualTo(clientDetails.getLastName());
+    assertThat(result.getDateOfBirth()).isEqualTo(clientDetails.getDateOfBirth());
+    assertThat(result.getNationalInsuranceNumber()).isEqualTo(clientDetails.getNiNumber());
+    assertThat(result.getNoFixedAbode()).isFalse();
+    assertThat(result.getCreateAddressCommand()).isNotNull();
+  }
+
+  @Test
+  void shouldMapClientDetailsToCreateClientCommand_whenHasFixedAddressIsFalse() {
+    uk.gov.justice.laa.rcw.model.ClientDetails clientDetails =
+        ClientDetailsGenerator.createWithName(b -> b.hasFixedAddress(false));
+
+    assertThat(applicationMapper.toCreateClientCommand(clientDetails).getNoFixedAbode()).isTrue();
+  }
+
+  @Test
+  void shouldMapNullClientDetailsToNull() {
+    assertThat(applicationMapper.toCreateClientCommand(null)).isNull();
+  }
+
+  @Test
+  void shouldMapAddressToCreateAddressCommand() {
+    uk.gov.justice.laa.rcw.model.Address address = AddressGenerator.create(null);
+
+    CreateAddressCommand result = applicationMapper.toCreateAddressCommand(address);
+
+    assertThat(result.getAddressLine1()).isEqualTo(address.getAddressLine1());
+    assertThat(result.getAddressLine2()).isEqualTo(address.getAddressLine2());
+    assertThat(result.getTownOrCity()).isEqualTo(address.getTownOrCity());
+    assertThat(result.getPostCode()).isEqualTo(address.getPostCode());
+    assertThat(result.getCountry()).isEqualTo(address.getCountry());
+  }
+
+  @Test
+  void shouldMapNullAddressToNullCreateAddressCommand() {
+    assertThat(applicationMapper.toCreateAddressCommand(null)).isNull();
+  }
+
+  @Test
+  void shouldMapNullApplicationResponseToNull() {
+    assertThat(applicationMapper.toApplication(null)).isNull();
+  }
+
+  @Test
+  void shouldMapDraftDatastoreStateToApplicationState() {
+    assertThat(
+            applicationMapper.toApplicationState(
+                uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT))
+        .isEqualTo(ApplicationState.DRAFT);
+  }
+
+  @Test
+  void shouldMapCompletedDatastoreStateToApplicationState() {
+    assertThat(
+            applicationMapper.toApplicationState(
+                uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED))
+        .isEqualTo(ApplicationState.COMPLETED);
+  }
+
+  @Test
+  void shouldMapNullDatastoreApplicationStateToNull() {
+    assertThat(applicationMapper.toApplicationState(null)).isNull();
+  }
+
+  @Test
+  void shouldMapDatastoreClientDetailsToClientDetails() {
+    uk.gov.justice.laa.ia.datastore.client.model.ClientDetails datastoreClient =
+        uk.gov.justice.laa.ia.datastore.client.model.ClientDetails.builder()
+            .firstName("Joe")
+            .lastName("Bloggs")
+            .dateOfBirth(LocalDate.of(1990, 1, 1))
+            .niNumber("QQ123456C")
+            .noFixedAbode(false)
+            .createdAt(CREATED_AT)
+            .modifiedAt(MODIFIED_AT)
+            .build();
+
+    uk.gov.justice.laa.rcw.model.ClientDetails result =
+        applicationMapper.toClientDetails(datastoreClient);
+
+    assertThat(result.getFirstName()).isEqualTo("Joe");
+    assertThat(result.getLastName()).isEqualTo("Bloggs");
+    assertThat(result.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
+    assertThat(result.getNiNumber()).isEqualTo("QQ123456C");
+    assertThat(result.getHasFixedAddress()).isTrue();
+    assertThat(result.getCreatedAt()).isEqualTo(CREATED_AT);
+    assertThat(result.getModifiedAt()).isEqualTo(MODIFIED_AT);
+  }
+
+  @Test
+  void shouldMapDatastoreClientDetailsToClientDetails_whenNoFixedAbodeIsTrue() {
+    uk.gov.justice.laa.ia.datastore.client.model.ClientDetails datastoreClient =
+        uk.gov.justice.laa.ia.datastore.client.model.ClientDetails.builder()
+            .noFixedAbode(true)
+            .build();
+
+    assertThat(applicationMapper.toClientDetails(datastoreClient).getHasFixedAddress()).isFalse();
+  }
+
+  @Test
+  void shouldMapNullDatastoreClientDetailsToNull() {
+    assertThat(applicationMapper.toClientDetails(null)).isNull();
+  }
+
+  @Test
+  void shouldMapDatastoreAddressToAddress() {
+    uk.gov.justice.laa.ia.datastore.client.model.Address datastoreAddress =
+        uk.gov.justice.laa.ia.datastore.client.model.Address.builder()
+            .addressLine1("10 Downing Street")
+            .addressLine2("Prime ministers address")
+            .townOrCity("London")
+            .postCode("SW1A 2AA")
+            .country("GB")
+            .createdAt(CREATED_AT)
+            .modifiedAt(MODIFIED_AT)
+            .build();
+
+    uk.gov.justice.laa.rcw.model.Address result = applicationMapper.toAddress(datastoreAddress);
+
+    assertThat(result.getAddressLine1()).isEqualTo("10 Downing Street");
+    assertThat(result.getAddressLine2()).isEqualTo("Prime ministers address");
+    assertThat(result.getTownOrCity()).isEqualTo("London");
+    assertThat(result.getPostCode()).isEqualTo("SW1A 2AA");
+    assertThat(result.getCountry()).isEqualTo("GB");
+    assertThat(result.getCreatedAt()).isEqualTo(CREATED_AT);
+    assertThat(result.getModifiedAt()).isEqualTo(MODIFIED_AT);
+  }
+
+  @Test
+  void shouldMapNullDatastoreAddressToNull() {
+    assertThat(applicationMapper.toAddress(null)).isNull();
   }
 }

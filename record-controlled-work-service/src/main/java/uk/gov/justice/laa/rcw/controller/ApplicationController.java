@@ -30,14 +30,15 @@ public class ApplicationController implements ApplicationsApi {
   @Override
   public ResponseEntity<CreateApplicationResponseBody> createApplication(
       CreateApplicationRequestBody applicationRequestBody) {
-    CreateApplicationResponseBody responseBody =
-        applicationCreationService.createApplication(applicationRequestBody);
+    Application application = applicationCreationService.createApplication(applicationRequestBody);
     URI uri =
         ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/api/v1/applications/{id}")
-            .buildAndExpand(responseBody.getId())
+            .path("/{id}")
+            .buildAndExpand(application.getId())
             .toUri();
-    return ResponseEntity.created(uri).body(responseBody);
+    CreateApplicationResponseBody response =
+        CreateApplicationResponseBody.builder().id(application.getId()).build();
+    return ResponseEntity.created(uri).body(response);
   }
 
   @Override

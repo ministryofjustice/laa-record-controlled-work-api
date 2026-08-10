@@ -10,4 +10,6 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-17972608
     implementation 'tools.jackson.core:jackson-databind:3.1.5'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-17972609
+    implementation 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEHTTPCOMPONENTSCORE5-17817217
 }

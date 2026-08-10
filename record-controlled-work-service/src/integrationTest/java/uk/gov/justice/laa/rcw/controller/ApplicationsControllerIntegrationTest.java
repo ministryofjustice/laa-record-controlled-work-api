@@ -4,12 +4,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +20,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
+import java.util.Map;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -196,7 +200,54 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   @Test
   void shouldCreateApplication() throws Exception {
 
-    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
+    CreateApplicationRequestBody request =
+        CreateApplicationRequestGenerator.createWithName(
+            builder -> builder.scopingQuestions(Map.of("priorLegalAid", "same_matter")));
+    String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
+    DATASTORE.stubFor(
+        WireMock.patch(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+            .willReturn(WireMock.noContent()));
+
+    DATASTORE.stubFor(
+        WireMock.post(urlPathEqualTo("/api/v0/applications:start-application"))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "individualLegalAidNumber": "%s",
+                        "providerFirmCode": "123456",
+                        "providerOfficeCode":
+                            "22439e72-68d3-4770-b435-c352d883d21e",
+                        "client": {
+                            "individualLegalAidNumber": "%s",
+                            "firstName": "Joe",
+                            "lastName": "Bloggs",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": "AB123456C",
+                            "noFixedAbode": false,
+                            "address": {
+                                "addressLine1": "10 Downing Street",
+                                "addressLine2": "Prime ministers address",
+                                "postCode": "SW1A 2AA",
+                                "townOrCity": "London",
+                                "country": "GB"
+                            },
+                            "createdAt": "2026-08-09T00:00:00Z",
+                            "modifiedAt": "2026-08-09T00:00:00Z"
+                        },
+                        "applicationState": "DRAFT",
+                        "ecfFlag": false,
+                        "applicationType": "RCW",
+                        "eTag": 0,
+                        "createdAt": "2026-08-09T00:00:00Z",
+                        "createdBy": "Random User",
+                        "modifiedAt": "2026-08-09T00:00:00Z",
+                        "modifiedBy": "Random User"
+                    }
+                    """
+                        .formatted(applicationId, applicationId, applicationId))));
 
     mockMvc
         .perform(
@@ -205,7 +256,61 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(toJson(request))
                 .accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isCreated());
+        .andExpect(status().isCreated())
+        .andExpect(
+            header()
+                .string(
+                    "Location",
+                    org.hamcrest.Matchers.endsWith("/api/v1/applications/" + applicationId)))
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value(applicationId));
+
+    DATASTORE.verify(
+        postRequestedFor(urlPathEqualTo("/api/v0/applications:start-application"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "client": {
+                            "firstName": "Joe",
+                            "lastName": "Bloggs",
+                            "dateOfBirth": "1990-01-01",
+                            "nationalInsuranceNumber": "AB123456C",
+                            "noFixedAbode": false,
+                            "createAddressCommand": {
+                                "addressLine1": "10 Downing Street",
+                                "addressLine2": "Prime ministers address",
+                                "addressLine3": null,
+                                "addressLine4": null,
+                                "postCode": "SW1A 2AA",
+                                "county": null,
+                                "townOrCity": "London",
+                                "country": "GB"
+                            }
+                        },
+                        "applicationType": "RCW",
+                        "providerOfficeCode":
+                            "22439e72-68d3-4770-b435-c352d883d21e"
+                    }
+                    """)));
+
+    DATASTORE.verify(
+        patchRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 0,
+                        "scopingQuestions": {
+                            "priorLegalAid": "same_matter"
+                        }
+                    }
+                    """)));
   }
 
   @Test

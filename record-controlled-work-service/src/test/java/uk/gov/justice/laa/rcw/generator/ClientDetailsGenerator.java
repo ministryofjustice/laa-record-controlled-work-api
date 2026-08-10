@@ -26,7 +26,7 @@ public class ClientDetailsGenerator {
     var builder =
         ClientDetails.builder()
             .id(UUID.randomUUID())
-            .niNumber("QQ123456C")
+            .niNumber("AB123456C")
             .hasFixedAddress(true)
             .address(address)
             .dateOfBirth(LocalDate.of(1990, 1, 1))
