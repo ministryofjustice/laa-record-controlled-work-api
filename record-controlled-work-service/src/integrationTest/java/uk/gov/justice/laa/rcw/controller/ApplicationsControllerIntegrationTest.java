@@ -506,7 +506,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void shouldRetryOnceThenReturnConflict_whenEvidenceEtagMismatchPersists() throws Exception {
+  void shouldReturnConflict_whenEvidenceEtagMismatch() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
@@ -526,9 +526,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .content("{}"))
         .andExpect(status().isConflict());
 
-    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + applicationId)));
     DATASTORE.verify(
-        2,
+        1,
         putRequestedFor(
             urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence")));
   }

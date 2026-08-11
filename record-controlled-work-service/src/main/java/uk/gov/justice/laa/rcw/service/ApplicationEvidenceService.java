@@ -30,23 +30,18 @@ public class ApplicationEvidenceService {
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
+  private final ApplicationQueryService applicationQueryService;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
-   * Updates the evidence data for an application. The datastore requires an eTag for optimistic
-   * concurrency, so the current application is fetched first to source it; if the update conflicts
-   * with a concurrent modification, the eTag is re-fetched and the update is retried once.
+   * Updates the evidence data for an application.
    *
    * @param applicationId the application id
    * @param requestBody the evidence update request body
    */
   public void updateEvidence(UUID applicationId, UpdateEvidenceRequestBody requestBody) {
-    updateEvidence(applicationId, requestBody, true);
-  }
-
-  private void updateEvidence(
-      UUID applicationId, UpdateEvidenceRequestBody requestBody, boolean retryOnConflict) {
-    ApplicationResponse application = fetchApplication(applicationId);
+    ApplicationResponse application =
+        applicationQueryService.fetchApplicationResponse(applicationId);
     checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateEvidenceCommand command =
@@ -64,12 +59,8 @@ public class ApplicationEvidenceService {
     } catch (HttpClientErrorException.NotFound exception) {
       throw applicationNotFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      if (!retryOnConflict) {
-        throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
-      }
-      updateEvidence(applicationId, requestBody, false);
-      return;
+      throw new ApplicationConflictException(
+          "Application %s was modified concurrently".formatted(applicationId));
     } catch (HttpClientErrorException.BadRequest exception) {
       throw applicationBadRequest(applicationId);
     } catch (HttpServerErrorException exception) {
@@ -82,20 +73,6 @@ public class ApplicationEvidenceService {
         .outcome("success")
         .with("application.id", applicationId)
         .log("Updated evidence data for application {}", applicationId);
-  }
-
-  private ApplicationResponse fetchApplication(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
-    }
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {

@@ -48,6 +48,7 @@ class ApplicationMeansServiceTest {
   private static final String AUTHORIZED_OFFICE_CODE = "AB12CD";
 
   @Mock private ApplicationApi mockApplicationApi;
+  @Mock private ApplicationQueryService mockApplicationQueryService;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
@@ -57,7 +58,10 @@ class ApplicationMeansServiceTest {
   void setUp() {
     applicationMeansService =
         new ApplicationMeansService(
-            mockApplicationApi, bearerTokenProvider, mockAuthorizedOfficesProvider);
+            mockApplicationApi,
+            bearerTokenProvider,
+            mockApplicationQueryService,
+            mockAuthorizedOfficesProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
@@ -76,7 +80,7 @@ class ApplicationMeansServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     Map<String, Object> data = Map.of("level_of_help", "controlled");
     Map<String, Object> result = Map.of("indication", true);
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(7L)
@@ -84,10 +88,6 @@ class ApplicationMeansServiceTest {
                 .build());
 
     applicationMeansService.updateMeans(applicationId, data, result);
-
-    ArgumentCaptor<String> getXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockApplicationApi).getApplication(eq(applicationId), getXAuthorizationCaptor.capture());
-    assertThat(getXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
 
     ArgumentCaptor<String> updateXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
@@ -103,7 +103,10 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationNotFoundException(
+                "No application found with id: %s".formatted(applicationId)));
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationNotFoundException.class)
@@ -115,7 +118,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -135,7 +138,7 @@ class ApplicationMeansServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     Map<String, Object> data = Map.of("level_of_help", "controlled");
     Map<String, Object> result = Map.of("indication", true);
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -153,7 +156,7 @@ class ApplicationMeansServiceTest {
 
     applicationMeansService.updateMeans(applicationId, data, result);
 
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationQueryService, times(2)).fetchApplicationResponse(applicationId);
     ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
         ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
     verify(mockApplicationApi, times(2))
@@ -166,7 +169,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -180,14 +183,14 @@ class ApplicationMeansServiceTest {
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationQueryService, times(2)).fetchApplicationResponse(applicationId);
     verify(mockApplicationApi, times(2)).updateMeansData(eq(applicationId), anyString(), any());
   }
 
   @Test
   void shouldUpdateMeans_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -205,7 +208,10 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationBadRequestException_whenFetchingApplicationReturns400() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationBadRequestException(
+                "Datastore rejected the request for application %s".formatted(applicationId)));
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationBadRequestException.class)
@@ -217,7 +223,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationBadRequestException_whenDatastoreUpdateReturns400() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -235,8 +241,10 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationUpstreamErrorException_whenFetchingReturns5xx() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(serverError());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an error for application %s".formatted(applicationId)));
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationUpstreamErrorException.class)
@@ -248,7 +256,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationUpstreamErrorException_whenDatastoreUpdateReturns5xx() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -266,8 +274,10 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationUnavailableException_whenFetchingFailsToConnect() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(new ResourceAccessException("Connection refused"));
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationUnavailableException(
+                "Datastore is unavailable for application %s".formatted(applicationId)));
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationUnavailableException.class)
@@ -279,7 +289,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationUnavailableException_whenDatastoreUpdateFailsToConnect() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -297,7 +307,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
 
@@ -311,7 +321,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)

@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +48,7 @@ class ApplicationEvidenceServiceTest {
   private static final String AUTHORIZED_OFFICE_CODE = "AB12CD";
 
   @Mock private ApplicationApi mockApplicationApi;
+  @Mock private ApplicationQueryService mockApplicationQueryService;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
@@ -58,7 +58,10 @@ class ApplicationEvidenceServiceTest {
   void setUp() {
     applicationEvidenceService =
         new ApplicationEvidenceService(
-            mockApplicationApi, bearerTokenProvider, mockAuthorizedOfficesProvider);
+            mockApplicationApi,
+            bearerTokenProvider,
+            mockApplicationQueryService,
+            mockAuthorizedOfficesProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
@@ -81,7 +84,7 @@ class ApplicationEvidenceServiceTest {
             .evidenceExemptionReason("reason")
             .incomeEvidenceChecklist(Map.of("payslips", true))
             .expenditureCapitalEvidenceChecklist(Map.of("bankStatements", true));
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(7L)
@@ -89,10 +92,6 @@ class ApplicationEvidenceServiceTest {
                 .build());
 
     applicationEvidenceService.updateEvidence(applicationId, requestBody);
-
-    ArgumentCaptor<String> getXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockApplicationApi).getApplication(eq(applicationId), getXAuthorizationCaptor.capture());
-    assertThat(getXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
 
     ArgumentCaptor<String> updateXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<UpdateEvidenceCommand> commandCaptor =
@@ -115,7 +114,10 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationNotFoundException(
+                "No application found with id: %s".formatted(applicationId)));
 
     assertThatThrownBy(
             () ->
@@ -130,7 +132,7 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -149,40 +151,9 @@ class ApplicationEvidenceServiceTest {
   }
 
   @Test
-  void shouldUpdateEvidence_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
+  void shouldUpdateEvidence_throwsApplicationConflictException_whenDatastoreUpdateReturns409() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenReturn(
-            ApplicationResponse.builder()
-                .eTag(1L)
-                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                .build())
-        .thenReturn(
-            ApplicationResponse.builder()
-                .eTag(2L)
-                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                .build());
-    doThrow(conflict())
-        .doNothing()
-        .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), anyString(), any());
-
-    applicationEvidenceService.updateEvidence(applicationId, new UpdateEvidenceRequestBody());
-
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
-    ArgumentCaptor<UpdateEvidenceCommand> commandCaptor =
-        ArgumentCaptor.forClass(UpdateEvidenceCommand.class);
-    verify(mockApplicationApi, times(2))
-        .updateEvidence(eq(applicationId), anyString(), commandCaptor.capture());
-    assertThat(commandCaptor.getAllValues())
-        .extracting(UpdateEvidenceCommand::geteTag)
-        .containsExactly(1L, 2L);
-  }
-
-  @Test
-  void shouldUpdateEvidence_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -198,15 +169,12 @@ class ApplicationEvidenceServiceTest {
                     applicationId, new UpdateEvidenceRequestBody()))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
-
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
-    verify(mockApplicationApi, times(2)).updateEvidence(eq(applicationId), anyString(), any());
   }
 
   @Test
   void shouldUpdateEvidence_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -227,7 +195,10 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsBadRequestException_whenFetchingApplicationReturns400() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationBadRequestException(
+                "Datastore rejected the request for application %s".formatted(applicationId)));
 
     assertThatThrownBy(
             () ->
@@ -242,7 +213,7 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationBadRequestException_whenDatastoreUpdateReturns400() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -263,8 +234,10 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenFetchingReturns5xx() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(serverError());
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an error for application %s".formatted(applicationId)));
 
     assertThatThrownBy(
             () ->
@@ -280,7 +253,7 @@ class ApplicationEvidenceServiceTest {
   void
       shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenDatastoreUpdateReturns5xx() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -301,8 +274,10 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationUnavailableException_whenFetchingFailsToConnect() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(new ResourceAccessException("Connection refused"));
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
+        .thenThrow(
+            new ApplicationUnavailableException(
+                "Datastore is unavailable for application %s".formatted(applicationId)));
 
     assertThatThrownBy(
             () ->
@@ -317,7 +292,7 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsUnavailableException_whenDatastoreUpdateFailsToConnect() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -338,7 +313,7 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
 
@@ -355,7 +330,7 @@ class ApplicationEvidenceServiceTest {
   @Test
   void shouldUpdateEvidence_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)

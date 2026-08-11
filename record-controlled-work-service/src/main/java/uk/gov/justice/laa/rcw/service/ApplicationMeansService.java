@@ -29,6 +29,7 @@ public class ApplicationMeansService {
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
+  private final ApplicationQueryService applicationQueryService;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
@@ -37,7 +38,7 @@ public class ApplicationMeansService {
    * with a concurrent modification, the eTag is re-fetched and the update is retried once.
    *
    * @param applicationId the application id
-   * @param data the means Q&amp;A data
+   * @param data the means Q&A data
    * @param result the means calculation result
    */
   public void updateMeans(UUID applicationId, Object data, Object result) {
@@ -46,7 +47,8 @@ public class ApplicationMeansService {
 
   private void updateMeans(
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
-    ApplicationResponse application = fetchApplication(applicationId);
+    ApplicationResponse application =
+        applicationQueryService.fetchApplicationResponse(applicationId);
     checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
@@ -79,20 +81,6 @@ public class ApplicationMeansService {
         .outcome("success")
         .with("application.id", applicationId)
         .log("Updated means data for application {}", applicationId);
-  }
-
-  private ApplicationResponse fetchApplication(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
-    }
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
