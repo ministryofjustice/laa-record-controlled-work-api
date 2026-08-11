@@ -33,6 +33,8 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
@@ -47,6 +49,7 @@ class ApplicationQueryServiceTest {
   private static final String ORIGINAL_TOKEN = "original-incoming-token";
 
   @Mock private ApplicationApi mockApplicationApi;
+  @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
@@ -55,7 +58,11 @@ class ApplicationQueryServiceTest {
   @BeforeEach
   void setUp() {
     applicationQueryService =
-        new ApplicationQueryService(mockApplicationApi, applicationMapper, bearerTokenProvider);
+        new ApplicationQueryService(
+            mockApplicationApi,
+            applicationMapper,
+            bearerTokenProvider,
+            mockAuthorizedOfficesProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
@@ -241,6 +248,46 @@ class ApplicationQueryServiceTest {
 
     assertThatThrownBy(() -> applicationQueryService.fetchApplicationResponse(applicationId))
         .isInstanceOf(ApplicationUnavailableException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldCheckAuthorizedForOffice_doesNotThrow_whenOfficeIsAuthorized() {
+    UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("AB12CD", "XY34ZT"));
+
+    applicationQueryService.checkAuthorizedForOffice(applicationId, "AB12CD");
+  }
+
+  @Test
+  void shouldCheckAuthorizedForOffice_throwsForbiddenException_whenOfficeNotAuthorized() {
+    UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("AB12CD"));
+
+    assertThatThrownBy(
+            () -> applicationQueryService.checkAuthorizedForOffice(applicationId, "OTHER-OFFICE"))
+        .isInstanceOf(ApplicationForbiddenException.class)
+        .hasMessageContaining(applicationId.toString());
+  }
+
+  @Test
+  void shouldCheckNotAlreadyRecorded_doesNotThrow_whenStateIsDraft() {
+    UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
+
+    applicationQueryService.checkNotAlreadyRecorded(applicationId, ApplicationState.DRAFT);
+  }
+
+  @Test
+  void shouldCheckNotAlreadyRecorded_throwsConflictException_whenStateIsCompleted() {
+    UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
+
+    assertThatThrownBy(
+            () ->
+                applicationQueryService.checkNotAlreadyRecorded(
+                    applicationId, ApplicationState.COMPLETED))
+        .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
   }
 }

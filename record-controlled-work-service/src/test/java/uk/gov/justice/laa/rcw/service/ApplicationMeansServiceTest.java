@@ -6,13 +6,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -32,7 +30,6 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
@@ -49,7 +46,6 @@ class ApplicationMeansServiceTest {
 
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private ApplicationQueryService mockApplicationQueryService;
-  @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
   private ApplicationMeansService applicationMeansService;
@@ -58,16 +54,10 @@ class ApplicationMeansServiceTest {
   void setUp() {
     applicationMeansService =
         new ApplicationMeansService(
-            mockApplicationApi,
-            bearerTokenProvider,
-            mockApplicationQueryService,
-            mockAuthorizedOfficesProvider);
+            mockApplicationApi, bearerTokenProvider, mockApplicationQueryService);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
-    lenient()
-        .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
   }
 
   @AfterEach
@@ -191,12 +181,12 @@ class ApplicationMeansServiceTest {
   void shouldUpdateMeans_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
-        .thenReturn(
-            ApplicationResponse.builder()
-                .eTag(1L)
-                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                .applicationState(ApplicationState.COMPLETED)
-                .build());
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s has already been recorded".formatted(applicationId)))
+        .when(mockApplicationQueryService)
+        .checkNotAlreadyRecorded(eq(applicationId), any());
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationConflictException.class)
@@ -308,26 +298,12 @@ class ApplicationMeansServiceTest {
   void shouldUpdateMeans_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
-        .thenReturn(
-            ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
-
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
-        .isInstanceOf(ApplicationForbiddenException.class)
-        .hasMessageContaining(applicationId.toString());
-
-    verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
-  }
-
-  @Test
-  void shouldUpdateMeans_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationQueryService.fetchApplicationResponse(applicationId))
-        .thenReturn(
-            ApplicationResponse.builder()
-                .eTag(1L)
-                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                .build());
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
+        .thenReturn(ApplicationResponse.builder().eTag(1L).build());
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationQueryService)
+        .checkAuthorizedForOffice(eq(applicationId), any());
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
         .isInstanceOf(ApplicationForbiddenException.class)

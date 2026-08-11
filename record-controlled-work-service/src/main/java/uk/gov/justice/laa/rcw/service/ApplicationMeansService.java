@@ -10,11 +10,9 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
-import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
@@ -30,7 +28,6 @@ public class ApplicationMeansService {
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
   private final ApplicationQueryService applicationQueryService;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
    * Updates the means data for an application. The datastore requires an eTag for optimistic
@@ -49,8 +46,10 @@ public class ApplicationMeansService {
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
     ApplicationResponse application =
         applicationQueryService.fetchApplicationResponse(applicationId);
-    checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
-    checkNotAlreadyRecorded(applicationId, application.getApplicationState());
+    applicationQueryService.checkAuthorizedForOffice(
+        applicationId, application.getProviderOfficeCode());
+    applicationQueryService.checkNotAlreadyRecorded(
+        applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder()
             .eTag(application.geteTag())
@@ -86,21 +85,6 @@ public class ApplicationMeansService {
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
-  }
-
-  private void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
-  }
-
-  private void checkNotAlreadyRecorded(UUID applicationId, ApplicationState applicationState) {
-    if (applicationState == ApplicationState.COMPLETED) {
-      throw new ApplicationConflictException(
-          "Application %s has already been recorded and cannot be updated"
-              .formatted(applicationId));
-    }
   }
 
   private ApplicationBadRequestException applicationBadRequest(UUID applicationId) {

@@ -15,6 +15,8 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
@@ -34,6 +36,7 @@ public class ApplicationQueryService {
   private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
   private final BearerTokenProvider bearerTokenProvider;
+  private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
    * Gets all Applications.
@@ -81,6 +84,38 @@ public class ApplicationQueryService {
     } catch (ResourceAccessException exception) {
       throw new ApplicationUnavailableException(
           "Datastore is unavailable for application %s".formatted(applicationId));
+    }
+  }
+
+  /**
+   * Checks that the current user is authorised to access the given application office, throwing
+   * {@link ApplicationForbiddenException} if not. Package-private for use by update services.
+   *
+   * @param applicationId the application id (for error messages)
+   * @param providerOfficeCode the office code on the application
+   */
+  void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
+    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
+      throw new ApplicationForbiddenException(
+          "Not authorized to update application %s".formatted(applicationId));
+    }
+  }
+
+  /**
+   * Checks that the application has not already been recorded (COMPLETED state), throwing {@link
+   * ApplicationConflictException} if it has. Package-private for use by update services.
+   *
+   * @param applicationId the application id (for error messages)
+   * @param applicationState the current state of the application
+   */
+  void checkNotAlreadyRecorded(
+      UUID applicationId,
+      uk.gov.justice.laa.ia.datastore.client.model.ApplicationState applicationState) {
+    if (applicationState
+        == uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED) {
+      throw new ApplicationConflictException(
+          "Application %s has already been recorded and cannot be updated"
+              .formatted(applicationId));
     }
   }
 
