@@ -2,6 +2,7 @@ package uk.gov.justice.laa.rcw.service;
 
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
 
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -43,7 +44,7 @@ public class ApplicationCreationService {
     String bearerToken = bearerTokenProvider.currentBearerToken();
     ApplicationResponse applicationResponse = startApplication(applicationRequestBody, bearerToken);
 
-    updateScopingData(applicationResponse, applicationRequestBody, bearerToken, true);
+    updateScopingData(applicationResponse, applicationRequestBody, bearerToken);
 
     Application application = applicationMapper.toApplication(applicationResponse);
 
@@ -61,19 +62,18 @@ public class ApplicationCreationService {
       return applicationApi.startApplication(
           bearerToken, applicationMapper.toStartApplicationCommand(applicationRequestBody));
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForOffice(applicationRequestBody.getProviderOfficeCode());
+      throw badRequestError("office %s".formatted(applicationRequestBody.getProviderOfficeCode()));
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForOffice(applicationRequestBody.getProviderOfficeCode());
+      throw upstreamError("office %s".formatted(applicationRequestBody.getProviderOfficeCode()));
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForOffice(applicationRequestBody.getProviderOfficeCode());
+      throw unavailableError("office %s".formatted(applicationRequestBody.getProviderOfficeCode()));
     }
   }
 
   private void updateScopingData(
       ApplicationResponse applicationResponse,
       CreateApplicationRequestBody applicationRequestBody,
-      String bearerToken,
-      boolean retryOnConflict) {
+      String bearerToken) {
     try {
       applicationApi.updateScopingData(
           applicationResponse.getId(),
@@ -83,45 +83,15 @@ public class ApplicationCreationService {
               .scopingQuestions(applicationRequestBody.getScopingQuestions())
               .build());
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFoundForApplication(applicationResponse.getId());
+      throw notFoundError(applicationResponse.getId());
     } catch (HttpClientErrorException.Conflict exception) {
-      retryScopingUpdateOnConflict(
-          applicationResponse, applicationRequestBody, bearerToken, retryOnConflict);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationResponse.getId());
-    } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationResponse.getId());
-    } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationResponse.getId());
-    }
-  }
-
-  private void retryScopingUpdateOnConflict(
-      ApplicationResponse applicationResponse,
-      CreateApplicationRequestBody applicationRequestBody,
-      String bearerToken,
-      boolean retryOnConflict) {
-    if (!retryOnConflict) {
       throw conflictError(applicationResponse.getId());
-    }
-
-    ApplicationResponse refreshedApplication =
-        fetchApplication(applicationResponse.getId(), bearerToken);
-
-    updateScopingData(refreshedApplication, applicationRequestBody, bearerToken, false);
-  }
-
-  private ApplicationResponse fetchApplication(java.util.UUID applicationId, String bearerToken) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerToken);
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw notFoundForApplication(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestError("application %s".formatted(applicationResponse.getId()));
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamError("application %s".formatted(applicationResponse.getId()));
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableError("application %s".formatted(applicationResponse.getId()));
     }
   }
 
@@ -132,45 +102,28 @@ public class ApplicationCreationService {
     }
   }
 
-  private ApplicationNotFoundException notFoundForApplication(java.util.UUID applicationId) {
+  private ApplicationNotFoundException notFoundError(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
   }
 
-  private ApplicationBadRequestException badRequestForApplication(java.util.UUID applicationId) {
+  private ApplicationBadRequestException badRequestError(String identifier) {
     return new ApplicationBadRequestException(
-        "Datastore rejected the request for application %s".formatted(applicationId));
+        "Datastore rejected the request for %s".formatted(identifier));
   }
 
-  private ApplicationBadRequestException badRequestForOffice(String providerOfficeCode) {
-    return new ApplicationBadRequestException(
-        "Datastore rejected the request for office %s".formatted(providerOfficeCode));
-  }
-
-  private ApplicationConflictException conflictError(java.util.UUID applicationId) {
+  private ApplicationConflictException conflictError(UUID applicationId) {
     return new ApplicationConflictException(
         "Application %s was modified concurrently".formatted(applicationId));
   }
 
-  private ApplicationUpstreamErrorException upstreamErrorForApplication(
-      java.util.UUID applicationId) {
+  private ApplicationUpstreamErrorException upstreamError(String identifier) {
     return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for application %s".formatted(applicationId));
+        "Datastore returned an error for %s".formatted(identifier));
   }
 
-  private ApplicationUpstreamErrorException upstreamErrorForOffice(String providerOfficeCode) {
-    return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for office %s".formatted(providerOfficeCode));
-  }
-
-  private ApplicationUnavailableException unavailableErrorForApplication(
-      java.util.UUID applicationId) {
+  private ApplicationUnavailableException unavailableError(String identifier) {
     return new ApplicationUnavailableException(
-        "Datastore is unavailable for application %s".formatted(applicationId));
-  }
-
-  private ApplicationUnavailableException unavailableErrorForOffice(String providerOfficeCode) {
-    return new ApplicationUnavailableException(
-        "Datastore is unavailable for office %s".formatted(providerOfficeCode));
+        "Datastore is unavailable for %s".formatted(identifier));
   }
 }

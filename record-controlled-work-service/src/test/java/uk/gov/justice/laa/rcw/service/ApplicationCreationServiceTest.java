@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -161,7 +160,7 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_retryScopingUpdateOnceWithFreshETag_whenDatastoreReturnsConflict() {
+  void shouldCreateApplication_throwsApplicationConflictException_whenScopingUpdateReturns409() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder ->
@@ -185,63 +184,8 @@ class ApplicationCreationServiceTest {
             .eTag(0L)
             .build();
 
-    ApplicationResponse refreshedApplication =
-        ApplicationResponse.builder()
-            .id(applicationId)
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .eTag(1L)
-            .build();
-
-    Application expectedApplication =
-        ApplicationGenerator.create(builder -> builder.id(applicationId));
-
     when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(startCommand);
     when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenReturn(refreshedApplication);
-    doThrow(conflict())
-        .doNothing()
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), anyString(), any());
-    when(mockApplicationMapper.toApplication(datastoreResponse)).thenReturn(expectedApplication);
-
-    Application result = applicationCreationService.createApplication(request);
-
-    ArgumentCaptor<UpdateScopingDataCommand> scopingCommandCaptor =
-        ArgumentCaptor.forClass(UpdateScopingDataCommand.class);
-    verify(mockApplicationApi, times(2))
-        .updateScopingData(eq(applicationId), anyString(), scopingCommandCaptor.capture());
-    assertThat(scopingCommandCaptor.getAllValues())
-        .extracting(UpdateScopingDataCommand::geteTag)
-        .containsExactly(0L, 1L);
-    assertThat(scopingCommandCaptor.getAllValues())
-        .extracting(UpdateScopingDataCommand::getScopingQuestions)
-        .containsExactly(
-            Map.of("priorLegalAid", "same_matter"), Map.of("priorLegalAid", "same_matter"));
-    assertThat(result).isEqualTo(expectedApplication);
-  }
-
-  @Test
-  void shouldCreateApplication_throwApplicationConflictException_whenScopingConflictPersists() {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-
-    ApplicationResponse datastoreResponse =
-        ApplicationResponse.builder()
-            .id(applicationId)
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .eTag(0L)
-            .build();
-
-    when(mockApplicationMapper.toStartApplicationCommand(request))
-        .thenReturn(
-            StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build());
-    when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenReturn(datastoreResponse);
     doThrow(conflict())
         .when(mockApplicationApi)
         .updateScopingData(eq(applicationId), anyString(), any());
@@ -250,12 +194,12 @@ class ApplicationCreationServiceTest {
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationApi, times(2)).updateScopingData(eq(applicationId), anyString(), any());
-    verify(mockApplicationApi).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationApi).updateScopingData(eq(applicationId), anyString(), any());
+    verify(mockApplicationApi, never()).getApplication(eq(applicationId), anyString());
   }
 
   @Test
-  void shouldCreateApplication_throwApplicationNotFoundException_whenScopingUpdateReturns404() {
+  void shouldCreateApplication_throwsApplicationNotFoundException_whenScopingUpdateReturns404() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
@@ -283,7 +227,8 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_throwApplicationBadRequestException_whenDatastoreCreateReturns400() {
+  void
+      shouldCreateApplication_throwsApplicationBadRequestException_whenDatastoreCreateReturns400() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
@@ -301,7 +246,7 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_throwApplicationBadRequestException_whenScopingUpdateReturns400() {
+  void shouldCreateApplication_throwsApplicationBadRequestException_whenScopingUpdateReturns400() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
@@ -329,7 +274,7 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_throwUpstreamError_whenDatastoreCreateReturns5xx() {
+  void shouldCreateApplication_throwsUpstreamError_whenDatastoreCreateReturns5xx() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
@@ -345,7 +290,7 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_throwUnavailable_whenDatastoreCreateIsUnavailable() {
+  void shouldCreateApplication_throwsUnavailable_whenDatastoreCreateIsUnavailable() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
