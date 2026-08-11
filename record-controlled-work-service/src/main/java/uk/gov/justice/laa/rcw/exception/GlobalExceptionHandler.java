@@ -37,18 +37,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   private static final URI DEFAULT_PROBLEM_TYPE = URI.create("about:blank");
 
   /**
-   * The handler for ItemNotFoundException.
-   *
-   * @param exception the exception
-   * @return the response status with error message
-   */
-  @ExceptionHandler(ItemNotFoundException.class)
-  public ResponseEntity<Object> handleItemNotFound(
-      ItemNotFoundException exception, WebRequest request) {
-    return handleKnownException(exception, NOT_FOUND, request);
-  }
-
-  /**
    * The handler for ApplicationNotFoundException.
    *
    * @param exception the exception

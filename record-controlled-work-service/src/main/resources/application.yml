@@ -12,18 +12,6 @@ spring:
     exclude:
       - org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration
 
-  # example database
-  datasource:
-    url: jdbc:h2:mem:itemsDb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-
-  #do not auto create db schema, use .sql scripts
-  jpa:
-    hibernate:
-      ddl-auto: none
-
   jackson:
     factory:
       constraints:
