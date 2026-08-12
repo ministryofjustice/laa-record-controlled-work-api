@@ -69,7 +69,7 @@ examples:
         data: |-
           {
             "legalAidBefore": "false",
-            "providerOfficeCode": "OFFICE123",
+            "providerOfficeCode": "AB12CD",
             "scopingQuestions": {
               "priorLegalAid": "same_matter"
             },
