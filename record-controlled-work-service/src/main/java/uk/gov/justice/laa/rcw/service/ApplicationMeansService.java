@@ -5,27 +5,22 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** Service class for updating application means data. */
 @Service
 @RequiredArgsConstructor
-public class ApplicationMeansService extends ApplicationServiceBase {
+public class ApplicationMeansService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationMeansService.class);
 
-  private final ApplicationApi applicationApi;
-  private final BearerTokenProvider bearerTokenProvider;
   private final ApplicationGateway applicationGateway;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Updates the means data for an application. The datastore requires an eTag for optimistic
@@ -43,8 +38,7 @@ public class ApplicationMeansService extends ApplicationServiceBase {
   private void updateMeans(
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
     ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
-    checkAuthorizedForOffice(
-        applicationId, application.getProviderOfficeCode(), authorizedOfficesProvider);
+    applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder()
@@ -53,22 +47,14 @@ public class ApplicationMeansService extends ApplicationServiceBase {
             .result(result)
             .build();
     try {
-      applicationApi.updateMeansData(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFoundError(applicationId);
-    } catch (HttpClientErrorException.Conflict exception) {
+      applicationGateway.updateMeansData(applicationId, command);
+    } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
-        throw applicationConflictError(applicationId);
+        throw new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
       }
       updateMeans(applicationId, data, result, false);
       return;
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestError(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw upstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw unavailableError(applicationId);
     }
     log.info()
         .action(APPLICATION_MEANS_UPDATE)
@@ -79,7 +65,9 @@ public class ApplicationMeansService extends ApplicationServiceBase {
 
   private void checkNotAlreadyRecorded(UUID applicationId, ApplicationState applicationState) {
     if (applicationState == ApplicationState.COMPLETED) {
-      throw applicationAlreadyRecordedError(applicationId);
+      throw new ApplicationConflictException(
+          "Application %s has already been recorded and cannot be updated"
+              .formatted(applicationId));
     }
   }
 }

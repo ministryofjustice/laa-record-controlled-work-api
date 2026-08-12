@@ -5,12 +5,9 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_STATUS_UPDATE
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -19,15 +16,13 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 /** Service class for updating application status. */
 @Service
 @RequiredArgsConstructor
-public class ApplicationUpdateService extends ApplicationServiceBase {
+public class ApplicationUpdateService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationUpdateService.class);
 
-  private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
-  private final BearerTokenProvider bearerTokenProvider;
   private final ApplicationGateway applicationGateway;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Updates the application status. Datastore requires an eTag for optimistic concurrency, so the
@@ -43,8 +38,7 @@ public class ApplicationUpdateService extends ApplicationServiceBase {
 
   private void updateStatus(UUID applicationId, ApplicationState status, boolean retryOnConflict) {
     ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
-    checkAuthorizedForOffice(
-        applicationId, application.getProviderOfficeCode(), authorizedOfficesProvider);
+    applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateApplicationCommand command =
         UpdateApplicationCommand.builder()
@@ -53,22 +47,14 @@ public class ApplicationUpdateService extends ApplicationServiceBase {
             .build();
 
     try {
-      applicationApi.updateApplication(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFoundError(applicationId);
-    } catch (HttpClientErrorException.Conflict exception) {
+      applicationGateway.updateApplication(applicationId, command);
+    } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
-        throw applicationConflictError(applicationId);
+        throw new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
       }
       updateStatus(applicationId, status, false);
       return;
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestError(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw upstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw unavailableError(applicationId);
     }
 
     log.info()
@@ -82,7 +68,9 @@ public class ApplicationUpdateService extends ApplicationServiceBase {
   private void checkNotAlreadyRecorded(
       UUID applicationId, uk.gov.justice.laa.ia.datastore.client.model.ApplicationState state) {
     if (state == uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED) {
-      throw applicationAlreadyRecordedError(applicationId);
+      throw new ApplicationConflictException(
+          "Application %s has already been recorded and cannot be updated"
+              .formatted(applicationId));
     }
   }
 }
