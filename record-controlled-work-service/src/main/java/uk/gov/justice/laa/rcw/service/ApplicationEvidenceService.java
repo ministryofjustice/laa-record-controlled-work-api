@@ -1,6 +1,6 @@
 package uk.gov.justice.laa.rcw.service;
 
-import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
+import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_EVIDENCE_UPDATE;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -10,64 +10,56 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
+import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
 
-/** Service class for updating application means data. */
+/** Service class for updating application evidence data. */
 @Service
 @RequiredArgsConstructor
-public class ApplicationMeansService {
+public class ApplicationEvidenceService {
 
-  private static final StructuredLogger log = StructuredLogger.of(ApplicationMeansService.class);
+  private static final StructuredLogger log = StructuredLogger.of(ApplicationEvidenceService.class);
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
   private final ApplicationQueryService applicationQueryService;
 
   /**
-   * Updates the means data for an application. The datastore requires an eTag for optimistic
-   * concurrency, so the current application is fetched first to source it; if the update conflicts
-   * with a concurrent modification, the eTag is re-fetched and the update is retried once.
+   * Updates the evidence data for an application.
    *
    * @param applicationId the application id
-   * @param data the means Q&A data
-   * @param result the means calculation result
+   * @param requestBody the evidence update request body
    */
-  public void updateMeans(UUID applicationId, Object data, Object result) {
-    updateMeans(applicationId, data, result, true);
-  }
-
-  private void updateMeans(
-      UUID applicationId, Object data, Object result, boolean retryOnConflict) {
+  public void updateEvidence(UUID applicationId, UpdateEvidenceRequestBody requestBody) {
     ApplicationResponse application =
         applicationQueryService.fetchApplicationResponse(applicationId);
     applicationQueryService.checkAuthorizedForOffice(
         applicationId, application.getProviderOfficeCode());
     applicationQueryService.checkNotAlreadyRecorded(
         applicationId, application.getApplicationState());
-    UpdateMeansDataCommand command =
-        UpdateMeansDataCommand.builder()
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder()
             .eTag(application.geteTag())
-            .data(data)
-            .result(result)
+            .evidenceExemptionCode(requestBody.getEvidenceExemptionCode())
+            .evidenceExemptionReason(requestBody.getEvidenceExemptionReason())
+            .incomeEvidenceChecklist(requestBody.getIncomeEvidenceChecklist())
+            .expenditureCapitalEvidenceChecklist(
+                requestBody.getExpenditureCapitalEvidenceChecklist())
             .build();
     try {
-      applicationApi.updateMeansData(
+      applicationApi.updateEvidence(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw applicationNotFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      if (!retryOnConflict) {
-        throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
-      }
-      updateMeans(applicationId, data, result, false);
-      return;
+      throw new ApplicationConflictException(
+          "Application %s was modified concurrently".formatted(applicationId));
     } catch (HttpClientErrorException.BadRequest exception) {
       throw applicationBadRequest(applicationId);
     } catch (HttpServerErrorException exception) {
@@ -76,10 +68,10 @@ public class ApplicationMeansService {
       throw applicationUnavailable(applicationId);
     }
     log.info()
-        .action(APPLICATION_MEANS_UPDATE)
+        .action(APPLICATION_EVIDENCE_UPDATE)
         .outcome("success")
         .with("application.id", applicationId)
-        .log("Updated means data for application {}", applicationId);
+        .log("Updated evidence data for application {}", applicationId);
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {

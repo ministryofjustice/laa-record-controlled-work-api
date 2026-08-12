@@ -2,6 +2,8 @@ package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +42,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 
@@ -60,6 +63,7 @@ class ApplicationControllerTest {
 
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
   @MockitoBean private ApplicationMeansService mockApplicationMeansService;
+  @MockitoBean private ApplicationEvidenceService mockApplicationEvidenceService;
   @MockitoBean private ApplicationCreationService mockApplicationCreationService;
 
   @Test
@@ -428,6 +432,141 @@ class ApplicationControllerTest {
             put("/api/v1/applications/%s/means".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
+        .andExpect(status().isServiceUnavailable());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsNoContent_andForwardsRequestBodyToService()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {
+          "evidenceExemptionCode": "EXEMPT",
+          "evidenceExemptionReason": "reason",
+          "incomeEvidenceChecklist": {"payslips": true},
+          "expenditureCapitalEvidenceChecklist": {"bankStatements": true}
+        }
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNoContent());
+
+    verify(mockApplicationEvidenceService)
+        .updateEvidence(
+            eq(applicationId),
+            argThat(
+                b ->
+                    "EXEMPT".equals(b.getEvidenceExemptionCode())
+                        && "reason".equals(b.getEvidenceExemptionReason())));
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsForbidden_whenUserNotAuthorizedForOffice()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsConflict_whenApplicationAlreadyRecorded() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s has already been recorded and cannot be updated"
+                    .formatted(applicationId)))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsBadRequest_whenDatastoreRejectsTheRequest()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationBadRequestException(
+                "Datastore rejected the request for application %s".formatted(applicationId)))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsBadGateway_whenDatastoreReturnsAServerError()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an error for application %s".formatted(applicationId)))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadGateway());
+  }
+
+  @Test
+  void updateApplicationEvidence_returnsServiceUnavailable_whenDatastoreCannotBeReached()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUnavailableException(
+                "Datastore is unavailable for application %s".formatted(applicationId)))
+        .when(mockApplicationEvidenceService)
+        .updateEvidence(any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
         .andExpect(status().isServiceUnavailable());
   }
 }
