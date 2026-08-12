@@ -1,4 +1,6 @@
-.PHONY: install-deps-cached setup-hooks build generate lint lint-build integration test run dev docker-up docker-up-entra dep-insight
+.PHONY: install-deps-cached setup-hooks build generate lint lint-build integration test run dev docker-up docker-up-entra dep-insight ds-build ds-lint-build ds-integration ds-test
+
+DATASTORE_LOCAL_INCLUDE=--include-build ../laa-info-and-advice-datastore
 
 # One-off authenticated resolution of GitHub Packages deps, so ./gradlew works unauthenticated afterwards
 install-deps-cached:
@@ -10,6 +12,9 @@ setup-hooks:
 build:
 	./gradlew clean build
 
+ds-build:
+	./gradlew $(DATASTORE_LOCAL_INCLUDE) clean build
+
 generate:
 	./gradlew :record-controlled-work-api:openApiGenerate
 
@@ -18,10 +23,17 @@ lint:
 
 lint-build: lint build
 
+ds-lint-build: lint ds-build
+
 integration:
 	./gradlew integrationTest
 
+ds-integration:
+	./gradlew $(DATASTORE_LOCAL_INCLUDE) integrationTest
+
 test: lint-build integration
+
+ds-test: ds-lint-build ds-integration
 
 run:
 	./gradlew bootRun
