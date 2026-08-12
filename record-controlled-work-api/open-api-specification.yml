@@ -312,10 +312,7 @@ components:
       type: object
       required:
         - applicationState
-        - officeId
       properties:
-        officeId:
-            type: string
         applicationState:
           $ref: "#/components/schemas/ApplicationState"
 
