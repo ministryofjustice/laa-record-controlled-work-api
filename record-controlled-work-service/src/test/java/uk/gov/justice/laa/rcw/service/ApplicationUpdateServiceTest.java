@@ -38,6 +38,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 
@@ -49,6 +50,7 @@ class ApplicationUpdateServiceTest {
 
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private ApplicationMapper mockApplicationMapper;
+  @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
@@ -61,6 +63,7 @@ class ApplicationUpdateServiceTest {
             mockApplicationApi,
             mockApplicationMapper,
             bearerTokenProvider,
+            mockApplicationGateway,
             mockAuthorizedOfficesProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
@@ -81,7 +84,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_fetchesETagAndForwardsStatusToDatastore() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(7L)
@@ -92,9 +95,7 @@ class ApplicationUpdateServiceTest {
 
     applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED);
 
-    ArgumentCaptor<String> getXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockApplicationApi).getApplication(eq(applicationId), getXAuthorizationCaptor.capture());
-    assertThat(getXAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    verify(mockApplicationGateway).fetchApplication(eq(applicationId));
 
     ArgumentCaptor<String> updateXAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<UpdateApplicationCommand> commandCaptor =
@@ -111,7 +112,10 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
+        .thenThrow(
+            new ApplicationNotFoundException(
+                "No application found with id: %s".formatted(applicationId)));
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
@@ -124,7 +128,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -145,7 +149,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -167,7 +171,7 @@ class ApplicationUpdateServiceTest {
 
     applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED);
 
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
     ArgumentCaptor<UpdateApplicationCommand> commandCaptor =
         ArgumentCaptor.forClass(UpdateApplicationCommand.class);
     verify(mockApplicationApi, times(2))
@@ -180,7 +184,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -197,14 +201,14 @@ class ApplicationUpdateServiceTest {
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationApi, times(2)).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
     verify(mockApplicationApi, times(2)).updateApplication(eq(applicationId), anyString(), any());
   }
 
   @Test
   void shouldUpdateStatus_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -222,22 +226,9 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateStatus_throwsApplicationBadRequestException_whenFetchingApplicationReturns400() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
-
-    assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
-
-    verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
-  }
-
-  @Test
   void shouldUpdateStatus_throwsApplicationBadRequestException_whenDatastoreUpdateReturns400() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -256,23 +247,9 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateStatus_throwsApplicationUpstreamErrorException_whenFetchingReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(serverError());
-
-    assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-
-    verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
-  }
-
-  @Test
   void shouldUpdateStatus_throwsApplicationUpstreamErrorException_whenDatastoreUpdateReturns5xx() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -291,24 +268,10 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateStatus_throwsApplicationUnavailableException_whenFetchingFailsToConnect() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenThrow(new ResourceAccessException("Connection refused"));
-
-    assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
-
-    verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
-  }
-
-  @Test
   void
       shouldUpdateStatus_throwsApplicationUnavailableException_whenDatastoreUpdateFailsToConnect() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -329,7 +292,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
@@ -349,7 +312,7 @@ class ApplicationUpdateServiceTest {
   @Test
   void shouldUpdateStatus_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)

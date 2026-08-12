@@ -17,6 +17,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -31,6 +32,7 @@ public class ApplicationUpdateService {
   private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
   private final BearerTokenProvider bearerTokenProvider;
+  private final ApplicationGateway applicationGateway;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
@@ -46,7 +48,7 @@ public class ApplicationUpdateService {
   }
 
   private void updateStatus(UUID applicationId, ApplicationState status, boolean retryOnConflict) {
-    ApplicationResponse application = fetchApplication(applicationId);
+    ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
     checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateApplicationCommand command =
@@ -81,20 +83,6 @@ public class ApplicationUpdateService {
         .with("application.id", applicationId)
         .with("application.status", status)
         .log("Updated application status for application {}", applicationId);
-  }
-
-  private ApplicationResponse fetchApplication(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
-    }
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
