@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.rcw.service;
+package uk.gov.justice.laa.rcw.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,6 +23,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationGatewayTest {
