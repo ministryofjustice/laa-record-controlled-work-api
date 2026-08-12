@@ -18,6 +18,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** Service class for updating application means data. */
@@ -29,6 +30,7 @@ public class ApplicationMeansService {
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
+  private final ApplicationGateway applicationGateway;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
@@ -46,7 +48,7 @@ public class ApplicationMeansService {
 
   private void updateMeans(
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
-    ApplicationResponse application = fetchApplication(applicationId);
+    ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
     checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
@@ -79,20 +81,6 @@ public class ApplicationMeansService {
         .outcome("success")
         .with("application.id", applicationId)
         .log("Updated means data for application {}", applicationId);
-  }
-
-  private ApplicationResponse fetchApplication(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
-    }
   }
 
   private ApplicationNotFoundException applicationNotFound(UUID applicationId) {

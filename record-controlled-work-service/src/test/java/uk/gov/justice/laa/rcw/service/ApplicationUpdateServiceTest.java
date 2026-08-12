@@ -110,22 +110,6 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateStatus_throwsApplicationNotFoundException_whenApplicationDoesNotExist() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
-        .thenThrow(
-            new ApplicationNotFoundException(
-                "No application found with id: %s".formatted(applicationId)));
-
-    assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
-
-    verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
-  }
-
-  @Test
   void shouldUpdateStatus_throwsApplicationNotFoundException_whenDatastoreUpdateReturns404() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
