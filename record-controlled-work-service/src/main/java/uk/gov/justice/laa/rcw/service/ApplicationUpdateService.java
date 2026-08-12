@@ -11,12 +11,6 @@ import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
-import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
-import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
-import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
-import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -25,7 +19,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 /** Service class for updating application status. */
 @Service
 @RequiredArgsConstructor
-public class ApplicationUpdateService {
+public class ApplicationUpdateService extends ApplicationServiceBase {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationUpdateService.class);
 
@@ -49,7 +43,8 @@ public class ApplicationUpdateService {
 
   private void updateStatus(UUID applicationId, ApplicationState status, boolean retryOnConflict) {
     ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
-    checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
+    checkAuthorizedForOffice(
+        applicationId, application.getProviderOfficeCode(), authorizedOfficesProvider);
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateApplicationCommand command =
         UpdateApplicationCommand.builder()
@@ -61,20 +56,19 @@ public class ApplicationUpdateService {
       applicationApi.updateApplication(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
+      throw applicationNotFoundError(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
       if (!retryOnConflict) {
-        throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
+        throw applicationConflictError(applicationId);
       }
       updateStatus(applicationId, status, false);
       return;
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
+      throw badRequestError(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
+      throw upstreamError(applicationId);
     } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
+      throw unavailableError(applicationId);
     }
 
     log.info()
@@ -85,39 +79,10 @@ public class ApplicationUpdateService {
         .log("Updated application status for application {}", applicationId);
   }
 
-  private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
-    return new ApplicationNotFoundException(
-        "No application found with id: %s".formatted(applicationId));
-  }
-
-  private void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
-  }
-
   private void checkNotAlreadyRecorded(
       UUID applicationId, uk.gov.justice.laa.ia.datastore.client.model.ApplicationState state) {
     if (state == uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED) {
-      throw new ApplicationConflictException(
-          "Application %s has already been recorded and cannot be updated"
-              .formatted(applicationId));
+      throw applicationAlreadyRecordedError(applicationId);
     }
-  }
-
-  private ApplicationBadRequestException applicationBadRequest(UUID applicationId) {
-    return new ApplicationBadRequestException(
-        "Datastore rejected the request for application %s".formatted(applicationId));
-  }
-
-  private ApplicationUpstreamErrorException applicationUpstreamError(UUID applicationId) {
-    return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  private ApplicationUnavailableException applicationUnavailable(UUID applicationId) {
-    return new ApplicationUnavailableException(
-        "Datastore is unavailable for application %s".formatted(applicationId));
   }
 }

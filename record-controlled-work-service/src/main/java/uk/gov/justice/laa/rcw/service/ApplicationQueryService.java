@@ -8,9 +8,10 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -27,6 +28,7 @@ public class ApplicationQueryService {
   private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
   private final BearerTokenProvider bearerTokenProvider;
+  private final ApplicationGateway applicationGateway;
 
   /**
    * Gets all Applications.
@@ -57,14 +59,11 @@ public class ApplicationQueryService {
    * @return {@link Optional} of {@link Application}
    */
   public Optional<Application> getApplication(UUID applicationId) {
-    Optional<Application> application;
+    Application application;
     try {
       application =
-          Optional.of(
-              applicationMapper.toApplication(
-                  applicationApi.getApplication(
-                      applicationId, bearerTokenProvider.currentBearerToken())));
-    } catch (HttpClientErrorException.NotFound exception) {
+          applicationMapper.toApplication(applicationGateway.fetchApplication(applicationId));
+    } catch (ApplicationNotFoundException exception) {
       return Optional.empty();
     }
     log.info()
@@ -72,6 +71,6 @@ public class ApplicationQueryService {
         .outcome("success")
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
-    return application;
+    return Optional.of(application);
   }
 }

@@ -18,17 +18,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.client.HttpClientErrorException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
+import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -40,6 +39,7 @@ class ApplicationQueryServiceTest {
   private static final String ORIGINAL_TOKEN = "original-incoming-token";
 
   @Mock private ApplicationApi mockApplicationApi;
+  @Mock private ApplicationGateway mockApplicationGateway;
 
   private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
@@ -48,7 +48,8 @@ class ApplicationQueryServiceTest {
   @BeforeEach
   void setUp() {
     applicationQueryService =
-        new ApplicationQueryService(mockApplicationApi, applicationMapper, bearerTokenProvider);
+        new ApplicationQueryService(
+            mockApplicationApi, applicationMapper, bearerTokenProvider, mockApplicationGateway);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
@@ -131,7 +132,7 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -151,26 +152,23 @@ class ApplicationQueryServiceTest {
   }
 
   @Test
-  void shouldGetApplicationById_forwardsBearerToken() {
+  void shouldGetApplicationById_fetchesUsingGateway() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(ApplicationResponse.builder().id(applicationId).build());
 
     applicationQueryService.getApplication(applicationId);
 
-    // CHECKSTYLE.SUPPRESS: LocalVariableName
-    ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockApplicationApi).getApplication(eq(applicationId), xAuthorizationCaptor.capture());
-    assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    verify(mockApplicationGateway).fetchApplication(eq(applicationId));
   }
 
   @Test
   void shouldGetApplicationById_returnsEmptyWhenDatastoreReturnsNotFound() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenThrow(
-            HttpClientErrorException.create(
-                HttpStatus.NOT_FOUND, "Not found", HttpHeaders.EMPTY, new byte[0], null));
+            new ApplicationNotFoundException(
+                "No application found with id: %s".formatted(applicationId)));
 
     Optional<Application> result = applicationQueryService.getApplication(applicationId);
 
