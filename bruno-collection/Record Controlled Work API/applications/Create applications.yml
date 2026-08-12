@@ -13,7 +13,7 @@ http:
     data: |-
       {
         "legalAidBefore": "false",
-        "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
+        "providerOfficeCode": "AB12CD",
         "scopingQuestions": {
           "priorLegalAid": "same_matter"
         },
@@ -69,7 +69,7 @@ examples:
         data: |-
           {
             "legalAidBefore": "false",
-            "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
+            "providerOfficeCode": "OFFICE123",
             "scopingQuestions": {
               "priorLegalAid": "same_matter"
             },
