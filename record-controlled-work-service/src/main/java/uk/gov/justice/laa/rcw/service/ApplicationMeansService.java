@@ -5,19 +5,11 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_MEANS_UPDATE;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
-import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
-import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
-import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** Service class for updating application means data. */
@@ -27,9 +19,8 @@ public class ApplicationMeansService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationMeansService.class);
 
-  private final ApplicationApi applicationApi;
-  private final BearerTokenProvider bearerTokenProvider;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final ApplicationGateway applicationGateway;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Updates the means data for an application. The datastore requires an eTag for optimistic
@@ -46,8 +37,8 @@ public class ApplicationMeansService {
 
   private void updateMeans(
       UUID applicationId, Object data, Object result, boolean retryOnConflict) {
-    ApplicationResponse application = fetchApplication(applicationId);
-    checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
+    ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
+    applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder()
@@ -56,23 +47,14 @@ public class ApplicationMeansService {
             .result(result)
             .build();
     try {
-      applicationApi.updateMeansData(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.Conflict exception) {
+      applicationGateway.updateMeansData(applicationId, command);
+    } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
         throw new ApplicationConflictException(
             "Application %s was modified concurrently".formatted(applicationId));
       }
       updateMeans(applicationId, data, result, false);
       return;
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
     }
     log.info()
         .action(APPLICATION_MEANS_UPDATE)
@@ -81,52 +63,11 @@ public class ApplicationMeansService {
         .log("Updated means data for application {}", applicationId);
   }
 
-  private ApplicationResponse fetchApplication(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw applicationNotFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw applicationBadRequest(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw applicationUpstreamError(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw applicationUnavailable(applicationId);
-    }
-  }
-
-  private ApplicationNotFoundException applicationNotFound(UUID applicationId) {
-    return new ApplicationNotFoundException(
-        "No application found with id: %s".formatted(applicationId));
-  }
-
-  private void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
-  }
-
   private void checkNotAlreadyRecorded(UUID applicationId, ApplicationState applicationState) {
     if (applicationState == ApplicationState.COMPLETED) {
       throw new ApplicationConflictException(
           "Application %s has already been recorded and cannot be updated"
               .formatted(applicationId));
     }
-  }
-
-  private ApplicationBadRequestException applicationBadRequest(UUID applicationId) {
-    return new ApplicationBadRequestException(
-        "Datastore rejected the request for application %s".formatted(applicationId));
-  }
-
-  private ApplicationUpstreamErrorException applicationUpstreamError(UUID applicationId) {
-    return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  private ApplicationUnavailableException applicationUnavailable(UUID applicationId) {
-    return new ApplicationUnavailableException(
-        "Datastore is unavailable for application %s".formatted(applicationId));
   }
 }
