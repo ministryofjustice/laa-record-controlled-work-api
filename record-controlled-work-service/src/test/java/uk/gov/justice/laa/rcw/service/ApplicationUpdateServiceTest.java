@@ -115,8 +115,8 @@ class ApplicationUpdateServiceTest {
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isInstanceOf(ApplicationNotFoundException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .hasMessage("No application found with id: %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
   }
@@ -228,8 +228,8 @@ class ApplicationUpdateServiceTest {
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isInstanceOf(ApplicationBadRequestException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationBadRequestException.class)
+        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
   }
@@ -263,8 +263,8 @@ class ApplicationUpdateServiceTest {
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
   }
@@ -298,8 +298,8 @@ class ApplicationUpdateServiceTest {
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
-        .isInstanceOf(ApplicationUnavailableException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationUnavailableException.class)
+        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateApplication(any(), anyString(), any());
   }

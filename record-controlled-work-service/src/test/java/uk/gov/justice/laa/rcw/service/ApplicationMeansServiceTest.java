@@ -106,8 +106,8 @@ class ApplicationMeansServiceTest {
     when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(notFound());
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
-        .isInstanceOf(ApplicationNotFoundException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .hasMessage("No application found with id: %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
   }
@@ -208,8 +208,8 @@ class ApplicationMeansServiceTest {
     when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenThrow(badRequest());
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
-        .isInstanceOf(ApplicationBadRequestException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationBadRequestException.class)
+        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
   }
@@ -239,8 +239,8 @@ class ApplicationMeansServiceTest {
         .thenThrow(serverError());
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
-        .isInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
   }
@@ -270,8 +270,8 @@ class ApplicationMeansServiceTest {
         .thenThrow(new ResourceAccessException("Connection refused"));
 
     assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
-        .isInstanceOf(ApplicationUnavailableException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isExactlyInstanceOf(ApplicationUnavailableException.class)
+        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
 
     verify(mockApplicationApi, never()).updateMeansData(any(), anyString(), any());
   }
