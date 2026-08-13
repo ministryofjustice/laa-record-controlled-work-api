@@ -206,7 +206,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.scopingQuestions(Map.of("priorLegalAid", "same_matter")));
+            builder ->
+                builder
+                    .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
+                    .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
@@ -222,8 +225,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "id": "%s",
                         "individualLegalAidNumber": "%s",
                         "providerFirmCode": "123456",
-                        "providerOfficeCode":
-                            "22439e72-68d3-4770-b435-c352d883d21e",
+                        "providerOfficeCode": "%s",
                         "client": {
                             "individualLegalAidNumber": "%s",
                             "firstName": "Joe",
@@ -250,7 +252,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "modifiedBy": "Random User"
                     }
                     """
-                        .formatted(applicationId, applicationId, applicationId))));
+                        .formatted(
+                            applicationId,
+                            applicationId,
+                            TestJwtConfig.AUTHORIZED_OFFICE_CODE,
+                            applicationId))));
 
     mockMvc
         .perform(
@@ -294,10 +300,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             }
                         },
                         "applicationType": "RCW",
-                        "providerOfficeCode":
-                            "22439e72-68d3-4770-b435-c352d883d21e"
+                        "providerOfficeCode": "%s"
                     }
-                    """)));
+                    """
+                        .formatted(TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
 
     DATASTORE.verify(
         patchRequestedFor(
