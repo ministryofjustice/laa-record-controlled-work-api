@@ -359,9 +359,14 @@ components:
       type: object
       required:
         - applicationState
+        - eTag
       properties:
         applicationState:
           $ref: "#/components/schemas/ApplicationState"
+        eTag:
+          type: integer
+          format: int64
+          description: ETag value for optimistic concurrency control
 
     Eligibility:
       type: object
