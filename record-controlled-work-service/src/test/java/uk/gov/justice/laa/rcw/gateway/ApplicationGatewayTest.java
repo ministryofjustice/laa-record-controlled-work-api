@@ -24,6 +24,7 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
@@ -340,6 +341,87 @@ class ApplicationGatewayTest {
                 applicationGateway.updateMeansData(
                     applicationId,
                     UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
+        .isExactlyInstanceOf(ApplicationUnavailableException.class)
+        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateEvidence() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+
+    applicationGateway.updateEvidence(applicationId, command);
+
+    verify(mockApplicationApi).updateEvidence(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    doThrow(conflict())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
+        .isExactlyInstanceOf(ApplicationConflictException.class)
+        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    doThrow(notFound())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .hasMessage("No application found with id: %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    doThrow(badRequest())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
+        .isExactlyInstanceOf(ApplicationBadRequestException.class)
+        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    doThrow(serverError())
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateEvidence_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateEvidenceCommand command =
+        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    doThrow(new ResourceAccessException("Connection refused"))
+        .when(mockApplicationApi)
+        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
         .isExactlyInstanceOf(ApplicationUnavailableException.class)
         .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
   }

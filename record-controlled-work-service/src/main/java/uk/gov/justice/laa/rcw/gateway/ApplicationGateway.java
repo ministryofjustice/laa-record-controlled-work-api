@@ -10,6 +10,7 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
@@ -115,6 +116,35 @@ public class ApplicationGateway {
   public void updateMeansData(UUID applicationId, UpdateMeansDataCommand command) {
     try {
       applicationApi.updateMeansData(
+          applicationId, bearerTokenProvider.currentBearerToken(), command);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw new ApplicationNotFoundException(
+          "No application found with id: %s".formatted(applicationId));
+    } catch (HttpClientErrorException.Conflict exception) {
+      throw new ApplicationConflictException(
+          "Application %s was modified concurrently".formatted(applicationId));
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw new ApplicationBadRequestException(
+          "Datastore rejected the request for application %s".formatted(applicationId));
+    } catch (HttpServerErrorException exception) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an error for application %s".formatted(applicationId));
+    } catch (ResourceAccessException exception) {
+      throw new ApplicationUnavailableException(
+          "Datastore is unavailable for application %s".formatted(applicationId));
+    }
+  }
+
+  /**
+   * Updates evidence data in datastore and translates transport-level failures to RCW application
+   * exceptions.
+   *
+   * @param applicationId the application id
+   * @param command evidence update command
+   */
+  public void updateEvidence(UUID applicationId, UpdateEvidenceCommand command) {
+    try {
+      applicationApi.updateEvidence(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw new ApplicationNotFoundException(
