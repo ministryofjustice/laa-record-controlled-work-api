@@ -10,9 +10,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
@@ -38,6 +42,8 @@ import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
 class ApplicationGatewayTest {
 
   private static final String BEARER_TOKEN = "Bearer original-incoming-token";
+  private static final UUID APPLICATION_ID =
+      UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
 
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private BearerTokenProvider mockBearerTokenProvider;
@@ -55,10 +61,7 @@ class ApplicationGatewayTest {
     String officeCode = "AB12CD";
     StartApplicationCommand command =
         StartApplicationCommand.builder().providerOfficeCode(officeCode).build();
-    ApplicationResponse response =
-        ApplicationResponse.builder()
-            .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-            .build();
+    ApplicationResponse response = ApplicationResponse.builder().id(APPLICATION_ID).build();
     when(mockApplicationApi.startApplication(BEARER_TOKEN, command)).thenReturn(response);
 
     ApplicationResponse result = applicationGateway.startApplication(officeCode, command);
@@ -67,477 +70,185 @@ class ApplicationGatewayTest {
     verify(mockApplicationApi).startApplication(eq(BEARER_TOKEN), eq(command));
   }
 
-  @Test
-  void
-      shouldStartApplication_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
-    String officeCode = "AB12CD";
-    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any())).thenThrow(badRequest());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.startApplication(
-                    officeCode,
-                    StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for office %s".formatted(officeCode));
-  }
-
-  @Test
-  void shouldStartApplication_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    String officeCode = "AB12CD";
-    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any())).thenThrow(serverError());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.startApplication(
-                    officeCode,
-                    StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for office %s".formatted(officeCode));
-  }
-
-  @Test
-  void shouldStartApplication_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
+  @ParameterizedTest
+  @MethodSource("officeScopedErrorMappings")
+  void shouldStartApplication_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
     String officeCode = "AB12CD";
     when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any()))
-        .thenThrow(new ResourceAccessException("Connection refused"));
+        .thenThrow(datastoreException);
 
     assertThatThrownBy(
             () ->
                 applicationGateway.startApplication(
                     officeCode,
                     StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for office %s".formatted(officeCode));
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
   @Test
   void shouldUpdateScopingData() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateScopingDataCommand command =
-        UpdateScopingDataCommand.builder().eTag(5L).scopingQuestions(Map.of("a", "b")).build();
+    UpdateScopingDataCommand command = scopingDataCommand();
 
-    applicationGateway.updateScopingData(applicationId, command);
+    applicationGateway.updateScopingData(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateScopingData(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi).updateScopingData(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
   }
 
-  @Test
-  void shouldUpdateScopingData_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(notFound())
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldUpdateScopingData_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+        .updateScopingData(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
 
     assertThatThrownBy(
-            () ->
-                applicationGateway.updateScopingData(
-                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateScopingData_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(conflict())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateScopingData(
-                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
-        .isExactlyInstanceOf(ApplicationConflictException.class)
-        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateScopingData_throwsBadRequestException_whenDatastoreReturnsBadRequest() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    String message = "Datastore rejected the request for application %s".formatted(applicationId);
-
-    doThrow(badRequest())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateScopingData(
-                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage(message);
-  }
-
-  @Test
-  void shouldUpdateScopingData_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(serverError())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateScopingData(
-                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateScopingData_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(new ResourceAccessException("Connection refused"))
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateScopingData(
-                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+            () -> applicationGateway.updateScopingData(APPLICATION_ID, scopingDataCommand()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
   @Test
   void shouldFetchApplication() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     ApplicationResponse response =
-        ApplicationResponse.builder().id(applicationId).providerOfficeCode("AB12CD").build();
-    when(mockApplicationApi.getApplication(applicationId, BEARER_TOKEN)).thenReturn(response);
+        ApplicationResponse.builder().id(APPLICATION_ID).providerOfficeCode("AB12CD").build();
+    when(mockApplicationApi.getApplication(APPLICATION_ID, BEARER_TOKEN)).thenReturn(response);
 
-    ApplicationResponse result = applicationGateway.fetchApplication(applicationId);
+    ApplicationResponse result = applicationGateway.fetchApplication(APPLICATION_ID);
 
     assertThat(result).isEqualTo(response);
-    verify(mockApplicationApi).getApplication(eq(applicationId), eq(BEARER_TOKEN));
+    verify(mockApplicationApi).getApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN));
   }
 
-  @Test
-  void shouldFetchApplication_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(applicationId, BEARER_TOKEN)).thenThrow(notFound());
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappings")
+  void shouldFetchApplication_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    when(mockApplicationApi.getApplication(APPLICATION_ID, BEARER_TOKEN))
+        .thenThrow(datastoreException);
 
-    assertThatThrownBy(() -> applicationGateway.fetchApplication(applicationId))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
-  }
-
-  @Test
-  void
-      shouldFetchApplication_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(applicationId, BEARER_TOKEN)).thenThrow(badRequest());
-
-    assertThatThrownBy(() -> applicationGateway.fetchApplication(applicationId))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldFetchApplication_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(applicationId, BEARER_TOKEN)).thenThrow(serverError());
-
-    assertThatThrownBy(() -> applicationGateway.fetchApplication(applicationId))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldFetchApplication_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(applicationId, BEARER_TOKEN))
-        .thenThrow(new ResourceAccessException("Connection refused"));
-
-    assertThatThrownBy(() -> applicationGateway.fetchApplication(applicationId))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+    assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
   @Test
   void shouldUpdateMeansData() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateMeansDataCommand command =
-        UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build();
+    UpdateMeansDataCommand command = meansDataCommand();
 
-    applicationGateway.updateMeansData(applicationId, command);
+    applicationGateway.updateMeansData(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateMeansData(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi).updateMeansData(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
   }
 
-  @Test
-  void shouldUpdateMeansData_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(conflict())
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldUpdateMeansData_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateMeansData(eq(applicationId), eq(BEARER_TOKEN), any());
+        .updateMeansData(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
 
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateMeansData(
-                    applicationId,
-                    UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
-        .isExactlyInstanceOf(ApplicationConflictException.class)
-        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateMeansData_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(notFound())
-        .when(mockApplicationApi)
-        .updateMeansData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateMeansData(
-                    applicationId,
-                    UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateMeansData_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(badRequest())
-        .when(mockApplicationApi)
-        .updateMeansData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateMeansData(
-                    applicationId,
-                    UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateMeansData_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(serverError())
-        .when(mockApplicationApi)
-        .updateMeansData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateMeansData(
-                    applicationId,
-                    UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateMeansData_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(new ResourceAccessException("Connection refused"))
-        .when(mockApplicationApi)
-        .updateMeansData(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateMeansData(
-                    applicationId,
-                    UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build()))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+    assertThatThrownBy(() -> applicationGateway.updateMeansData(APPLICATION_ID, meansDataCommand()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
   @Test
   void shouldUpdateEvidence() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+    UpdateEvidenceCommand command = evidenceCommand();
 
-    applicationGateway.updateEvidence(applicationId, command);
+    applicationGateway.updateEvidence(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateEvidence(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi).updateEvidence(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
   }
 
-  @Test
-  void shouldUpdateEvidence_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
-    doThrow(conflict())
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldUpdateEvidence_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    UpdateEvidenceCommand command = evidenceCommand();
+    doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
+        .updateEvidence(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
 
-    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
-        .isExactlyInstanceOf(ApplicationConflictException.class)
-        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateEvidence_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
-    doThrow(notFound())
-        .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateEvidence_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
-    doThrow(badRequest())
-        .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateEvidence_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
-    doThrow(serverError())
-        .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateEvidence_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateEvidenceCommand command =
-        UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
-    doThrow(new ResourceAccessException("Connection refused"))
-        .when(mockApplicationApi)
-        .updateEvidence(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(() -> applicationGateway.updateEvidence(applicationId, command))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+    assertThatThrownBy(() -> applicationGateway.updateEvidence(APPLICATION_ID, command))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
   @Test
   void shouldUpdateApplication() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    UpdateApplicationCommand command =
-        UpdateApplicationCommand.builder()
-            .eTag(2L)
-            .applicationState(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-            .build();
+    UpdateApplicationCommand command = updateApplicationCommand();
 
-    applicationGateway.updateApplication(applicationId, command);
+    applicationGateway.updateApplication(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateApplication(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi).updateApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
   }
 
-  @Test
-  void shouldUpdateApplication_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(conflict())
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldUpdateApplication_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateApplication(eq(applicationId), eq(BEARER_TOKEN), any());
+        .updateApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
 
     assertThatThrownBy(
-            () ->
-                applicationGateway.updateApplication(
-                    applicationId,
-                    UpdateApplicationCommand.builder()
-                        .eTag(2L)
-                        .applicationState(
-                            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-                        .build()))
-        .isExactlyInstanceOf(ApplicationConflictException.class)
-        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
+            () -> applicationGateway.updateApplication(APPLICATION_ID, updateApplicationCommand()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
   }
 
-  @Test
-  void shouldUpdateApplication_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(notFound())
-        .when(mockApplicationApi)
-        .updateApplication(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateApplication(
-                    applicationId,
-                    UpdateApplicationCommand.builder()
-                        .eTag(2L)
-                        .applicationState(
-                            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-                        .build()))
-        .isExactlyInstanceOf(ApplicationNotFoundException.class)
-        .hasMessage("No application found with id: %s".formatted(applicationId));
+  private static Stream<Arguments> officeScopedErrorMappings() {
+    return Stream.of(
+        Arguments.of(
+            badRequest(),
+            ApplicationBadRequestException.class,
+            "Datastore rejected the request for office AB12CD"),
+        Arguments.of(
+            serverError(),
+            ApplicationUpstreamErrorException.class,
+            "Datastore returned an error for office AB12CD"),
+        Arguments.of(
+            unavailableError(),
+            ApplicationUnavailableException.class,
+            "Datastore is unavailable for office AB12CD"));
   }
 
-  @Test
-  void shouldUpdateApplication_throwsApplicationBadRequestException_whenDatastoreReturns400() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(badRequest())
-        .when(mockApplicationApi)
-        .updateApplication(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateApplication(
-                    applicationId,
-                    UpdateApplicationCommand.builder()
-                        .eTag(2L)
-                        .applicationState(
-                            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-                        .build()))
-        .isExactlyInstanceOf(ApplicationBadRequestException.class)
-        .hasMessage("Datastore rejected the request for application %s".formatted(applicationId));
+  private static Stream<Arguments> applicationScopedErrorMappingsWithConflict() {
+    return Stream.of(
+        Arguments.of(conflict(), ApplicationConflictException.class, conflictMessage()),
+        Arguments.of(notFound(), ApplicationNotFoundException.class, notFoundMessage()),
+        Arguments.of(badRequest(), ApplicationBadRequestException.class, badRequestMessage()),
+        Arguments.of(
+            serverError(), ApplicationUpstreamErrorException.class, upstreamErrorMessage()),
+        Arguments.of(
+            unavailableError(), ApplicationUnavailableException.class, unavailableMessage()));
   }
 
-  @Test
-  void shouldUpdateApplication_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(serverError())
-        .when(mockApplicationApi)
-        .updateApplication(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateApplication(
-                    applicationId,
-                    UpdateApplicationCommand.builder()
-                        .eTag(2L)
-                        .applicationState(
-                            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-                        .build()))
-        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
-  }
-
-  @Test
-  void shouldUpdateApplication_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    doThrow(new ResourceAccessException("Connection refused"))
-        .when(mockApplicationApi)
-        .updateApplication(eq(applicationId), eq(BEARER_TOKEN), any());
-
-    assertThatThrownBy(
-            () ->
-                applicationGateway.updateApplication(
-                    applicationId,
-                    UpdateApplicationCommand.builder()
-                        .eTag(2L)
-                        .applicationState(
-                            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
-                        .build()))
-        .isExactlyInstanceOf(ApplicationUnavailableException.class)
-        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
+  private static Stream<Arguments> applicationScopedErrorMappings() {
+    return Stream.of(
+        Arguments.of(notFound(), ApplicationNotFoundException.class, notFoundMessage()),
+        Arguments.of(badRequest(), ApplicationBadRequestException.class, badRequestMessage()),
+        Arguments.of(
+            serverError(), ApplicationUpstreamErrorException.class, upstreamErrorMessage()),
+        Arguments.of(
+            unavailableError(), ApplicationUnavailableException.class, unavailableMessage()));
   }
 
   private static HttpClientErrorException.NotFound notFound() {
@@ -560,5 +271,48 @@ class ApplicationGatewayTest {
 
   private static HttpServerErrorException serverError() {
     return new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
+  }
+
+  private static ResourceAccessException unavailableError() {
+    return new ResourceAccessException("Connection refused");
+  }
+
+  private static UpdateEvidenceCommand evidenceCommand() {
+    return UpdateEvidenceCommand.builder().eTag(1L).evidenceExemptionCode("EXEMPT").build();
+  }
+
+  private static UpdateScopingDataCommand scopingDataCommand() {
+    return UpdateScopingDataCommand.builder().eTag(5L).scopingQuestions(Map.of("a", "b")).build();
+  }
+
+  private static UpdateMeansDataCommand meansDataCommand() {
+    return UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build();
+  }
+
+  private static UpdateApplicationCommand updateApplicationCommand() {
+    return UpdateApplicationCommand.builder()
+        .eTag(2L)
+        .applicationState(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+        .build();
+  }
+
+  private static String notFoundMessage() {
+    return "No application found with id: %s".formatted(APPLICATION_ID);
+  }
+
+  private static String conflictMessage() {
+    return "Application %s was modified concurrently".formatted(APPLICATION_ID);
+  }
+
+  private static String badRequestMessage() {
+    return "Datastore rejected the request for application %s".formatted(APPLICATION_ID);
+  }
+
+  private static String upstreamErrorMessage() {
+    return "Datastore returned an error for application %s".formatted(APPLICATION_ID);
+  }
+
+  private static String unavailableMessage() {
+    return "Datastore is unavailable for application %s".formatted(APPLICATION_ID);
   }
 }
