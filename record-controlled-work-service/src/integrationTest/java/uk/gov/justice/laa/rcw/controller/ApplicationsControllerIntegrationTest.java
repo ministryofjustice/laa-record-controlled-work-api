@@ -538,6 +538,115 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldUpdateApplicationEvidence_fetchesETagAndPersistsEvidenceFields() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 3, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence"))
+            .willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "evidenceExemptionCode": "EXEMPT",
+                      "evidenceExemptionReason": "reason",
+                      "incomeEvidenceChecklist": {"payslips": true},
+                      "expenditureCapitalEvidenceChecklist": {"bankStatements": true}
+                    }
+                    """))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(
+        WireMock.putRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                      "eTag": 3,
+                      "evidenceExemptionCode": "EXEMPT",
+                      "evidenceExemptionReason": "reason",
+                      "incomeEvidenceChecklist": {"payslips": true},
+                      "expenditureCapitalEvidenceChecklist": {"bankStatements": true}
+                    }
+                    """)));
+  }
+
+  @Test
+  void shouldReturnNotFound_whenUpdatingEvidenceForAnApplicationThatDoesNotExist()
+      throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(WireMock.notFound()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void shouldReturnForbidden_whenUpdatingEvidenceForApplicationInAnotherOffice() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 3, \"providerOfficeCode\": \"OTHER-OFFICE\"}"
+                        .formatted(applicationId))));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void shouldReturnConflict_whenEvidenceEtagMismatch() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 3, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence"))
+            .willReturn(WireMock.aResponse().withStatus(409)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/evidence".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(
+        1,
+        putRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence")));
+  }
+
+  @Test
   void shouldUpdateApplicationStatus_fetchesETagAndPersistsStatus() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
