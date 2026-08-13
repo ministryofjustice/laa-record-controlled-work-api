@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,8 +22,10 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
@@ -44,6 +47,155 @@ class ApplicationGatewayTest {
   void setUp() {
     applicationGateway = new ApplicationGateway(mockApplicationApi, mockBearerTokenProvider);
     when(mockBearerTokenProvider.currentBearerToken()).thenReturn(BEARER_TOKEN);
+  }
+
+  @Test
+  void shouldStartApplication() {
+    String officeCode = "AB12CD";
+    StartApplicationCommand command =
+        StartApplicationCommand.builder().providerOfficeCode(officeCode).build();
+    ApplicationResponse response =
+        ApplicationResponse.builder()
+            .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+            .build();
+    when(mockApplicationApi.startApplication(BEARER_TOKEN, command)).thenReturn(response);
+
+    ApplicationResponse result = applicationGateway.startApplication(officeCode, command);
+
+    assertThat(result).isEqualTo(response);
+    verify(mockApplicationApi).startApplication(eq(BEARER_TOKEN), eq(command));
+  }
+
+  @Test
+  void
+      shouldStartApplication_throwsApplicationBadRequestException_whenDatastoreReturnsBadRequest() {
+    String officeCode = "AB12CD";
+    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any())).thenThrow(badRequest());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.startApplication(
+                    officeCode,
+                    StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
+        .isExactlyInstanceOf(ApplicationBadRequestException.class)
+        .hasMessage("Datastore rejected the request for office %s".formatted(officeCode));
+  }
+
+  @Test
+  void shouldStartApplication_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
+    String officeCode = "AB12CD";
+    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any())).thenThrow(serverError());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.startApplication(
+                    officeCode,
+                    StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an error for office %s".formatted(officeCode));
+  }
+
+  @Test
+  void shouldStartApplication_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
+    String officeCode = "AB12CD";
+    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any()))
+        .thenThrow(new ResourceAccessException("Connection refused"));
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.startApplication(
+                    officeCode,
+                    StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
+        .isExactlyInstanceOf(ApplicationUnavailableException.class)
+        .hasMessage("Datastore is unavailable for office %s".formatted(officeCode));
+  }
+
+  @Test
+  void shouldUpdateScopingData() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    UpdateScopingDataCommand command =
+        UpdateScopingDataCommand.builder().eTag(5L).scopingQuestions(Map.of("a", "b")).build();
+
+    applicationGateway.updateScopingData(applicationId, command);
+
+    verify(mockApplicationApi).updateScopingData(eq(applicationId), eq(BEARER_TOKEN), eq(command));
+  }
+
+  @Test
+  void shouldUpdateScopingData_throwsApplicationNotFoundException_whenDatastoreReturnsNotFound() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(notFound())
+        .when(mockApplicationApi)
+        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateScopingData(
+                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .hasMessage("No application found with id: %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateScopingData_throwsApplicationConflictException_whenDatastoreReturnsConflict() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(conflict())
+        .when(mockApplicationApi)
+        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateScopingData(
+                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
+        .isExactlyInstanceOf(ApplicationConflictException.class)
+        .hasMessage("Application %s was modified concurrently".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateScopingData_throwsBadRequestException_whenDatastoreReturnsBadRequest() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String message = "Datastore rejected the request for application %s".formatted(applicationId);
+
+    doThrow(badRequest())
+        .when(mockApplicationApi)
+        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateScopingData(
+                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
+        .isExactlyInstanceOf(ApplicationBadRequestException.class)
+        .hasMessage(message);
+  }
+
+  @Test
+  void shouldUpdateScopingData_throwsApplicationUpstreamErrorException_whenDatastoreReturns5xx() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(serverError())
+        .when(mockApplicationApi)
+        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateScopingData(
+                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an error for application %s".formatted(applicationId));
+  }
+
+  @Test
+  void shouldUpdateScopingData_throwsApplicationUnavailableException_whenDatastoreIsUnavailable() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ResourceAccessException("Connection refused"))
+        .when(mockApplicationApi)
+        .updateScopingData(eq(applicationId), eq(BEARER_TOKEN), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateScopingData(
+                    applicationId, UpdateScopingDataCommand.builder().eTag(5L).build()))
+        .isExactlyInstanceOf(ApplicationUnavailableException.class)
+        .hasMessage("Datastore is unavailable for application %s".formatted(applicationId));
   }
 
   @Test

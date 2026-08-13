@@ -28,7 +28,7 @@ public class ApplicationMeansService {
    * with a concurrent modification, the eTag is re-fetched and the update is retried once.
    *
    * @param applicationId the application id
-   * @param data the means Q&amp;A data
+   * @param data the means Q&A data
    * @param result the means calculation result
    */
   public void updateMeans(UUID applicationId, Object data, Object result) {

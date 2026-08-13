@@ -4,9 +4,10 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
+import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -19,9 +20,9 @@ public class ApplicationCreationService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationCreationService.class);
 
-  private final ApplicationApi applicationApi;
+  private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
-  private final BearerTokenProvider bearerTokenProvider;
+  private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
    * Creates an application by forwarding the RCW request to the datastore.
@@ -29,14 +30,14 @@ public class ApplicationCreationService {
    * @return the created application
    */
   public Application createApplication(CreateApplicationRequestBody applicationRequestBody) {
-    String bearerToken = bearerTokenProvider.currentBearerToken();
+    checkAuthorizedForOffice(applicationRequestBody.getProviderOfficeCode());
     ApplicationResponse applicationResponse =
-        applicationApi.startApplication(
-            bearerToken, applicationMapper.toStartApplicationCommand(applicationRequestBody));
+        applicationGateway.startApplication(
+            applicationRequestBody.getProviderOfficeCode(),
+            applicationMapper.toStartApplicationCommand(applicationRequestBody));
 
-    applicationApi.updateScopingData(
+    applicationGateway.updateScopingData(
         applicationResponse.getId(),
-        bearerToken,
         UpdateScopingDataCommand.builder()
             .eTag(applicationResponse.geteTag())
             .scopingQuestions(applicationRequestBody.getScopingQuestions())
@@ -50,5 +51,12 @@ public class ApplicationCreationService {
         .with("application.id", application.getId())
         .log("Created application {}", application.getId());
     return application;
+  }
+
+  private void checkAuthorizedForOffice(String providerOfficeCode) {
+    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
+      throw new ApplicationForbiddenException(
+          "Not authorized to create application for office %s".formatted(providerOfficeCode));
+    }
   }
 }

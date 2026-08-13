@@ -41,6 +41,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
@@ -62,6 +63,7 @@ class ApplicationControllerTest {
 
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
   @MockitoBean private ApplicationMeansService mockApplicationMeansService;
+  @MockitoBean private ApplicationEvidenceService mockApplicationEvidenceService;
   @MockitoBean private ApplicationUpdateService mockApplicationUpdateService;
   @MockitoBean private ApplicationCreationService mockApplicationCreationService;
 

@@ -12,6 +12,9 @@ in the top-right of the Bruno window before sending any request:
 
 - `local` - targets the app running locally (`http://localhost:8081`) and signs in against the
   [mock-oauth2-server](https://github.com/navikt/mock-oauth2-server) started by `make docker-up`.
+- `local-https` - targets the app running locally (`http://localhost:8081`) but signs in against the
+   UI repo's SSL-enabled `mock-oauth2-server` (`https://host.docker.internal:9090`). Use this when the
+   UI stack is the one hosting mock OAuth2 and HTTP endpoints are unavailable.
 - `uat` - targets the deployed UAT environment and signs in against the real Entra ID (Azure AD) dev tenant.
 - `local-entra` - targets the app running locally (`http://localhost:8081`), same as `local`, but signs in
   against the real Entra dev tenant, same as `uat`. Use this to test the local Docker stack (including the
@@ -19,7 +22,7 @@ in the top-right of the Bruno window before sending any request:
   `docker-compose.yml`'s Entra vars to be set (see [.env.example](../.env.example)) before running
   `make docker-up` - see [README.md](../README.md#run-application-via-docker).
 
-All three environments use the same folder-level OAuth2 config (see below) - only the URLs/credentials the
+All four environments use the same folder-level OAuth2 config (see below) - only the URLs/credentials the
 requests are interpolated from differ, so switching environments does not require any changes to auth setup.
 
 ## How authentication works
@@ -103,6 +106,9 @@ callback URL. Prerequisites:
 1. Add `host.docker.internal` to `/etc/hosts` (see [README.md](../README.md) Prerequisites) - Bruno runs on
    the host, so it needs to resolve this hostname the same way the container does.
 2. Start the stack with `make docker-up` so `mock-oauth2-server` is running on `localhost:9090`.
+
+If you're instead running the UI repo's mock OAuth2 server (SSL enabled), select `local-https` before
+clicking **Get Access Token** so Bruno uses `https://host.docker.internal:9090/...`.
 
 With the `local` environment selected, follow [Getting a token](#getting-a-token) as normal. The login
 window that opens is the mock server's custom login page (`mock-oauth2-login.html`, wired in via

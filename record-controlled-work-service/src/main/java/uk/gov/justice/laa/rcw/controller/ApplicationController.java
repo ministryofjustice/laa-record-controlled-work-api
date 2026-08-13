@@ -14,8 +14,10 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationStatusRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
@@ -28,6 +30,7 @@ public class ApplicationController implements ApplicationsApi {
   private final ApplicationQueryService applicationQueryService;
   private final ApplicationMeansService applicationMeansService;
   private final ApplicationUpdateService applicationUpdateService;
+  private final ApplicationEvidenceService applicationEvidenceService;
   private final ApplicationCreationService applicationCreationService;
 
   @Override
@@ -71,6 +74,13 @@ public class ApplicationController implements ApplicationsApi {
       UUID id, UpdateApplicationStatusRequestBody updateApplicationStatusRequestBody) {
     applicationUpdateService.updateStatus(
         id, updateApplicationStatusRequestBody.getApplicationState());
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> updateApplicationEvidence(
+      UUID id, UpdateEvidenceRequestBody updateEvidenceRequestBody) {
+    applicationEvidenceService.updateEvidence(id, updateEvidenceRequestBody);
     return ResponseEntity.noContent().build();
   }
 }
