@@ -41,14 +41,11 @@ public class ApplicationGateway {
     try {
       return applicationApi.startApplication(bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for office %s".formatted(providerOfficeCode));
+      throw badRequestForOffice(providerOfficeCode);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for office %s".formatted(providerOfficeCode));
+      throw upstreamErrorForOffice(providerOfficeCode);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for office %s".formatted(providerOfficeCode));
+      throw unavailableErrorForOffice(providerOfficeCode);
     }
   }
 
@@ -64,20 +61,15 @@ public class ApplicationGateway {
       applicationApi.updateScopingData(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
+      throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw new ApplicationConflictException(
-          "Application %s was modified concurrently".formatted(applicationId));
+      throw conflict(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
+      throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
+      throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
+      throw unavailableErrorForApplication(applicationId);
     }
   }
 
@@ -92,17 +84,13 @@ public class ApplicationGateway {
     try {
       return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
     } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
+      throw notFound(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
+      throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
+      throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
+      throw unavailableErrorForApplication(applicationId);
     }
   }
 
@@ -118,20 +106,15 @@ public class ApplicationGateway {
       applicationApi.updateMeansData(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
+      throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw new ApplicationConflictException(
-          "Application %s was modified concurrently".formatted(applicationId));
+      throw conflict(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
+      throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
+      throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
+      throw unavailableErrorForApplication(applicationId);
     }
   }
 
@@ -147,20 +130,15 @@ public class ApplicationGateway {
       applicationApi.updateEvidence(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
+      throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw new ApplicationConflictException(
-          "Application %s was modified concurrently".formatted(applicationId));
+      throw conflict(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
+      throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
+      throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
+      throw unavailableErrorForApplication(applicationId);
     }
   }
 
@@ -176,20 +154,55 @@ public class ApplicationGateway {
       applicationApi.updateApplication(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
+      throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw new ApplicationConflictException(
-          "Application %s was modified concurrently".formatted(applicationId));
+      throw conflict(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
+      throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
+      throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
+      throw unavailableErrorForApplication(applicationId);
     }
+  }
+
+  private ApplicationNotFoundException notFound(UUID applicationId) {
+    return new ApplicationNotFoundException(
+        "No application found with id: %s".formatted(applicationId));
+  }
+
+  private ApplicationConflictException conflict(UUID applicationId) {
+    return new ApplicationConflictException(
+        "Application %s was modified concurrently".formatted(applicationId));
+  }
+
+  private ApplicationBadRequestException badRequestForApplication(UUID applicationId) {
+    return new ApplicationBadRequestException(
+        "Datastore rejected the request for application %s".formatted(applicationId));
+  }
+
+  private ApplicationUpstreamErrorException upstreamErrorForApplication(UUID applicationId) {
+    return new ApplicationUpstreamErrorException(
+        "Datastore returned an error for application %s".formatted(applicationId));
+  }
+
+  private ApplicationUnavailableException unavailableErrorForApplication(UUID applicationId) {
+    return new ApplicationUnavailableException(
+        "Datastore is unavailable for application %s".formatted(applicationId));
+  }
+
+  private ApplicationBadRequestException badRequestForOffice(String providerOfficeCode) {
+    return new ApplicationBadRequestException(
+        "Datastore rejected the request for office %s".formatted(providerOfficeCode));
+  }
+
+  private ApplicationUpstreamErrorException upstreamErrorForOffice(String providerOfficeCode) {
+    return new ApplicationUpstreamErrorException(
+        "Datastore returned an error for office %s".formatted(providerOfficeCode));
+  }
+
+  private ApplicationUnavailableException unavailableErrorForOffice(String providerOfficeCode) {
+    return new ApplicationUnavailableException(
+        "Datastore is unavailable for office %s".formatted(providerOfficeCode));
   }
 }
