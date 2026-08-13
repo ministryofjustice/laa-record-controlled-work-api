@@ -674,7 +674,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"applicationState": "COMPLETED"}
+                    {"applicationState": "COMPLETED", "eTag": 5}
                     """))
         .andExpect(status().isNoContent());
 
@@ -721,7 +721,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"applicationState": "COMPLETED"}
+                    {"applicationState": "COMPLETED", "eTag": 5}
                     """))
         .andExpect(status().isConflict());
 
@@ -756,7 +756,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"applicationState": "COMPLETED"}
+                    {"applicationState": "COMPLETED", "eTag": 5}
                     """))
         .andExpect(status().isConflict());
 

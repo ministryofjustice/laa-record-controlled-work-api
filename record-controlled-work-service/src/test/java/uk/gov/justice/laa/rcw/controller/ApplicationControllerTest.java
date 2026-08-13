@@ -578,7 +578,7 @@ class ApplicationControllerTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     String requestBody =
         """
-                {"officeId": "AB12CD", "applicationState": "COMPLETED"}
+        {"applicationState": "COMPLETED", "eTag": 1}
         """;
 
     mockMvc
@@ -615,7 +615,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isNotFound());
   }
 
@@ -632,7 +632,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isForbidden());
   }
 
@@ -650,7 +650,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isConflict());
   }
 
@@ -667,7 +667,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isBadRequest());
   }
 
@@ -685,7 +685,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isBadGateway());
   }
 
@@ -703,7 +703,7 @@ class ApplicationControllerTest {
         .perform(
             patch("/api/v1/applications/%s/status".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{" + "\"officeId\":\"AB12CD\",\"applicationState\":\"COMPLETED\"}"))
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isServiceUnavailable());
   }
 }
