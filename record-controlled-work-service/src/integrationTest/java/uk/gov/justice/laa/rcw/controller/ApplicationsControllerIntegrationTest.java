@@ -9,6 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -643,5 +644,125 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         1,
         putRequestedFor(
             urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence")));
+  }
+
+  @Test
+  void shouldUpdateApplicationStatus_fetchesETagAndPersistsStatus() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-application"))
+            .willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"applicationState": "COMPLETED", "eTag": 5}
+                    """))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(
+        patchRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-application"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 5,
+                        "applicationState": "COMPLETED"
+                    }
+                    """)));
+  }
+
+  @Test
+  void shouldRetryOnceThenReturnConflict_whenStatusUpdateEtagMismatchPersists() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-application"))
+            .willReturn(WireMock.aResponse().withStatus(409)));
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"applicationState": "COMPLETED", "eTag": 5}
+                    """))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + applicationId)));
+    DATASTORE.verify(
+        2,
+        patchRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-application")));
+  }
+
+  @Test
+  void shouldReturnConflict_whenUpdatingStatusForAnAlreadyRecordedApplication() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "eTag": 5,
+                      "providerOfficeCode": "%s",
+                      "applicationState": "COMPLETED"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"applicationState": "COMPLETED", "eTag": 5}
+                    """))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(
+        0,
+        patchRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-application")));
   }
 }

@@ -14,117 +14,74 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
-import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationCreationServiceTest {
 
-  private static final String ORIGINAL_TOKEN = "original-incoming-token";
   private static final String AUTHORIZED_OFFICE_CODE = "22439e72-68d3-4770-b435-c352d883d21e";
 
-  @Mock private ApplicationApi mockApplicationApi;
+  @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private ApplicationMapper mockApplicationMapper;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
-  private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
   private ApplicationCreationService applicationCreationService;
 
   @BeforeEach
   void setUp() {
     applicationCreationService =
         new ApplicationCreationService(
-            mockApplicationApi,
-            mockApplicationMapper,
-            bearerTokenProvider,
-            mockAuthorizedOfficesProvider);
-    Jwt jwt =
-        Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+            mockApplicationGateway, mockApplicationMapper, mockAuthorizedOfficesProvider);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
   }
 
-  @AfterEach
-  void tearDown() {
-    SecurityContextHolder.clearContext();
-  }
-
   @Test
-  void shouldCreateApplication_forwardsRequestToDatastore() {
+  void shouldCreateApplication_forwardsRequestToGateway() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder ->
                 builder
                     .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
-    StartApplicationCommand command =
-        StartApplicationCommand.builder()
-            .providerOfficeCode(request.getProviderOfficeCode())
-            .applicationType(StartApplicationCommand.ApplicationTypeEnum.RCW)
-            .client(new ApplicationMapperImpl().toCreateClientCommand(request.getClientDetails()))
-            .build();
+    StartApplicationCommand startCommand =
+        StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     ApplicationResponse datastoreResponse =
-        ApplicationResponse.builder()
-            .id(UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
-            .individualLegalAidNumber(UUID.fromString("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
-            .providerFirmCode("123456")
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .applicationType("RCW")
-            .eTag(0L)
-            .build();
-    Application expectedApplication =
-        ApplicationGenerator.create(b -> b.id(datastoreResponse.getId()));
+        ApplicationResponse.builder().id(applicationId).eTag(5L).build();
+    Application expectedApplication = ApplicationGenerator.create(b -> b.id(applicationId));
 
-    when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(command);
-    when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
+    when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(startCommand);
+    when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
+        .thenReturn(datastoreResponse);
     when(mockApplicationMapper.toApplication(datastoreResponse)).thenReturn(expectedApplication);
 
     Application result = applicationCreationService.createApplication(request);
 
-    ArgumentCaptor<String> authorizationHeaderCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<StartApplicationCommand> commandCaptor =
-        ArgumentCaptor.forClass(StartApplicationCommand.class);
     ArgumentCaptor<UpdateScopingDataCommand> scopingCommandCaptor =
         ArgumentCaptor.forClass(UpdateScopingDataCommand.class);
-    verify(mockApplicationApi)
-        .startApplication(authorizationHeaderCaptor.capture(), commandCaptor.capture());
-    verify(mockApplicationApi)
-        .updateScopingData(
-            any(), authorizationHeaderCaptor.capture(), scopingCommandCaptor.capture());
-    assertThat(authorizationHeaderCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
-    assertThat(commandCaptor.getValue()).isEqualTo(command);
-    assertThat(scopingCommandCaptor.getValue().geteTag()).isEqualTo(0L);
+    verify(mockApplicationGateway).startApplication(eq(AUTHORIZED_OFFICE_CODE), eq(startCommand));
+    verify(mockApplicationGateway)
+        .updateScopingData(eq(applicationId), scopingCommandCaptor.capture());
+    assertThat(scopingCommandCaptor.getValue().geteTag()).isEqualTo(5L);
     assertThat(scopingCommandCaptor.getValue().getScopingQuestions())
         .isEqualTo(Map.of("priorLegalAid", "same_matter"));
     assertThat(result).isEqualTo(expectedApplication);
@@ -140,8 +97,7 @@ class ApplicationCreationServiceTest {
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining("OTHER-OFFICE");
 
-    verify(mockApplicationApi, never()).startApplication(anyString(), any());
-    verify(mockApplicationApi, never()).updateScopingData(any(), anyString(), any());
+    verify(mockApplicationGateway, never()).startApplication(anyString(), any());
   }
 
   @Test
@@ -155,176 +111,46 @@ class ApplicationCreationServiceTest {
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(AUTHORIZED_OFFICE_CODE);
 
-    verify(mockApplicationApi, never()).startApplication(anyString(), any());
-    verify(mockApplicationApi, never()).updateScopingData(any(), anyString(), any());
+    verify(mockApplicationGateway, never()).startApplication(anyString(), any());
   }
 
   @Test
-  void shouldCreateApplication_throwsApplicationConflictException_whenScopingUpdateReturns409() {
+  void shouldCreateApplication_propagatesException_whenStartApplicationFails() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
-            builder ->
-                builder
-                    .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                    .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
-
+            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
     StartApplicationCommand startCommand =
-        StartApplicationCommand.builder()
-            .providerOfficeCode(request.getProviderOfficeCode())
-            .applicationType(StartApplicationCommand.ApplicationTypeEnum.RCW)
-            .client(new ApplicationMapperImpl().toCreateClientCommand(request.getClientDetails()))
-            .build();
-
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-
-    ApplicationResponse datastoreResponse =
-        ApplicationResponse.builder()
-            .id(applicationId)
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .eTag(0L)
-            .build();
+        StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
 
     when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(startCommand);
-    when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
-    doThrow(conflict())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), anyString(), any());
+    when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
+        .thenThrow(new ApplicationBadRequestException("Datastore rejected the request"));
 
     assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationConflictException.class)
-        .hasMessageContaining(applicationId.toString());
+        .isInstanceOf(ApplicationBadRequestException.class);
 
-    verify(mockApplicationApi).updateScopingData(eq(applicationId), anyString(), any());
-    verify(mockApplicationApi, never()).getApplication(eq(applicationId), anyString());
+    verify(mockApplicationGateway, never()).updateScopingData(any(), any());
   }
 
   @Test
-  void shouldCreateApplication_throwsApplicationNotFoundException_whenScopingUpdateReturns404() {
+  void shouldCreateApplication_propagatesException_whenScopingUpdateFails() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-
-    ApplicationResponse datastoreResponse =
-        ApplicationResponse.builder()
-            .id(applicationId)
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .eTag(0L)
-            .build();
-
-    when(mockApplicationMapper.toStartApplicationCommand(request))
-        .thenReturn(
-            StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build());
-    when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
-    doThrow(notFound())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), anyString(), any());
-
-    assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationNotFoundException.class)
-        .hasMessageContaining(applicationId.toString());
-  }
-
-  @Test
-  void
-      shouldCreateApplication_throwsApplicationBadRequestException_whenDatastoreCreateReturns400() {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-
-    when(mockApplicationMapper.toStartApplicationCommand(request))
-        .thenReturn(
-            StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build());
-    when(mockApplicationApi.startApplication(anyString(), any())).thenThrow(badRequest());
-
-    assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationBadRequestException.class)
-        .hasMessageContaining(AUTHORIZED_OFFICE_CODE);
-
-    verify(mockApplicationApi, never()).updateScopingData(any(), anyString(), any());
-  }
-
-  @Test
-  void shouldCreateApplication_throwsApplicationBadRequestException_whenScopingUpdateReturns400() {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-
-    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-
-    ApplicationResponse datastoreResponse =
-        ApplicationResponse.builder()
-            .id(applicationId)
-            .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-            .eTag(0L)
-            .build();
-
-    when(mockApplicationMapper.toStartApplicationCommand(request))
-        .thenReturn(
-            StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build());
-    when(mockApplicationApi.startApplication(anyString(), any())).thenReturn(datastoreResponse);
-    doThrow(badRequest())
-        .when(mockApplicationApi)
-        .updateScopingData(eq(applicationId), anyString(), any());
-
-    assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationBadRequestException.class)
-        .hasMessageContaining(applicationId.toString());
-  }
-
-  @Test
-  void shouldCreateApplication_throwsUpstreamError_whenDatastoreCreateReturns5xx() {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-    StartApplicationCommand command =
+    StartApplicationCommand startCommand =
         StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    ApplicationResponse datastoreResponse =
+        ApplicationResponse.builder().id(applicationId).eTag(5L).build();
 
-    when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(command);
-    when(mockApplicationApi.startApplication(anyString(), any())).thenThrow(serverError());
-
-    assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationUpstreamErrorException.class)
-        .hasMessageContaining(AUTHORIZED_OFFICE_CODE);
-  }
-
-  @Test
-  void shouldCreateApplication_throwsUnavailable_whenDatastoreCreateIsUnavailable() {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
-    StartApplicationCommand command =
-        StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
-
-    when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(command);
-    when(mockApplicationApi.startApplication(anyString(), any()))
-        .thenThrow(new ResourceAccessException("Connection refused"));
+    when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(startCommand);
+    when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
+        .thenReturn(datastoreResponse);
+    doThrow(new ApplicationConflictException("Application %s was modified concurrently"))
+        .when(mockApplicationGateway)
+        .updateScopingData(eq(applicationId), any());
 
     assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationUnavailableException.class)
-        .hasMessageContaining(AUTHORIZED_OFFICE_CODE);
-  }
-
-  private static HttpClientErrorException.NotFound notFound() {
-    return (HttpClientErrorException.NotFound)
-        HttpClientErrorException.create(
-            HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, new byte[0], null);
-  }
-
-  private static HttpClientErrorException.Conflict conflict() {
-    return (HttpClientErrorException.Conflict)
-        HttpClientErrorException.create(
-            HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
-  }
-
-  private static HttpClientErrorException.BadRequest badRequest() {
-    return (HttpClientErrorException.BadRequest)
-        HttpClientErrorException.create(
-            HttpStatus.BAD_REQUEST, "Bad Request", HttpHeaders.EMPTY, new byte[0], null);
-  }
-
-  private static HttpServerErrorException serverError() {
-    return new HttpServerErrorException(HttpStatus.BAD_GATEWAY);
+        .isInstanceOf(ApplicationConflictException.class);
   }
 }

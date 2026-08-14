@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -45,6 +46,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
+import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
 @TestPropertySource(
@@ -64,6 +66,7 @@ class ApplicationControllerTest {
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
   @MockitoBean private ApplicationMeansService mockApplicationMeansService;
   @MockitoBean private ApplicationEvidenceService mockApplicationEvidenceService;
+  @MockitoBean private ApplicationUpdateService mockApplicationUpdateService;
   @MockitoBean private ApplicationCreationService mockApplicationCreationService;
 
   @Test
@@ -567,6 +570,140 @@ class ApplicationControllerTest {
             put("/api/v1/applications/%s/evidence".formatted(applicationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
+        .andExpect(status().isServiceUnavailable());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsNoContent_andForwardsStatusToService() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"applicationState": "COMPLETED", "eTag": 1}
+        """;
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNoContent());
+
+    verify(mockApplicationUpdateService)
+        .updateStatus(applicationId, uk.gov.justice.laa.rcw.model.ApplicationState.COMPLETED);
+  }
+
+  @Test
+  void updateApplicationStatus_returnsBadRequest_whenApplicationStateIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsForbidden_whenUserNotAuthorizedForOffice() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsConflict_whenDatastoreEtagMismatchPersists()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsBadRequest_whenDatastoreRejectsTheRequest() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationBadRequestException(
+                "Datastore rejected the request for application %s".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsBadGateway_whenDatastoreReturnsAServerError()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an error for application %s".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
+        .andExpect(status().isBadGateway());
+  }
+
+  @Test
+  void updateApplicationStatus_returnsServiceUnavailable_whenDatastoreCannotBeReached()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationUnavailableException(
+                "Datastore is unavailable for application %s".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateStatus(any(), any());
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/%s/status".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{" + "\"applicationState\":\"COMPLETED\",\"eTag\":1}"))
         .andExpect(status().isServiceUnavailable());
   }
 }

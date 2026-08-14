@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,160 +20,184 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
-import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
+import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 
 @ExtendWith(MockitoExtension.class)
-class ApplicationMeansServiceTest {
+class ApplicationUpdateServiceTest {
 
   private static final String AUTHORIZED_OFFICE_CODE = "AB12CD";
 
+  @Mock private ApplicationMapper mockApplicationMapper;
   @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private ApplicationGuard applicationGuard;
-  private ApplicationMeansService applicationMeansService;
+  private ApplicationUpdateService applicationUpdateService;
 
   @BeforeEach
   void setUp() {
     applicationGuard = new ApplicationGuard(mockAuthorizedOfficesProvider);
-    applicationMeansService = new ApplicationMeansService(mockApplicationGateway, applicationGuard);
+    applicationUpdateService =
+        new ApplicationUpdateService(
+            mockApplicationMapper, mockApplicationGateway, applicationGuard);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
+    lenient()
+        .when(mockApplicationMapper.toDatastoreApplicationState(any()))
+        .thenReturn(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED);
   }
 
   @Test
-  void shouldUpdateMeans_fetchesETagAndForwardsDataAndResultToDatastore() {
+  void shouldUpdateStatus_fetchesETagAndForwardsStatusToDatastore() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Map<String, Object> data = Map.of("level_of_help", "controlled");
-    Map<String, Object> result = Map.of("indication", true);
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(7L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
 
-    applicationMeansService.updateMeans(applicationId, data, result);
+    applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED);
 
     verify(mockApplicationGateway).fetchApplication(eq(applicationId));
 
-    ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
-        ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
-    verify(mockApplicationGateway).updateMeansData(eq(applicationId), commandCaptor.capture());
-    assertThat(commandCaptor.getValue())
-        .isEqualTo(UpdateMeansDataCommand.builder().eTag(7L).data(data).result(result).build());
+    ArgumentCaptor<UpdateApplicationCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateApplicationCommand.class);
+    verify(mockApplicationGateway).updateApplication(eq(applicationId), commandCaptor.capture());
+    assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
+    assertThat(commandCaptor.getValue().getApplicationState())
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED);
   }
 
   @Test
-  void shouldUpdateMeans_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
+  void shouldUpdateStatus_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Map<String, Object> data = Map.of("level_of_help", "controlled");
-    Map<String, Object> result = Map.of("indication", true);
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build())
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(2L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
     doThrow(
             new ApplicationConflictException(
                 "Application %s was modified concurrently".formatted(applicationId)))
         .doNothing()
         .when(mockApplicationGateway)
-        .updateMeansData(eq(applicationId), any());
+        .updateApplication(eq(applicationId), any());
 
-    applicationMeansService.updateMeans(applicationId, data, result);
+    applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED);
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
-    ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
-        ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
+    ArgumentCaptor<UpdateApplicationCommand> commandCaptor =
+        ArgumentCaptor.forClass(UpdateApplicationCommand.class);
     verify(mockApplicationGateway, times(2))
-        .updateMeansData(eq(applicationId), commandCaptor.capture());
+        .updateApplication(eq(applicationId), commandCaptor.capture());
     assertThat(commandCaptor.getAllValues())
-        .extracting(UpdateMeansDataCommand::geteTag)
+        .extracting(UpdateApplicationCommand::geteTag)
         .containsExactly(1L, 2L);
   }
 
   @Test
-  void shouldUpdateMeans_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
+  void shouldUpdateStatus_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
     doThrow(
             new ApplicationConflictException(
                 "Application %s was modified concurrently".formatted(applicationId)))
         .when(mockApplicationGateway)
-        .updateMeansData(eq(applicationId), any());
+        .updateApplication(eq(applicationId), any());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
-    verify(mockApplicationGateway, times(2)).updateMeansData(eq(applicationId), any());
+    verify(mockApplicationGateway, times(2)).updateApplication(eq(applicationId), any());
   }
 
   @Test
-  void shouldUpdateMeans_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
+  void shouldUpdateStatus_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                .applicationState(ApplicationState.COMPLETED)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED)
                 .build());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationGateway, never()).updateMeansData(any(), any());
+    verify(mockApplicationGateway, never()).updateApplication(any(), any());
   }
 
   @Test
-  void shouldUpdateMeans_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
+  void shouldUpdateStatus_throwsApplicationForbiddenException_whenOfficeCodeNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
-            ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode("OTHER-OFFICE")
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+                .build());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationGateway, never()).updateMeansData(any(), any());
+    verify(mockApplicationGateway, never()).updateApplication(any(), any());
   }
 
   @Test
-  void shouldUpdateMeans_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
+  void shouldUpdateStatus_throwsApplicationForbiddenException_whenNoOfficesAreAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
                 .eTag(1L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationGateway, never()).updateMeansData(any(), any());
+    verify(mockApplicationGateway, never()).updateApplication(any(), any());
   }
 }
