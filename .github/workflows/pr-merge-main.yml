@@ -119,7 +119,7 @@ jobs:
 
   build-push-deploy-uat:
     if: "!(github.event_name == 'pull_request' && github.actor == 'renovate[bot]')"
-    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@932ee576d65d9992ca82955a5823e3d55e888417 # main
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@f5894f7b4f277edcc615371d9dcd60f250e1c09d # main
     with:
       app_name: laa-record-controlled-work-api
       helm_chart: ./laa-generic-helm-chart
