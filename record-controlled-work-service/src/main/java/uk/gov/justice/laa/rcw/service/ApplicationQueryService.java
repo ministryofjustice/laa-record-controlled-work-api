@@ -114,8 +114,8 @@ public class ApplicationQueryService {
     if (applicationState
         == uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED) {
       throw new ApplicationConflictException(
-          "Application %s has already been recorded and cannot be updated"
-              .formatted(applicationId));
+          "Application %s has already been recorded and cannot be updated".formatted(applicationId),
+          "APPLICATION_ALREADY_RECORDED");
     }
   }
 
