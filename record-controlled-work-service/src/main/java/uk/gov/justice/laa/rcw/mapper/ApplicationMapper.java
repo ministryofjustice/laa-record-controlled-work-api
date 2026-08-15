@@ -47,6 +47,7 @@ public interface ApplicationMapper {
   @Mapping(target = "eligibility", source = "eligibilityResult")
   @Mapping(target = "evidence", ignore = true)
   @Mapping(target = "meansAssessmentId", ignore = true)
+  @Mapping(target = "applicationRefNumber", source = "referenceNumber")
   Application toApplication(ApplicationResponse applicationResponse);
 
   /** Maps the datastore's client details onto the RCW API's, inverting `noFixedAbode`. */

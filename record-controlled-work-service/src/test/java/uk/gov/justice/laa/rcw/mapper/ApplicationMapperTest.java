@@ -159,6 +159,7 @@ class ApplicationMapperTest {
             .scopingQuestions(Map.of("priorLegalAid", "same_matter"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
+            .referenceNumber(REFERENCE_NUMBER)
             .createdAt(now)
             .createdBy("Random User")
             .modifiedAt(now)
@@ -168,6 +169,7 @@ class ApplicationMapperTest {
     Application result = applicationMapper.toApplication(applicationResponse);
 
     assertThat(result.getId()).isEqualTo(APPLICATION_ID);
+    assertThat(result.getApplicationRefNumber()).isEqualTo(REFERENCE_NUMBER);
     assertThat(result.getIndividualLegalAidNumber()).isEqualTo(individualLegalAidNumber);
     assertThat(result.getProviderFirmCode()).isEqualTo("123456");
     assertThat(result.getProviderOfficeCode()).isEqualTo("22439e72-68d3-4770-b435-c352d883d21e");
