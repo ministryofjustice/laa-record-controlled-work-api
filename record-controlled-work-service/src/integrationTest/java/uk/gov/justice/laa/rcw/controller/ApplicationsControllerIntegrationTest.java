@@ -171,6 +171,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "same_matter"
                         },
                         "applicationType": "CONTROLLED_WORK",
+                        "declaration": {
+                            "id": "d4e5f6a7-b8c9-0123-def1-234567890123",
+                            "clientDeclarationStatus": "DRAFT",
+                            "declarationConfirmation": true
+                        },
                         "eligibilityResult": {
                             "data": {"level_of_help": "controlled"},
                             "result": {"indication": true}
@@ -187,6 +192,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
         .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("same_matter"))
+        .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
+        .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
+        .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
   }

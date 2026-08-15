@@ -384,8 +384,6 @@ components:
         id:
           type: string
           format: uuid
-        clientDeclarationStatus:
-          $ref: "#/components/schemas/ClientDeclarationStatus"
         declarationConfirmation:
           type: boolean
         createdAt:
@@ -405,8 +403,6 @@ components:
         id:
           type: string
           format: uuid
-        evidenceStatus:
-          $ref: "#/components/schemas/EvidenceStatus"
         payeIncomeEvidence:
           type: boolean
         otherIncomeEvidence:
@@ -493,14 +489,6 @@ components:
           type: string
           format: date-time
 
-    ClientDeclarationStatus:
-      type: string
-      enum:
-        - DRAFT
-    EvidenceStatus:
-      type: string
-      enum:
-        - DRAFT
     ApplicationState:
       type: string
       enum:
