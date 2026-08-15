@@ -25,6 +25,20 @@ in the top-right of the Bruno window before sending any request:
 All four environments use the same folder-level OAuth2 config (see below) - only the URLs/credentials the
 requests are interpolated from differ, so switching environments does not require any changes to auth setup.
 
+### Selecting an application
+
+Application-specific requests use the `applicationId` variable instead of generating a random UUID. There
+are two ways to set it:
+
+1. To use an application created by the UI, open the selected environment in Bruno and paste its UUID into
+   `applicationId`.
+2. To create an application in Bruno, send **Create applications**. A successful response captures the UUID
+   from the `Location` header and subsequent application requests use it automatically.
+
+An explicitly entered `applicationId` takes precedence over the UUID captured by **Create applications**.
+Clear its environment value to resume using the most recently created application. The applications list
+uses the separate `officeId` environment variable for its office filter.
+
 ## How authentication works
 
 The `applications` folder (not the individual requests inside it) owns an OAuth2 **Authorization Code + PKCE**

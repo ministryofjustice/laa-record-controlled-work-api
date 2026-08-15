@@ -2,6 +2,12 @@ name: uat
 variables:
   - name: baseUrl
     value: laa-record-controlled-work-api-uat.cloud-platform.service.justice.gov.uk
+  - name: applicationId
+    value: ""
+    description: Application UUID used by application-specific requests
+  - name: officeId
+    value: ""
+    description: Office UUID used to filter the applications list
   - name: entraApiAudience
     value: https://devlexternal.onmicrosoft.com/laa-record-controlled-work-api-uat
   - name: oauthAuthorizeUrl

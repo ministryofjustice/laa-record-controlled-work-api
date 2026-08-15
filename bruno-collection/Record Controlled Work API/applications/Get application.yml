@@ -7,7 +7,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
   auth: inherit
 
 runtime:
@@ -53,7 +53,7 @@ examples:
   - name: 200 Response
     description: Success
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET
     response:
       status: 200
@@ -131,7 +131,7 @@ examples:
   - name: 401 Response
     description: Unauthorized
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET
     response:
       status: 401
@@ -142,7 +142,7 @@ examples:
   - name: 403 Response
     description: Forbidden
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET
     response:
       status: 403
@@ -153,7 +153,7 @@ examples:
   - name: 500 Response
     description: Internal server error
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET
     response:
       status: 500
@@ -164,7 +164,7 @@ examples:
   - name: 404 Response
     description: Forbidden
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET
     response:
       status: 404
