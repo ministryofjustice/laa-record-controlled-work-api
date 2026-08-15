@@ -102,7 +102,6 @@ examples:
               "applicationState": "",
               "contribution": "",
               "declaration": {
-                "clientDeclarationStatus": "",
                 "createdAt": "",
                 "createdBy": "",
                 "declarationConfirmation": false,
@@ -114,7 +113,6 @@ examples:
                 "capitalEvidence": false,
                 "createdAt": "",
                 "createdBy": "",
-                "evidenceStatus": "",
                 "housingCostsEvidence": false,
                 "id": "",
                 "modifiedAt": "",

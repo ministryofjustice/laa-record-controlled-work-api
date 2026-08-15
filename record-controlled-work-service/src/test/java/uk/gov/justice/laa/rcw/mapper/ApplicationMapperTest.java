@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.ia.datastore.client.model.Address;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
-import uk.gov.justice.laa.ia.datastore.client.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.ia.datastore.client.model.ClientDetails;
 import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
@@ -131,7 +130,6 @@ class ApplicationMapperTest {
     DeclarationResponse declaration =
         DeclarationResponse.builder()
             .id(declarationId)
-            .clientDeclarationStatus(ClientDeclarationStatus.DRAFT)
             .declarationConfirmation(true)
             .createdAt(now)
             .createdBy("Joe Bloggs")
@@ -201,8 +199,6 @@ class ApplicationMapperTest {
     assertThat(result.getClientDetails().getAddress().getCountry()).isEqualTo("GB");
 
     assertThat(result.getDeclaration().getId()).isEqualTo(declarationId);
-    assertThat(result.getDeclaration().getClientDeclarationStatus())
-        .isEqualTo(uk.gov.justice.laa.rcw.model.ClientDeclarationStatus.DRAFT);
     assertThat(result.getDeclaration().getDeclarationConfirmation()).isTrue();
     assertThat(result.getDeclaration().getCreatedBy()).isEqualTo("Joe Bloggs");
     assertThat(result.getDeclaration().getModifiedBy()).isEqualTo("Joe Bloggs");

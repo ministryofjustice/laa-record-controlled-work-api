@@ -3,7 +3,6 @@ package uk.gov.justice.laa.rcw.generator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.Consumer;
-import uk.gov.justice.laa.rcw.model.ClientDeclarationStatus;
 import uk.gov.justice.laa.rcw.model.Declaration;
 
 /** Generator for setting for an Declaration model for tests. */
@@ -17,7 +16,6 @@ public class DeclarationGenerator {
     var builder =
         Declaration.builder()
             .id(UUID.randomUUID())
-            .clientDeclarationStatus(ClientDeclarationStatus.DRAFT)
             .declarationConfirmation(false)
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
