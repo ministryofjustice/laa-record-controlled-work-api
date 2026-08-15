@@ -124,6 +124,7 @@ class ApplicationControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
         .andExpect(
             jsonPath("$.individualLegalAidNumber").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.modifiedAt").exists())

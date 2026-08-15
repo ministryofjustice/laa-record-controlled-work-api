@@ -22,6 +22,7 @@ runtime:
           const application = res.getBody();
 
           expect(application).to.have.property("id");
+          expect(application).to.have.property("applicationRefNumber");
           expect(application).to.have.property("individualLegalAidNumber");
           expect(application).to.have.property("providerFirmCode");
           expect(application).to.have.property("providerOfficeCode");
@@ -66,6 +67,7 @@ examples:
           [  
             {
               "id": "",
+              "applicationRefNumber": "",
               "individualLegalAidNumber": "",
               "providerFirmCode": "",
               "providerOfficeCode": "",
