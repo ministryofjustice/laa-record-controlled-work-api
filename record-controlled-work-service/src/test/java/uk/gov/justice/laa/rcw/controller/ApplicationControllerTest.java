@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -437,6 +438,96 @@ class ApplicationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
         .andExpect(status().isServiceUnavailable());
+  }
+
+  @Test
+  void updateApplicationDeclaration_returnsNoContent_andForwardsDeclarationToService()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    String requestBody =
+        """
+        {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
+        """;
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+        .andExpect(status().isNoContent());
+
+    verify(mockApplicationUpdateService)
+        .updateDeclaration(applicationId, true, LocalDate.of(2026, 8, 14));
+  }
+
+  @Test
+  void updateApplicationDeclaration_returnsBadRequest_whenDeclarationConfirmationIsMissing()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"dateSigned": "2026-08-14"}
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationDeclaration_returnsBadRequest_whenDateSignedIsMissing() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"declarationConfirmation": true}
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void updateApplicationDeclaration_returnsNotFound_whenApplicationDoesNotExist() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationUpdateService)
+        .updateDeclaration(any(), any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
+                    """))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void updateApplicationDeclaration_returnsConflict_whenDatastoreEtagMismatchPersists()
+      throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .when(mockApplicationUpdateService)
+        .updateDeclaration(any(), any(), any());
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
+                    """))
+        .andExpect(status().isConflict());
   }
 
   @Test

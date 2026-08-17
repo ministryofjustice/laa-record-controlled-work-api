@@ -14,6 +14,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationStatusRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateDeclarationRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
@@ -66,6 +67,16 @@ public class ApplicationController implements ApplicationsApi {
       UUID id, UpdateMeansDataRequestBody updateMeansDataRequestBody) {
     applicationMeansService.updateMeans(
         id, updateMeansDataRequestBody.getData(), updateMeansDataRequestBody.getResult());
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> updateApplicationDeclaration(
+      UUID id, UpdateDeclarationRequestBody updateDeclarationRequestBody) {
+    applicationUpdateService.updateDeclaration(
+        id,
+        updateDeclarationRequestBody.getDeclarationConfirmation(),
+        updateDeclarationRequestBody.getDateSigned());
     return ResponseEntity.noContent().build();
   }
 

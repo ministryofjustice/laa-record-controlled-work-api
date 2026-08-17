@@ -10,6 +10,7 @@ public final class LogAction {
   public static final String APPLICATION_FETCH = "application.fetch";
   public static final String APPLICATION_CREATE = "application.create";
   public static final String APPLICATION_MEANS_UPDATE = "application.means-update";
+  public static final String APPLICATION_DECLARATION_UPDATE = "application.declaration-update";
   public static final String APPLICATION_STATUS_UPDATE = "application.status-update";
   public static final String APPLICATION_EVIDENCE_UPDATE = "application.evidence-update";
   public static final String APPLICATION_ERROR = "application.error";
