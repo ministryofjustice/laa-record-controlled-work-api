@@ -7,7 +7,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{$randomUUID}}&status=DRAFT"
+  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=DRAFT"
   params:
     - name: size
       value: "1"
@@ -16,7 +16,7 @@ http:
       value: "1"
       type: query
     - name: officeId
-      value: "{{$randomUUID}}"
+      value: "{{officeId}}"
       type: query
     - name: status
       value: DRAFT

@@ -22,3 +22,16 @@ request:
     settings:
       autoFetchToken: true
       autoRefreshToken: true
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const suppliedApplicationId = bru.getEnvVar("applicationId");
+        const createdApplicationId = bru.getVar("createdApplicationId");
+
+        if (suppliedApplicationId || createdApplicationId) {
+          bru.setVar("applicationId", suppliedApplicationId || createdApplicationId);
+        } else {
+          bru.deleteVar("applicationId");
+        }

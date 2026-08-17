@@ -7,7 +7,7 @@ info:
 
 http:
   method: PATCH
-  url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
   body:
     type: json
     data: |-
@@ -26,7 +26,7 @@ examples:
   - name: 204 Response
     description: Success
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
       body:
         type: json
@@ -43,7 +43,7 @@ examples:
   - name: 400 Response
     description: Bad request
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
       body:
         type: json
@@ -58,7 +58,7 @@ examples:
   - name: 401 Response
     description: Unauthorized
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
     response:
       status: 401
@@ -69,7 +69,7 @@ examples:
   - name: 403 Response
     description: Forbidden
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
     response:
       status: 403
@@ -80,7 +80,7 @@ examples:
   - name: 404 Response
     description: Not found
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
       body:
         type: json
@@ -97,7 +97,7 @@ examples:
   - name: 409 Response
     description: Conflict
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
       body:
         type: json
@@ -114,7 +114,7 @@ examples:
   - name: 500 Response
     description: Internal server error
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/status"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
       body:
         type: json

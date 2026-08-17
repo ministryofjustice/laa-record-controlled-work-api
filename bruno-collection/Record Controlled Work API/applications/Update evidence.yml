@@ -7,7 +7,7 @@ info:
 
 http:
   method: PUT
-  url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
   body:
     type: json
     data: |-
@@ -37,7 +37,7 @@ examples:
   - name: 204 Response
     description: Success
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
       body:
         type: json
@@ -57,7 +57,7 @@ examples:
   - name: 401 Response
     description: Unauthorized
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
     response:
       status: 401
@@ -68,7 +68,7 @@ examples:
   - name: 403 Response
     description: Forbidden
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
     response:
       status: 403
@@ -79,7 +79,7 @@ examples:
   - name: 404 Response
     description: Not found
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
       body:
         type: json
@@ -99,7 +99,7 @@ examples:
   - name: 409 Response
     description: Conflict
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
       body:
         type: json
@@ -119,7 +119,7 @@ examples:
   - name: 500 Response
     description: Internal server error
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{$randomUUID}}/evidence"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/evidence"
       method: PUT
       body:
         type: json

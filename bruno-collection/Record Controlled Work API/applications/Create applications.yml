@@ -36,6 +36,16 @@ http:
 
 runtime:
   scripts:
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 201) {
+          const location = res.getHeader("Location");
+          const applicationId = location?.match(/\/api\/v1\/applications\/([0-9a-fA-F-]{36})$/)?.[1];
+
+          if (applicationId) {
+            bru.setVar("createdApplicationId", applicationId);
+          }
+        }
     - type: tests
       code: |-
         test("should be 201 response", function () {
@@ -46,6 +56,12 @@ runtime:
           const location = res.getHeader("Location");
           expect(location).to.be.a("string");
           expect(location).to.match(/\/api\/v1\/applications\/[0-9a-fA-F-]{36}$/);
+        });
+
+        test("should store the created application ID", function () {
+          const location = res.getHeader("Location");
+          const applicationId = location.match(/\/api\/v1\/applications\/([0-9a-fA-F-]{36})$/)[1];
+          expect(bru.getVar("createdApplicationId")).to.equal(applicationId);
         });
 
         test("should return empty response body", function () {

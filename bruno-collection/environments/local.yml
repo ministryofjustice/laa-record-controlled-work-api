@@ -2,6 +2,12 @@ name: local
 variables:
   - name: baseUrl
     value: http://localhost:8081
+  - name: applicationId
+    value: ""
+    description: Application UUID used by application-specific requests
+  - name: officeId
+    value: ""
+    description: Office UUID used to filter the applications list
   - name: oauthAuthorizeUrl
     value: http://host.docker.internal:9090/default/authorize
   - name: oauthTokenUrl
