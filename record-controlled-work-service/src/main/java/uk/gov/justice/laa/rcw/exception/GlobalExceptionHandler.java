@@ -135,7 +135,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         .with("http.response.status_code", BAD_REQUEST.value())
         .with("url.path", getRequestPath(request))
         .log("Invalid request content");
-    return handleInvalidRequestContent(exception, headers, request);
+    return handleInvalidRequestContent(exception, headers, "MALFORMED_REQUEST_BODY", request);
   }
 
   @Override
@@ -150,7 +150,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         .with("http.response.status_code", BAD_REQUEST.value())
         .with("url.path", getRequestPath(request))
         .log("Validation failed: {} error(s)", exception.getBindingResult().getErrorCount());
-    return handleInvalidRequestContent(exception, headers, request);
+    return handleInvalidRequestContent(exception, headers, "VALIDATION_FAILED", request);
   }
 
   /**
@@ -160,35 +160,42 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    * @return the response status with error message
    */
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<String> handleGenericException(Exception exception) {
+  public ResponseEntity<Object> handleGenericException(Exception exception, WebRequest request) {
     log.error(exception)
         .action(APPLICATION_ERROR)
         .outcome("failure")
         .with("http.response.status_code", INTERNAL_SERVER_ERROR.value())
         .log("An unexpected application error has occurred");
-    return ResponseEntity.internalServerError()
-        .body("An unexpected application error has occurred.");
+    ProblemDetail problemDetail =
+        buildProblemDetail(
+            INTERNAL_SERVER_ERROR,
+            "An unexpected application error has occurred.",
+            "INTERNAL_SERVER_ERROR",
+            request);
+    return ResponseEntity.internalServerError().body(problemDetail);
   }
 
   private ResponseEntity<Object> handleInvalidRequestContent(
-      Exception exception, HttpHeaders headers, WebRequest request) {
+      Exception exception, HttpHeaders headers, String reason, WebRequest request) {
     ProblemDetail problemDetail =
-        buildProblemDetail(BAD_REQUEST, "Invalid request content.", request);
+        buildProblemDetail(BAD_REQUEST, "Invalid request content.", reason, request);
     return handleExceptionInternal(exception, problemDetail, headers, BAD_REQUEST, request);
   }
 
   private ResponseEntity<Object> handleKnownException(
-      RuntimeException exception, HttpStatusCode status, WebRequest request) {
-    ProblemDetail problemDetail = buildProblemDetail(status, exception.getMessage(), request);
+      ApiRuntimeException exception, HttpStatusCode status, WebRequest request) {
+    ProblemDetail problemDetail =
+        buildProblemDetail(status, exception.getMessage(), exception.getReason(), request);
     return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), status, request);
   }
 
   private ProblemDetail buildProblemDetail(
-      HttpStatusCode status, String detail, WebRequest request) {
+      HttpStatusCode status, String detail, String reason, WebRequest request) {
     ProblemDetail problemDetail = ProblemDetail.forStatus(status);
     problemDetail.setType(DEFAULT_PROBLEM_TYPE);
     problemDetail.setDetail(detail);
     problemDetail.setInstance(getRequestUri(request));
+    problemDetail.setProperty("reason", reason);
     return problemDetail;
   }
 

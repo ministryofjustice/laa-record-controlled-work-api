@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
@@ -19,13 +20,51 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void handleGenericException_returnsInternalServerErrorStatusAndErrorMessage() {
-    ResponseEntity<String> result =
-        globalExceptionHandler.handleGenericException(new RuntimeException("Something went wrong"));
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/applications");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleGenericException(
+            new RuntimeException("Something went wrong"), new ServletWebRequest(request));
 
     assertThat(result).isNotNull();
     assertThat(result.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
-    assertThat(result.getBody()).isNotNull();
-    assertThat(result.getBody()).isEqualTo("An unexpected application error has occurred.");
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assert body != null;
+    assertThat(body.getDetail()).isEqualTo("An unexpected application error has occurred.");
+    assertThat(body.getProperties()).containsEntry("reason", "INTERNAL_SERVER_ERROR");
+  }
+
+  @Test
+  void handleApplicationConflict_returnsConflictStatusAndDefaultReason_whenModifiedConcurrently() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("PUT", "/api/v1/applications/99/means");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleApplicationConflict(
+            new ApplicationConflictException("Application 99 was modified concurrently"),
+            new ServletWebRequest(request));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assert body != null;
+    assertThat(body.getProperties()).containsEntry("reason", "CONCURRENT_MODIFICATION");
+  }
+
+  @Test
+  void handleApplicationConflict_returnsConflictStatusAndGivenReason_whenAlreadyRecorded() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("PUT", "/api/v1/applications/99/means");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleApplicationConflict(
+            new ApplicationConflictException(
+                "Application 99 has already been recorded and cannot be updated",
+                "APPLICATION_ALREADY_RECORDED"),
+            new ServletWebRequest(request));
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assert body != null;
+    assertThat(body.getProperties()).containsEntry("reason", "APPLICATION_ALREADY_RECORDED");
   }
 
   @Test
@@ -42,6 +81,7 @@ class GlobalExceptionHandlerTest {
     ProblemDetail body = (ProblemDetail) result.getBody();
     assert body != null;
     assertThat(body.getDetail()).isEqualTo("Not authorized to update application 99");
+    assertThat(body.getProperties()).containsEntry("reason", "OFFICE_NOT_AUTHORIZED");
   }
 
   @Test
@@ -58,6 +98,7 @@ class GlobalExceptionHandlerTest {
     ProblemDetail body = (ProblemDetail) result.getBody();
     assert body != null;
     assertThat(body.getDetail()).isEqualTo("Datastore rejected the request for application 99");
+    assertThat(body.getProperties()).containsEntry("reason", "DATASTORE_REJECTED_REQUEST");
   }
 
   @Test
@@ -74,6 +115,7 @@ class GlobalExceptionHandlerTest {
     ProblemDetail body = (ProblemDetail) result.getBody();
     assert body != null;
     assertThat(body.getDetail()).isEqualTo("Datastore returned an error for application 99");
+    assertThat(body.getProperties()).containsEntry("reason", "DATASTORE_SERVER_ERROR");
   }
 
   @Test
@@ -90,5 +132,6 @@ class GlobalExceptionHandlerTest {
     ProblemDetail body = (ProblemDetail) result.getBody();
     assert body != null;
     assertThat(body.getDetail()).isEqualTo("Datastore is unavailable for application 99");
+    assertThat(body.getProperties()).containsEntry("reason", "DATASTORE_UNAVAILABLE");
   }
 }

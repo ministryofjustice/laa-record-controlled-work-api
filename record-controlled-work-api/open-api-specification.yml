@@ -40,13 +40,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Applications"
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - applications
@@ -71,15 +71,15 @@ paths:
               schema:
                 type: string
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: 'Not found'
+          $ref: '#/components/responses/NotFound'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/applications/{id}:
     get:
@@ -102,13 +102,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Application"
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Not found
+          $ref: '#/components/responses/NotFound'
         '500':
-          description: Internal server error
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/applications/{id}/evidence:
     put:
@@ -133,17 +133,17 @@ paths:
         '204':
           description: 'Application evidence data updated successfully'
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: 'Not found'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: 'Conflict'
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/applications/{id}/means:
     put:
@@ -168,17 +168,17 @@ paths:
         '204':
           description: 'Application means data updated successfully'
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: 'Not found'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: 'Conflict'
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/applications/{id}/status:
     patch:
@@ -203,17 +203,17 @@ paths:
         '204':
           description: 'Application status updated successfully'
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: 'Not found'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: 'Conflict'
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   schemas:
@@ -494,3 +494,73 @@ components:
       enum:
         - DRAFT
         - COMPLETED
+
+    ProblemDetail:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference identifying the problem type
+          example: "about:blank"
+        title:
+          type: string
+          description: Human-readable summary of the problem type
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code
+          example: 400
+        detail:
+          type: string
+          description: Human-readable explanation specific to this occurrence
+        instance:
+          type: string
+          format: uri
+          description: URI reference identifying the specific occurrence
+        reason:
+          type: string
+          description: Machine-readable code identifying the exact violation, e.g. APPLICATION_NOT_FOUND
+          example: "APPLICATION_NOT_FOUND"
+
+  responses:
+    BadRequest:
+      description: 'Bad request'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    Unauthorized:
+      description: 'Unauthorized'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    Forbidden:
+      description: 'Forbidden'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    NotFound:
+      description: 'Not found'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    Conflict:
+      description: 'Conflict'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    InternalServerError:
+      description: 'Internal server error'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"

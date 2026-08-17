@@ -53,8 +53,8 @@ public class ApplicationEvidenceService {
   private void checkNotAlreadyRecorded(UUID applicationId, ApplicationState applicationState) {
     if (applicationState == ApplicationState.COMPLETED) {
       throw new ApplicationConflictException(
-          "Application %s has already been recorded and cannot be updated"
-              .formatted(applicationId));
+          "Application %s has already been recorded and cannot be updated".formatted(applicationId),
+          "APPLICATION_ALREADY_RECORDED");
     }
   }
 }

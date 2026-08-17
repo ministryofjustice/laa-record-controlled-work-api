@@ -69,8 +69,8 @@ public class ApplicationUpdateService {
       UUID applicationId, uk.gov.justice.laa.ia.datastore.client.model.ApplicationState state) {
     if (state == uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED) {
       throw new ApplicationConflictException(
-          "Application %s has already been recorded and cannot be updated"
-              .formatted(applicationId));
+          "Application %s has already been recorded and cannot be updated".formatted(applicationId),
+          "APPLICATION_ALREADY_RECORDED");
     }
   }
 }
