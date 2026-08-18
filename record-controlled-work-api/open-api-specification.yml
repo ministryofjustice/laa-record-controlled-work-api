@@ -527,40 +527,64 @@ components:
           description: Machine-readable code identifying the exact violation, e.g. APPLICATION_NOT_FOUND
           example: "APPLICATION_NOT_FOUND"
 
+    BadRequestResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    UnauthorizedResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    ForbiddenResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    NotFoundResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    ConflictResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    InternalServerErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
   responses:
     BadRequest:
       description: 'Bad request'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/BadRequestResponse"
     Unauthorized:
       description: 'Unauthorized'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/UnauthorizedResponse"
     Forbidden:
       description: 'Forbidden'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/ForbiddenResponse"
     NotFound:
       description: 'Not found'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/NotFoundResponse"
     Conflict:
       description: 'Conflict'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/ConflictResponse"
     InternalServerError:
       description: 'Internal server error'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ProblemDetail"
+            $ref: "#/components/schemas/InternalServerErrorResponse"
