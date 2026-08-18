@@ -203,17 +203,17 @@ paths:
         '204':
           description: 'Application declaration updated successfully'
         '400':
-          description: 'Bad request'
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: 'Unauthorized'
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: 'Forbidden'
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: 'Not found'
+          $ref: '#/components/responses/NotFound'
         '409':
-          description: 'Conflict'
+          $ref: '#/components/responses/Conflict'
         '500':
-          description: 'Internal server error'
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/applications/{id}/status:
     patch:
