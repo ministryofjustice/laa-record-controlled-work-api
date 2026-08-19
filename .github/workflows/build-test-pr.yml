@@ -92,6 +92,10 @@ jobs:
         with:
           command: code test
           args: --severity-threshold=high
+          
+  zap-scan:
+    name: ZAP Security Scanning
+    uses: ./.github/workflows/zap-scanning.yml
 
   vulnerability-scan-docker:
     runs-on: ubuntu-latest
