@@ -110,15 +110,10 @@ examples:
                 "modifiedBy": ""
               },
               "evidence": {
-                "capitalEvidence": false,
-                "createdAt": "",
-                "createdBy": "",
-                "housingCostsEvidence": false,
-                "id": "",
-                "modifiedAt": "",
-                "modifiedBy": "",
-                "otherIncomeEvidence": false,
-                "payeIncomeEvidence": false
+                "evidenceExemptionCode": "",
+                "evidenceExemptionReason": "",
+                "incomeEvidenceChecklist": {},
+                "expenditureCapitalEvidenceChecklist": {}
               },
               "meansAssessmentId": "",
               "meansAssessmentRequired": "",
