@@ -15,6 +15,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.generator.AddressGenerator;
 import uk.gov.justice.laa.rcw.generator.ClientDetailsGenerator;
@@ -141,6 +142,13 @@ class ApplicationMapperTest {
             .data(Map.of("level_of_help", "controlled"))
             .result(Map.of("indication", true))
             .build();
+    EvidenceResponse evidence =
+        EvidenceResponse.builder()
+            .evidenceExemptionCode("adviceOverPhone")
+            .evidenceExemptionReason("Client was advised over the phone")
+            .incomeEvidenceChecklist(Map.of("payslips", true))
+            .expenditureCapitalEvidenceChecklist(Map.of("bankStatements", true))
+            .build();
     ApplicationResponse applicationResponse =
         ApplicationResponse.builder()
             .id(APPLICATION_ID)
@@ -157,6 +165,7 @@ class ApplicationMapperTest {
             .scopingQuestions(Map.of("priorLegalAid", "same_matter"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
+            .evidence(evidence)
             .referenceNumber(REFERENCE_NUMBER)
             .createdAt(now)
             .createdBy("Random User")
@@ -182,7 +191,14 @@ class ApplicationMapperTest {
     assertThat(result.getCreatedBy()).isEqualTo("Random User");
     assertThat(result.getModifiedAt()).isEqualTo(now);
     assertThat(result.getModifiedBy()).isEqualTo("Random User");
-    assertThat(result.getEvidence()).isNull();
+    assertThat(result.getEvidence()).isNotNull();
+    assertThat(result.getEvidence().getEvidenceExemptionCode()).isEqualTo("adviceOverPhone");
+    assertThat(result.getEvidence().getEvidenceExemptionReason())
+        .isEqualTo("Client was advised over the phone");
+    assertThat(result.getEvidence().getIncomeEvidenceChecklist())
+        .isEqualTo(Map.of("payslips", true));
+    assertThat(result.getEvidence().getExpenditureCapitalEvidenceChecklist())
+        .isEqualTo(Map.of("bankStatements", true));
 
     assertThat(result.getClientDetails().getFirstName()).isEqualTo("Joe");
     assertThat(result.getClientDetails().getLastName()).isEqualTo("Bloggs");

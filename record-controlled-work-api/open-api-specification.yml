@@ -400,27 +400,14 @@ components:
     Evidence:
       type: object
       properties:
-        id:
+        evidenceExemptionCode:
           type: string
-          format: uuid
-        payeIncomeEvidence:
-          type: boolean
-        otherIncomeEvidence:
-          type: boolean
-        housingCostsEvidence:
-          type: boolean
-        capitalEvidence:
-          type: boolean
-        createdAt:
+        evidenceExemptionReason:
           type: string
-          format: date-time
-        createdBy:
-          type: string
-        modifiedAt:
-          type: string
-          format: date-time
-        modifiedBy:
-          type: string
+        incomeEvidenceChecklist:
+          type: object
+        expenditureCapitalEvidenceChecklist:
+          type: object
 
     ClientDetails:
       required:
