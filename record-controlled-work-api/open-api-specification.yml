@@ -400,9 +400,6 @@ components:
     Evidence:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
         evidenceExemptionCode:
           type: string
         evidenceExemptionReason:
@@ -411,16 +408,6 @@ components:
           type: object
         expenditureCapitalEvidenceChecklist:
           type: object
-        createdAt:
-          type: string
-          format: date-time
-        createdBy:
-          type: string
-        modifiedAt:
-          type: string
-          format: date-time
-        modifiedBy:
-          type: string
 
     ClientDetails:
       required:
