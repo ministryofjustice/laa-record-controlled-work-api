@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.generator;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.Evidence;
@@ -18,10 +19,10 @@ public class EvidenceGenerator {
             .id(UUID.randomUUID())
             .createdAt(OffsetDateTime.now())
             .modifiedAt(OffsetDateTime.now())
-            .payeIncomeEvidence(false)
-            .otherIncomeEvidence(false)
-            .housingCostsEvidence(false)
-            .capitalEvidence(false)
+            .evidenceExemptionCode("adviceOverPhone")
+            .evidenceExemptionReason("Client was advised over the phone")
+            .incomeEvidenceChecklist(Map.of("payslips", true))
+            .expenditureCapitalEvidenceChecklist(Map.of("bankStatements", true))
             .createdBy("Joe Bloggs")
             .modifiedBy("James Bloggs");
     if (customizer != null) {

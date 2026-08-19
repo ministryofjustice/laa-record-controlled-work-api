@@ -403,14 +403,14 @@ components:
         id:
           type: string
           format: uuid
-        payeIncomeEvidence:
-          type: boolean
-        otherIncomeEvidence:
-          type: boolean
-        housingCostsEvidence:
-          type: boolean
-        capitalEvidence:
-          type: boolean
+        evidenceExemptionCode:
+          type: string
+        evidenceExemptionReason:
+          type: string
+        incomeEvidenceChecklist:
+          type: object
+        expenditureCapitalEvidenceChecklist:
+          type: object
         createdAt:
           type: string
           format: date-time

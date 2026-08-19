@@ -12,6 +12,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
@@ -21,6 +22,7 @@ import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Eligibility;
+import uk.gov.justice.laa.rcw.model.Evidence;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
 @Mapper(componentModel = "spring")
@@ -37,15 +39,14 @@ public interface ApplicationMapper {
   ApplicationOverview toApplicationOverview(ApplicationSummary applicationSummary);
 
   /**
-   * Maps the datastore's application response to the RCW API's application. `evidence` has no
-   * datastore equivalent yet and is left unmapped.
+   * Maps the datastore's application response to the RCW API's application.
    *
    * @param applicationResponse the datastore application response
    * @return the RCW API application
    */
   @Mapping(target = "clientDetails", source = "client")
   @Mapping(target = "eligibility", source = "eligibilityResult")
-  @Mapping(target = "evidence", ignore = true)
+  @Mapping(target = "evidence", source = "evidence")
   @Mapping(target = "meansAssessmentId", ignore = true)
   @Mapping(target = "applicationRefNumber", source = "referenceNumber")
   Application toApplication(ApplicationResponse applicationResponse);
@@ -68,6 +69,9 @@ public interface ApplicationMapper {
 
   /** Maps the datastore's eligibility result onto the RCW API's eligibility. */
   Eligibility toEligibility(EligibilityResult eligibilityResult);
+
+  /** Maps the datastore's evidence response onto the RCW API's evidence. */
+  Evidence toEvidence(EvidenceResponse evidenceResponse);
 
   /** Inverts `noFixedAbode` to `hasFixedAddress`, preserving null (unknown). */
   @Named("toHasFixedAddress")
