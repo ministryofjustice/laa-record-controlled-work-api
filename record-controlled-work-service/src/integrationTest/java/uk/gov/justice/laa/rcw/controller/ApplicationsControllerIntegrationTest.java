@@ -657,6 +657,91 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldUpdateApplicationDeclaration_fetchesETagAndPersistsDeclarationData() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String updateDeclarationPath =
+        "/api/v0/applications/" + applicationId + ":update-declaration-data";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(updateDeclarationPath)).willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
+                    """))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(
+        patchRequestedFor(urlPathEqualTo(updateDeclarationPath))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 5,
+                        "declarationConfirmation": true,
+                        "dateSigned": "2026-08-14"
+                    }
+                    """)));
+  }
+
+  @Test
+  void shouldRetryOnceThenReturnConflict_whenDeclarationUpdateEtagMismatchPersists()
+      throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String updateDeclarationPath =
+        "/api/v0/applications/" + applicationId + ":update-declaration-data";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(updateDeclarationPath))
+            .willReturn(WireMock.aResponse().withStatus(409)));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/declaration".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
+                    """))
+        .andExpect(status().isConflict());
+
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + applicationId)));
+    DATASTORE.verify(2, patchRequestedFor(urlPathEqualTo(updateDeclarationPath)));
+  }
+
+  @Test
   void shouldUpdateApplicationStatus_fetchesETagAndPersistsStatus() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(

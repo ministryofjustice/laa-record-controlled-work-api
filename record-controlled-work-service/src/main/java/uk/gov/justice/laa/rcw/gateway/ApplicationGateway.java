@@ -8,6 +8,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
@@ -128,6 +129,30 @@ public class ApplicationGateway {
   public void updateEvidence(UUID applicationId, UpdateEvidenceCommand command) {
     try {
       applicationApi.updateEvidence(
+          applicationId, bearerTokenProvider.currentBearerToken(), command);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw notFound(applicationId);
+    } catch (HttpClientErrorException.Conflict exception) {
+      throw conflict(applicationId);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw badRequestForApplication(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw upstreamErrorForApplication(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw unavailableErrorForApplication(applicationId);
+    }
+  }
+
+  /**
+   * Updates declaration data in datastore and translates transport-level failures to RCW
+   * application exceptions.
+   *
+   * @param applicationId the application id
+   * @param command declaration update command
+   */
+  public void updateDeclarationData(UUID applicationId, DeclarationCommand command) {
+    try {
+      applicationApi.updateDeclarationData(
           applicationId, bearerTokenProvider.currentBearerToken(), command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);

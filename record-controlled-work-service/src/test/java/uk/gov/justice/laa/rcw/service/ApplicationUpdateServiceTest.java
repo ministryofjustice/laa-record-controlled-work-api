@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -115,6 +117,96 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
+  void shouldUpdateDeclaration_fetchesETagAndForwardsDeclarationFieldsToDatastore() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    LocalDate dateSigned = LocalDate.of(2026, 8, 14);
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(7L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+                .build());
+
+    applicationUpdateService.updateDeclaration(applicationId, true, dateSigned);
+
+    verify(mockApplicationGateway).fetchApplication(eq(applicationId));
+    ArgumentCaptor<DeclarationCommand> commandCaptor =
+        ArgumentCaptor.forClass(DeclarationCommand.class);
+    verify(mockApplicationGateway)
+        .updateDeclarationData(eq(applicationId), commandCaptor.capture());
+    assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
+    assertThat(commandCaptor.getValue().getDeclarationConfirmation()).isTrue();
+    assertThat(commandCaptor.getValue().getDateSigned()).isEqualTo(dateSigned);
+  }
+
+  @Test
+  void shouldUpdateDeclaration_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+                .build())
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(2L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+                .build());
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .doNothing()
+        .when(mockApplicationGateway)
+        .updateDeclarationData(eq(applicationId), any());
+
+    applicationUpdateService.updateDeclaration(applicationId, true, LocalDate.of(2026, 8, 14));
+
+    verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
+    ArgumentCaptor<DeclarationCommand> commandCaptor =
+        ArgumentCaptor.forClass(DeclarationCommand.class);
+    verify(mockApplicationGateway, times(2))
+        .updateDeclarationData(eq(applicationId), commandCaptor.capture());
+    assertThat(commandCaptor.getAllValues())
+        .extracting(DeclarationCommand::geteTag)
+        .containsExactly(1L, 2L);
+  }
+
+  @Test
+  void shouldUpdateDeclaration_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
+                .build());
+    doThrow(
+            new ApplicationConflictException(
+                "Application %s was modified concurrently".formatted(applicationId)))
+        .when(mockApplicationGateway)
+        .updateDeclarationData(eq(applicationId), any());
+
+    assertThatThrownBy(
+            () ->
+                applicationUpdateService.updateDeclaration(
+                    applicationId, true, LocalDate.of(2026, 8, 14)))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
+    verify(mockApplicationGateway, times(2)).updateDeclarationData(eq(applicationId), any());
+  }
+
+  @Test
   void shouldUpdateStatus_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
@@ -158,6 +250,28 @@ class ApplicationUpdateServiceTest {
         .hasMessageContaining(applicationId.toString());
 
     verify(mockApplicationGateway, never()).updateApplication(any(), any());
+  }
+
+  @Test
+  void shouldUpdateDeclaration_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationGateway.fetchApplication(eq(applicationId)))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .eTag(1L)
+                .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
+                .applicationState(
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED)
+                .build());
+
+    assertThatThrownBy(
+            () ->
+                applicationUpdateService.updateDeclaration(
+                    applicationId, true, LocalDate.of(2026, 8, 14)))
+        .isInstanceOf(ApplicationConflictException.class)
+        .hasMessageContaining(applicationId.toString());
+
+    verify(mockApplicationGateway, never()).updateDeclarationData(any(), any());
   }
 
   @Test

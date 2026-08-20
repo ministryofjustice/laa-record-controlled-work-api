@@ -180,6 +180,41 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/applications/{id}/declaration:
+    put:
+      tags:
+        - applications
+      summary: Update the signed declaration for an application
+      operationId: updateApplicationDeclaration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeclarationRequestBody"
+      responses:
+        '204':
+          description: 'Application declaration updated successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/applications/{id}/status:
     patch:
       tags:
@@ -370,6 +405,18 @@ components:
           format: int64
           description: ETag value for optimistic concurrency control
 
+    UpdateDeclarationRequestBody:
+      type: object
+      required:
+        - declarationConfirmation
+        - dateSigned
+      properties:
+        declarationConfirmation:
+          type: boolean
+        dateSigned:
+          type: string
+          format: date
+
     Eligibility:
       type: object
       properties:
@@ -386,6 +433,9 @@ components:
           format: uuid
         declarationConfirmation:
           type: boolean
+        dateSigned:
+          type: string
+          format: date
         createdAt:
           type: string
           format: date-time
