@@ -56,6 +56,21 @@ settings:
   maxRedirects: 5
 
 examples:
+  - name: List DRAFT applications
+    description: In-progress applications only
+    request:
+      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=DRAFT"
+      method: GET
+  - name: List COMPLETE applications
+    description: Completed applications with eligible indication
+    request:
+      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=ELIGIBLE"
+      method: GET
+  - name: List INELIGIBLE applications
+    description: Completed applications with ineligible indication
+    request:
+      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=INELIGIBLE"
+      method: GET
   - name: 200 Response
     description: Success
     request:
