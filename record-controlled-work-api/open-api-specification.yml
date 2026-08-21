@@ -32,6 +32,11 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/ApplicationState"
+        - name: eligibilityIndication
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/EligibilityIndication"
       responses:
         '200':
           description: 'Success'
@@ -269,6 +274,8 @@ components:
         modifiedAt:
           type: string
           format: date-time
+        eligibilityIndication:
+          $ref: "#/components/schemas/EligibilityIndication"
 
     CreateApplicationRequestBody:
       type: object
@@ -531,6 +538,12 @@ components:
       enum:
         - DRAFT
         - COMPLETED
+
+    EligibilityIndication:
+      type: string
+      enum:
+        - eligible
+        - ineligible
 
     ProblemDetail:
       type: object

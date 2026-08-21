@@ -13,6 +13,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationStatusRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateDeclarationRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
@@ -50,8 +51,14 @@ public class ApplicationController implements ApplicationsApi {
 
   @Override
   public ResponseEntity<List<ApplicationOverview>> getApplications(
-      Integer page, Integer size, String officeId, ApplicationState status) {
-    return ResponseEntity.ok(applicationQueryService.getApplications(page, size, officeId, status));
+      Integer page,
+      Integer size,
+      String officeId,
+      ApplicationState status,
+      EligibilityIndication eligibilityIndication) {
+    return ResponseEntity.ok(
+        applicationQueryService.getApplications(
+            page, size, officeId, status, eligibilityIndication));
   }
 
   @Override

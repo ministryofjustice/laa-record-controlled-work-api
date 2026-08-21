@@ -23,6 +23,7 @@ import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
 class ApplicationMapperTest {
 
@@ -43,6 +44,8 @@ class ApplicationMapperTest {
             .clientLastName("Bloggs")
             .referenceNumber(REFERENCE_NUMBER)
             .modifiedAt(MODIFIED_AT)
+            .eligibilityIndication(
+                uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.ELIGIBLE)
             .build();
 
     ApplicationOverview result = applicationMapper.toApplicationOverview(applicationSummary);
@@ -51,6 +54,7 @@ class ApplicationMapperTest {
     assertThat(result.getName()).isEqualTo("Joe Bloggs");
     assertThat(result.getApplicationRefNumber()).isEqualTo(REFERENCE_NUMBER);
     assertThat(result.getModifiedAt()).isEqualTo(MODIFIED_AT);
+    assertThat(result.getEligibilityIndication()).isEqualTo(EligibilityIndication.ELIGIBLE);
   }
 
   @Test
@@ -100,6 +104,23 @@ class ApplicationMapperTest {
   @Test
   void shouldMapNullStatusToNull() {
     assertThat(applicationMapper.toDatastoreApplicationState(null)).isNull();
+  }
+
+  @Test
+  void shouldMapEligibleIndicationToDatastoreEligibilityIndication() {
+    assertThat(applicationMapper.toDatastoreEligibilityIndication(EligibilityIndication.ELIGIBLE))
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.ELIGIBLE);
+  }
+
+  @Test
+  void shouldMapIneligibleIndicationToDatastoreEligibilityIndication() {
+    assertThat(applicationMapper.toDatastoreEligibilityIndication(EligibilityIndication.INELIGIBLE))
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.INELIGIBLE);
+  }
+
+  @Test
+  void shouldMapNullIndicationToNull() {
+    assertThat(applicationMapper.toDatastoreEligibilityIndication(null)).isNull();
   }
 
   @Test

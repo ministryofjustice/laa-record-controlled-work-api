@@ -8,6 +8,12 @@ variables:
   - name: officeId
     value: ""
     description: Office UUID used to filter the applications list
+  - name: applicationStatus
+    value: DRAFT
+    description: Application status filter for applications list (DRAFT or COMPLETED)
+  - name: eligibilityIndication
+    value: ELIGIBLE
+    description: Eligibility filter for applications list (ELIGIBLE or INELIGIBLE)
   - name: oauthAuthorizeUrl
     value: https://host.docker.internal:9090/default/authorize
   - name: oauthTokenUrl
