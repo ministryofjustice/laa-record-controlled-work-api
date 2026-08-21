@@ -137,23 +137,23 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                                        {
-                                            "content": [
-                                                {
-                                                    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-                                                    "clientFirstName": "John",
-                                                    "clientLastName": "Smith",
-                                                    "referenceNumber": "REF456",
-                                                    "modifiedAt": "2024-02-01T10:00:00Z",
-                                                    "eligibilityIndication": "ineligible"
-                                                }
-                                            ],
-                                            "page": 1,
-                                            "size": 1,
-                                            "totalElements": 1,
-                                            "totalPages": 1
-                                        }
-                                        """)));
+                    {
+                        "content": [
+                            {
+                                "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                                "clientFirstName": "John",
+                                "clientLastName": "Smith",
+                                "referenceNumber": "REF456",
+                                "modifiedAt": "2024-02-01T10:00:00Z",
+                                "eligibilityIndication": "ineligible"
+                            }
+                        ],
+                        "page": 1,
+                        "size": 1,
+                        "totalElements": 1,
+                        "totalPages": 1
+                    }
+                    """)));
 
     mockMvc
         .perform(
