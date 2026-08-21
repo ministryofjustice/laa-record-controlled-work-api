@@ -7,7 +7,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=DRAFT"
+  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status={{applicationStatus}}&eligibilityIndication={{eligibilityIndication}}"
   params:
     - name: size
       value: "1"
@@ -19,7 +19,10 @@ http:
       value: "{{officeId}}"
       type: query
     - name: status
-      value: DRAFT
+      value: "{{applicationStatus}}"
+      type: query
+    - name: eligibilityIndication
+      value: "{{eligibilityIndication}}"
       type: query
   auth: inherit
 
@@ -42,6 +45,7 @@ runtime:
             expect(item).to.have.property("name");
             expect(item).to.have.property("modifiedAt");
             expect(item).to.have.property("applicationRefNumber");
+            expect(item).to.have.property("eligibilityIndication");
           });
         });
 
@@ -71,7 +75,8 @@ examples:
               "id": "",
               "name": "",
               "modifiedAt": "",
-              "applicationRefNumber": ""
+              "applicationRefNumber": "",
+              "eligibilityIndication": "eligible"
             }
           ]
   - name: 401 Response
