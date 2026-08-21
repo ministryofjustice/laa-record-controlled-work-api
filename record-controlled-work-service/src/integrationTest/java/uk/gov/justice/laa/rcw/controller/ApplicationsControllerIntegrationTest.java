@@ -131,6 +131,53 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldGetAllApplications_whenEligibilityIndicationIsIneligible() throws Exception {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications"))
+            .willReturn(
+                okJson(
+                    """
+                                        {
+                                            "content": [
+                                                {
+                                                    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                                                    "clientFirstName": "John",
+                                                    "clientLastName": "Smith",
+                                                    "referenceNumber": "REF456",
+                                                    "modifiedAt": "2024-02-01T10:00:00Z",
+                                                    "eligibilityIndication": "ineligible"
+                                                }
+                                            ],
+                                            "page": 1,
+                                            "size": 1,
+                                            "totalElements": 1,
+                                            "totalPages": 1
+                                        }
+                                        """)));
+
+    mockMvc
+        .perform(
+            get("/api/v1/applications")
+                .param("page", "1")
+                .param("size", "1")
+                .param("officeId", "b2c3d4e5-f6a7-8901-bcde-f12345678901")
+                .param("status", "COMPLETED")
+                .param("eligibilityIndication", "INELIGIBLE")
+                .withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$[0].id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
+        .andExpect(jsonPath("$[0].name").value("John Smith"))
+        .andExpect(jsonPath("$[0].applicationRefNumber").value("REF456"))
+        .andExpect(jsonPath("$[0].eligibilityIndication").value("ineligible"));
+
+    DATASTORE.verify(
+        getRequestedFor(urlPathEqualTo("/api/v0/applications"))
+            .withQueryParam("status", equalTo("COMPLETED"))
+            .withQueryParam("eligibilityIndication", equalTo("ineligible")));
+  }
+
+  @Test
   void shouldForwardOboAndOriginalTokenHeadersToDatastore() throws Exception {
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications"))
