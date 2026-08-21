@@ -30,7 +30,6 @@ import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
-import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
@@ -42,6 +41,8 @@ import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationQueryServiceTest {
@@ -84,13 +85,15 @@ class ApplicationQueryServiceTest {
             .clientLastName("Bloggs")
             .referenceNumber("CW-111111")
             .modifiedAt(modifiedAt)
+            .eligibilityIndication(
+                uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.ELIGIBLE)
             .build();
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of(summary)).build());
 
     List<ApplicationOverview> result =
         applicationQueryService.getApplications(
-            1, 25, null, uk.gov.justice.laa.rcw.model.ApplicationState.DRAFT);
+            1, 25, null, ApplicationState.DRAFT, EligibilityIndication.ELIGIBLE);
 
     assertThat(result)
         .containsExactly(
@@ -99,15 +102,17 @@ class ApplicationQueryServiceTest {
                 .name("Joe Bloggs")
                 .applicationRefNumber("CW-111111")
                 .modifiedAt(modifiedAt)
+                .eligibilityIndication(EligibilityIndication.ELIGIBLE)
                 .build());
   }
 
   @Test
   void shouldGetApplications_returnsEmptyListWhenNoContent() {
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
-    List<ApplicationOverview> result = applicationQueryService.getApplications(0, 25, null, null);
+    List<ApplicationOverview> result =
+        applicationQueryService.getApplications(0, 25, null, null, null);
 
     assertThat(result).isEmpty();
   }
@@ -115,31 +120,45 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplications_forwardsPageSizeAndOfficeIdToDatastore() {
     String officeId = "22439e72-68d3-4770-b435-c352d883d21e";
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
     applicationQueryService.getApplications(
-        2, 50, officeId, uk.gov.justice.laa.rcw.model.ApplicationState.COMPLETED);
+        2,
+        50,
+        officeId,
+        uk.gov.justice.laa.rcw.model.ApplicationState.COMPLETED,
+        EligibilityIndication.INELIGIBLE);
 
     // CHECKSTYLE.SUPPRESS: LocalVariableName
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<Integer> sizeCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<String> officeIdCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<ApplicationState> statusCaptor = ArgumentCaptor.forClass(ApplicationState.class);
+    ArgumentCaptor<uk.gov.justice.laa.ia.datastore.client.model.ApplicationState> statusCaptor =
+        ArgumentCaptor.forClass(
+            uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.class);
+    ArgumentCaptor<uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication>
+        indicationCaptor =
+            ArgumentCaptor.forClass(
+                uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.class);
     verify(mockApplicationApi)
         .getApplications(
             xAuthorizationCaptor.capture(),
             pageCaptor.capture(),
             sizeCaptor.capture(),
             officeIdCaptor.capture(),
-            statusCaptor.capture());
+            statusCaptor.capture(),
+            indicationCaptor.capture());
 
     assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
     assertThat(pageCaptor.getValue()).isEqualTo(2);
     assertThat(sizeCaptor.getValue()).isEqualTo(50);
     assertThat(officeIdCaptor.getValue()).isEqualTo(officeId);
-    assertThat(statusCaptor.getValue()).isEqualTo(ApplicationState.COMPLETED);
+    assertThat(statusCaptor.getValue())
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED);
+    assertThat(indicationCaptor.getValue())
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.INELIGIBLE);
   }
 
   @Test
@@ -275,7 +294,8 @@ class ApplicationQueryServiceTest {
   void shouldCheckNotAlreadyRecorded_doesNotThrow_whenStateIsDraft() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
 
-    applicationQueryService.checkNotAlreadyRecorded(applicationId, ApplicationState.DRAFT);
+    applicationQueryService.checkNotAlreadyRecorded(
+        applicationId, uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT);
   }
 
   @Test
@@ -285,7 +305,8 @@ class ApplicationQueryServiceTest {
     assertThatThrownBy(
             () ->
                 applicationQueryService.checkNotAlreadyRecorded(
-                    applicationId, ApplicationState.COMPLETED))
+                    applicationId,
+                    uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
   }

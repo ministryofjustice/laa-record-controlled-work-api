@@ -25,6 +25,7 @@ import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
 /** Service class for querying Applications. */
 @Service
@@ -44,14 +45,19 @@ public class ApplicationQueryService {
    * @return the list of Applications
    */
   public List<ApplicationOverview> getApplications(
-      Integer page, Integer size, String officeId, ApplicationState status) {
+      Integer page,
+      Integer size,
+      String officeId,
+      ApplicationState status,
+      EligibilityIndication eligibilityIndication) {
     ApplicationResponses responses =
         applicationApi.getApplications(
             bearerTokenProvider.currentBearerToken(),
             page,
             size,
             officeId,
-            applicationMapper.toDatastoreApplicationState(status));
+            applicationMapper.toDatastoreApplicationState(status),
+            applicationMapper.toDatastoreEligibilityIndication(eligibilityIndication));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()

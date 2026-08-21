@@ -97,7 +97,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                           "clientFirstName": "Jane",
                           "clientLastName": "Doe",
                           "referenceNumber": "REF123",
-                          "modifiedAt": "2024-01-01T10:00:00Z"
+                                                    "modifiedAt": "2024-01-01T10:00:00Z",
+                                                    "eligibilityIndication": "eligible"
                         }
                       ],
                       "page": 1,
@@ -114,12 +115,19 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .param("size", "1")
                 .param("officeId", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
                 .param("status", "DRAFT")
+                .param("eligibilityIndication", "ELIGIBLE")
                 .withBearerReadToken())
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$[0].id").value("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
         .andExpect(jsonPath("$[0].name").value("Jane Doe"))
-        .andExpect(jsonPath("$[0].applicationRefNumber").value("REF123"));
+        .andExpect(jsonPath("$[0].applicationRefNumber").value("REF123"))
+        .andExpect(jsonPath("$[0].eligibilityIndication").value("eligible"));
+
+    DATASTORE.verify(
+        getRequestedFor(urlPathEqualTo("/api/v0/applications"))
+            .withQueryParam("status", equalTo("DRAFT"))
+            .withQueryParam("eligibilityIndication", equalTo("eligible")));
   }
 
   @Test
