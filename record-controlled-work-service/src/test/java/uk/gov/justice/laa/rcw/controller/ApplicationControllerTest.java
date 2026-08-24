@@ -42,7 +42,9 @@ import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
@@ -82,7 +84,7 @@ class ApplicationControllerTest {
                             .modifiedAt(OffsetDateTime.now()))
                 .applicationRefNumber("CW-222222"));
 
-    when(mockApplicationQueryService.getApplications(any(), any(), any(), any()))
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any(), any()))
         .thenReturn(applications);
 
     mockMvc
@@ -102,7 +104,7 @@ class ApplicationControllerTest {
 
   @Test
   void getApplications_returnsEmptyListWhenNoApplications() throws Exception {
-    when(mockApplicationQueryService.getApplications(any(), any(), any(), any()))
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any(), any()))
         .thenReturn(List.of());
 
     mockMvc
@@ -110,6 +112,22 @@ class ApplicationControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.*", hasSize(0)));
+  }
+
+  @Test
+  void getApplications_forwardsEligibilityIndicationFilter() throws Exception {
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any(), any()))
+        .thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            get("/api/v1/applications")
+                .param("status", "COMPLETED")
+                .param("eligibilityIndication", "INELIGIBLE"))
+        .andExpect(status().isOk());
+
+    verify(mockApplicationQueryService)
+        .getApplications(0, 25, null, ApplicationState.COMPLETED, EligibilityIndication.INELIGIBLE);
   }
 
   @Test

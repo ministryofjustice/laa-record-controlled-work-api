@@ -22,6 +22,7 @@ import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Eligibility;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.Evidence;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
@@ -90,6 +91,14 @@ public interface ApplicationMapper {
   /** Maps the RCW application status to the datastore's equivalent enum. */
   uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
       ApplicationState status);
+
+  /** Maps the RCW eligibility indication to the datastore's equivalent enum. */
+  uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication
+      toDatastoreEligibilityIndication(EligibilityIndication eligibilityIndication);
+
+  /** Maps datastore eligibility indication back to the RCW eligibility indication. */
+  EligibilityIndication toEligibilityIndication(
+      uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication eligibilityIndication);
 
   /** Maps the RCW create request to the datastore start-application command. */
   @Mapping(target = "client", source = "clientDetails")
