@@ -41,7 +41,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, prometheus
 
 sentry:
   dsn: # configure dsn url here
