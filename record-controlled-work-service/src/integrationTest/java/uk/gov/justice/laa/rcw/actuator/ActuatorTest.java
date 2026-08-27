@@ -16,7 +16,7 @@ import org.springframework.test.context.TestPropertySource;
 @AutoConfigureTestRestTemplate
 @TestPropertySource(
     properties = {
-      "management.endpoints.web.exposure.include=health",
+      "management.endpoints.web.exposure.include=health, prometheus",
     })
 class ActuatorTest {
 
@@ -31,5 +31,15 @@ class ActuatorTest {
 
     assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(result.getBody()).contains("\"status\":\"UP\"");
+  }
+
+  @Test
+  void actuatorPrometheusEndpointShouldReturnMetrics() {
+    ResponseEntity<String> result =
+        restTemplate.getForEntity(
+            "http://localhost:" + port + "/actuator/prometheus", String.class);
+
+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(result.getBody()).contains("jvm_memory_used_bytes");
   }
 }
