@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-push-deploy-staging:
-    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@fa4f700fdaa70cf4a806bd0047b258bc559424d3 # main
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@3b61534ec28baab6171267eb56187bb597e89d45 # main
     with:
       app_name: laa-record-controlled-work-api
       helm_chart: ./laa-generic-helm-chart
