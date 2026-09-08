@@ -267,17 +267,13 @@ components:
         id:
           type: string
           format: uuid
-          nullable: true
         name:
           type: string
-          nullable: true
         applicationRefNumber:
           type: string
-          nullable: true
         modifiedAt:
           type: string
           format: date-time
-          nullable: true
         eligibilityIndication:
           nullable: true
           allOf:
@@ -313,7 +309,6 @@ components:
         id:
           type: string
           format: uuid
-          nullable: true
 
     Applications:
       type: array
@@ -338,32 +333,24 @@ components:
         id:
           type: string
           format: uuid
-          nullable: true
         applicationRefNumber:
           type: string
           nullable: true
         individualLegalAidNumber:
           type: string
           format: uuid
-          nullable: true
         providerFirmCode:
           type: string
-          nullable: true
         providerOfficeCode:
           type: string
-          nullable: true
         meansAssessmentId:
           type: string
           format: uuid
           nullable: true
         clientDetails:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/ClientDetails"
+          $ref: "#/components/schemas/ClientDetails"
         applicationState:
-          nullable: true
-          allOf:
-            - $ref: "#/components/schemas/ApplicationState"
+          $ref: "#/components/schemas/ApplicationState"
         declaration:
           nullable: true
           allOf:
@@ -393,21 +380,16 @@ components:
           nullable: true
         applicationType:
           type: string
-          nullable: true
         createdAt:
           type: string
           format: date-time
-          nullable: true
         createdBy:
           type: string
-          nullable: true
         modifiedAt:
           type: string
           format: date-time
-          nullable: true
         modifiedBy:
           type: string
-          nullable: true
 
     UpdateEvidenceRequestBody:
       type: object
@@ -526,14 +508,11 @@ components:
           nullable: true
         firstName:
           type: string
-          nullable: true
         lastName:
           type: string
-          nullable: true
         dateOfBirth:
           type: string
           format: date
-          nullable: true
         niNumber:
           type: string
           minLength: 9
@@ -542,7 +521,6 @@ components:
           nullable: true
         hasFixedAddress:
           type: boolean
-          nullable: true
         address:
           nullable: true
           allOf:
@@ -568,7 +546,6 @@ components:
           nullable: true
         addressLine1:
           type: string
-          nullable: true
         addressLine2:
           type: string
           nullable: true
@@ -590,7 +567,6 @@ components:
         country:
           type: string
           maxLength: 2
-          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -624,17 +600,14 @@ components:
           format: uri
           description: URI reference identifying the problem type
           example: "about:blank"
-          nullable: true
         title:
           type: string
           description: Human-readable summary of the problem type
-          nullable: true
         status:
           type: integer
           format: int32
           description: HTTP status code
           example: 400
-          nullable: true
         detail:
           type: string
           description: Human-readable explanation specific to this occurrence

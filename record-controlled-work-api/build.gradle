@@ -28,6 +28,7 @@ openApiGenerate {
     configOptions = [
             generateBuilders    : "true",
             interfaceOnly       : "true", // This will only generate interfaces, not implementations
+            openApiNullable     : "false", // `nullable: true` generates JsonNullable<T> wrappers the mappers can't map
             serializableModel   : "true",
             skipDefaultInterface: "true",
             useJakartaEe        : "true",
