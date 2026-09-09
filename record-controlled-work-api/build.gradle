@@ -28,7 +28,9 @@ openApiGenerate {
     configOptions = [
             generateBuilders    : "true",
             interfaceOnly       : "true", // This will only generate interfaces, not implementations
-            openApiNullable     : "false", // `nullable: true` generates JsonNullable<T> wrappers the mappers can't map
+            // `nullable: true` is declared in open api spec so that orval in RCW UI can generate correct zod schemas
+            //  without openApiNullable: false, the generator creates JsonNullable<T> fields that the mappers cannot handle
+            openApiNullable     : "false",
             serializableModel   : "true",
             skipDefaultInterface: "true",
             useJakartaEe        : "true",
