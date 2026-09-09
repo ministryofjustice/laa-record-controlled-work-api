@@ -263,6 +263,7 @@ components:
         - name
         - applicationRefNumber
         - modifiedAt
+        - eligibilityIndication
       properties:
         id:
           type: string
@@ -275,7 +276,9 @@ components:
           type: string
           format: date-time
         eligibilityIndication:
-          $ref: "#/components/schemas/EligibilityIndication"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/EligibilityIndication"
 
     CreateApplicationRequestBody:
       type: object
@@ -297,7 +300,56 @@ components:
           type: object
           additionalProperties: true
         clientDetails:
-          $ref: "#/components/schemas/ClientDetails"
+          $ref: "#/components/schemas/CreateClientDetailsRequestBody"
+
+    CreateClientDetailsRequestBody:
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - hasFixedAddress
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        niNumber:
+          type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '[A-CEGHJ-NOPR-TW-Z]{2}[0-9]{6}[ABCDs]{1}'
+        hasFixedAddress:
+          type: boolean
+        address:
+          $ref: "#/components/schemas/CreateAddressRequestBody"
+
+    CreateAddressRequestBody:
+      required:
+        - addressLine1
+        - country
+      type: object
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        addressLine3:
+          type: string
+        addressLine4:
+          type: string
+        townOrCity:
+          type: string
+        postCode:
+          type: string
+        county:
+          type: string
+        country:
+          type: string
+          maxLength: 2
 
     CreateApplicationResponseBody:
       type: object
@@ -326,6 +378,9 @@ components:
         - modifiedBy
         - clientDetails
         - applicationState
+        - declaration
+        - evidence
+        - eligibility
         - applicationType
       properties:
         id:
@@ -333,6 +388,7 @@ components:
           format: uuid
         applicationRefNumber:
           type: string
+          nullable: true
         individualLegalAidNumber:
           type: string
           format: uuid
@@ -343,26 +399,38 @@ components:
         meansAssessmentId:
           type: string
           format: uuid
+          nullable: true
         clientDetails:
           $ref: "#/components/schemas/ClientDetails"
         applicationState:
           $ref: "#/components/schemas/ApplicationState"
         declaration:
-          $ref: "#/components/schemas/Declaration"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Declaration"
         evidence:
-          $ref: "#/components/schemas/Evidence"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Evidence"
         eligibility:
-          $ref: "#/components/schemas/Eligibility"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Eligibility"
         reasonForReapplication:
           type: string
+          nullable: true
         meansAssessmentRequired:
           type: boolean
+          nullable: true
         typeOfNonMeans:
           type: boolean
+          nullable: true
         contribution:
           type: string
+          nullable: true
         scopingQuestions:
           type: object
+          nullable: true
         applicationType:
           type: string
         createdAt:
@@ -425,58 +493,90 @@ components:
           format: date
 
     Eligibility:
+      required:
+        - result
+        - data
       type: object
       properties:
         data:
           type: object
+          nullable: true
         result:
           type: object
+          nullable: true
 
     Declaration:
+      required:
+        - id
+        - declarationConfirmation
+        - createdAt
+        - createdBy
+        - modifiedAt
+        - modifiedBy
       type: object
       properties:
         id:
           type: string
           format: uuid
+          nullable: true
         declarationConfirmation:
           type: boolean
+          nullable: true
         dateSigned:
           type: string
           format: date
+          nullable: true
         createdAt:
           type: string
           format: date-time
+          nullable: true
         createdBy:
           type: string
+          nullable: true
         modifiedAt:
           type: string
           format: date-time
+          nullable: true
         modifiedBy:
           type: string
+          nullable: true
 
     Evidence:
+      required:
+        - evidenceExemptionCode
+        - evidenceExemptionReason
+        - incomeEvidenceChecklist
+        - expenditureCapitalEvidenceChecklist
       type: object
       properties:
         evidenceExemptionCode:
           type: string
+          nullable: true
         evidenceExemptionReason:
           type: string
+          nullable: true
         incomeEvidenceChecklist:
           type: object
+          nullable: true
         expenditureCapitalEvidenceChecklist:
           type: object
+          nullable: true
 
     ClientDetails:
       required:
+        - id
         - firstName
         - lastName
         - dateOfBirth
         - hasFixedAddress
+        - createdAt
+        - modifiedAt
       type: object
       properties:
         id:
           type: string
           format: uuid
+          nullable: true
         firstName:
           type: string
         lastName:
@@ -489,49 +589,66 @@ components:
           minLength: 9
           maxLength: 9
           pattern: '[A-CEGHJ-NOPR-TW-Z]{2}[0-9]{6}[ABCDs]{1}'
+          nullable: true
         hasFixedAddress:
           type: boolean
         address:
-          $ref: "#/components/schemas/Address"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Address"
         createdAt:
           type: string
           format: date-time
+          nullable: true
         modifiedAt:
           type: string
           format: date-time
+          nullable: true
 
     Address:
       required:
+        - id
         - addressLine1
         - country
+        - createdAt
+        - modifiedAt
       type: object
       properties:
         id:
           type: string
           format: uuid
+          nullable: true
         addressLine1:
           type: string
         addressLine2:
           type: string
+          nullable: true
         addressLine3:
           type: string
+          nullable: true
         addressLine4:
           type: string
+          nullable: true
         townOrCity:
           type: string
+          nullable: true
         postCode:
           type: string
+          nullable: true
         county:
           type: string
+          nullable: true
         country:
           type: string
           maxLength: 2
         createdAt:
           type: string
           format: date-time
+          nullable: true
         modifiedAt:
           type: string
           format: date-time
+          nullable: true
 
     ApplicationState:
       type: string
@@ -568,14 +685,17 @@ components:
         detail:
           type: string
           description: Human-readable explanation specific to this occurrence
+          nullable: true
         instance:
           type: string
           format: uri
           description: URI reference identifying the specific occurrence
+          nullable: true
         reason:
           type: string
           description: Machine-readable code identifying the exact violation, e.g. APPLICATION_NOT_FOUND
           example: "APPLICATION_NOT_FOUND"
+          nullable: true
 
     BadRequestResponse:
       allOf:

@@ -17,8 +17,6 @@ import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
-import uk.gov.justice.laa.rcw.generator.AddressGenerator;
-import uk.gov.justice.laa.rcw.generator.ClientDetailsGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
@@ -304,8 +302,8 @@ class ApplicationMapperTest {
 
   @Test
   void shouldMapClientDetailsToCreateClientCommand() {
-    uk.gov.justice.laa.rcw.model.ClientDetails clientDetails =
-        ClientDetailsGenerator.createWithName(null);
+    uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody clientDetails =
+        CreateApplicationRequestGenerator.ClientDetails.createWithName(null);
 
     CreateClientCommand result = applicationMapper.toCreateClientCommand(clientDetails);
 
@@ -319,8 +317,9 @@ class ApplicationMapperTest {
 
   @Test
   void shouldMapClientDetailsToCreateClientCommand_whenHasFixedAddressIsFalse() {
-    uk.gov.justice.laa.rcw.model.ClientDetails clientDetails =
-        ClientDetailsGenerator.createWithName(b -> b.hasFixedAddress(false));
+    uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody clientDetails =
+        CreateApplicationRequestGenerator.ClientDetails.createWithName(
+            b -> b.hasFixedAddress(false));
 
     assertThat(applicationMapper.toCreateClientCommand(clientDetails).getNoFixedAbode()).isTrue();
   }
@@ -332,7 +331,8 @@ class ApplicationMapperTest {
 
   @Test
   void shouldMapAddressToCreateAddressCommand() {
-    uk.gov.justice.laa.rcw.model.Address address = AddressGenerator.create(null);
+    uk.gov.justice.laa.rcw.model.CreateAddressRequestBody address =
+        CreateApplicationRequestGenerator.Address.create(null);
 
     CreateAddressCommand result = applicationMapper.toCreateAddressCommand(address);
 
