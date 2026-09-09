@@ -1,5 +1,5 @@
 plugins {
-    id 'org.openapi.generator' version '7.24.0'
+    id 'org.openapi.generator' version '7.25.0'
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
 }
 
@@ -28,6 +28,9 @@ openApiGenerate {
     configOptions = [
             generateBuilders    : "true",
             interfaceOnly       : "true", // This will only generate interfaces, not implementations
+            // `nullable: true` is declared in open api spec so that orval in RCW UI can generate correct zod schemas
+            //  without openApiNullable: false, the generator creates JsonNullable<T> fields that the mappers cannot handle
+            openApiNullable     : "false",
             serializableModel   : "true",
             skipDefaultInterface: "true",
             useJakartaEe        : "true",
