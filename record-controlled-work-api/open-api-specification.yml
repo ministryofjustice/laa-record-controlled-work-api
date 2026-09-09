@@ -300,7 +300,57 @@ components:
           type: object
           additionalProperties: true
         clientDetails:
-          $ref: "#/components/schemas/ClientDetails"
+          $ref: "#/components/schemas/CreateClientDetailsRequestBody"
+
+    CreateClientDetailsRequestBody:
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - hasFixedAddress
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        niNumber:
+          type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '[A-CEGHJ-NOPR-TW-Z]{2}[0-9]{6}[ABCDs]{1}'
+        hasFixedAddress:
+          type: boolean
+        address:
+          $ref: "#/components/schemas/CreateAddressRequestBody"
+
+    CreateAddressRequestBody:
+      required:
+        - addressLine1
+        - country
+      type: object
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        addressLine3:
+          type: string
+        addressLine4:
+          type: string
+        townOrCity:
+          type: string
+        postCode:
+          type: string
+        county:
+          type: string
+          nullable: true
+        country:
+          type: string
+          maxLength: 2
 
     CreateApplicationResponseBody:
       type: object

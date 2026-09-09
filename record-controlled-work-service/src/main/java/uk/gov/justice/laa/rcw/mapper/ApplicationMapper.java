@@ -19,7 +19,9 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
+import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.Declaration;
 import uk.gov.justice.laa.rcw.model.Eligibility;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
@@ -114,10 +116,10 @@ public interface ApplicationMapper {
       target = "noFixedAbode",
       expression = "java(!Boolean.TRUE.equals(clientDetails.getHasFixedAddress()))")
   @Mapping(target = "createAddressCommand", source = "address")
-  CreateClientCommand toCreateClientCommand(ClientDetails clientDetails);
+  CreateClientCommand toCreateClientCommand(CreateClientDetailsRequestBody clientDetails);
 
   /** Maps the RCW address to the datastore create address command. */
-  CreateAddressCommand toCreateAddressCommand(Address address);
+  CreateAddressCommand toCreateAddressCommand(CreateAddressRequestBody address);
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(
