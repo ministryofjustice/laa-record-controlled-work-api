@@ -113,13 +113,13 @@ jobs:
           sed -i 's/"security-severity": "undefined"/"security-severity": "0"/g' snyk-app.sarif
 
       - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: snyk-app.sarif
 
   build-push-deploy-uat:
     if: "!(github.event_name == 'pull_request' && github.actor == 'renovate[bot]')"
-    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@fa4f700fdaa70cf4a806bd0047b258bc559424d3 # main
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@3b61534ec28baab6171267eb56187bb597e89d45 # main
     with:
       app_name: laa-record-controlled-work-api
       helm_chart: ./laa-generic-helm-chart
