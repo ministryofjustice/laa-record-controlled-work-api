@@ -263,6 +263,7 @@ components:
         - name
         - applicationRefNumber
         - modifiedAt
+        - eligibilityIndication
       properties:
         id:
           type: string
@@ -328,6 +329,9 @@ components:
         - modifiedBy
         - clientDetails
         - applicationState
+        - declaration
+        - evidence
+        - eligibility
         - applicationType
       properties:
         id:
@@ -440,6 +444,8 @@ components:
           format: date
 
     Eligibility:
+      required:
+        - result
       type: object
       properties:
         data:
@@ -450,6 +456,13 @@ components:
           nullable: true
 
     Declaration:
+      required:
+        - id
+        - declarationConfirmation
+        - createdAt
+        - createdBy
+        - modifiedAt
+        - modifiedBy
       type: object
       properties:
         id:
@@ -496,10 +509,13 @@ components:
 
     ClientDetails:
       required:
+        - id
         - firstName
         - lastName
         - dateOfBirth
         - hasFixedAddress
+        - createdAt
+        - modifiedAt
       type: object
       properties:
         id:
@@ -536,8 +552,11 @@ components:
 
     Address:
       required:
+        - id
         - addressLine1
         - country
+        - createdAt
+        - modifiedAt
       type: object
       properties:
         id:
