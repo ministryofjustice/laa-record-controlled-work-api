@@ -27,10 +27,10 @@ dependencies {
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.5'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-17972608
-    implementation 'tools.jackson.core:jackson-databind:3.1.5'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-17972609
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.6'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-19778370
+    implementation 'tools.jackson.core:jackson-databind:3.1.6'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-19778371
     implementation 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEHTTPCOMPONENTSCORE5-17817217
 }
