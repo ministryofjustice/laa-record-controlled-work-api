@@ -220,7 +220,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "id": "%s",
                         "individualLegalAidNumber": "ebd50ba0-9ed9-4003-83a8-c11ac07d9e32",
                         "providerFirmCode": "123456",
-                        "providerOfficeCode": "22439e72-68d3-4770-b435-c352d883d21e",
+                        "providerOfficeCode": "%s",
                         "referenceNumber": "CW-111111",
                         "scopingQuestions": {
                             "priorLegalAid": "same_matter"
@@ -237,7 +237,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         }
                     }
                     """
-                        .formatted(applicationId))));
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
@@ -252,6 +252,49 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
+  }
+
+  @Test
+  void shouldReturnNotFound_whenGettingApplicationInAnotherOffice() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(
+            get("/api/v1/applications/%s".formatted(applicationId)).withBearerUnauthorizedToken())
+        .andExpect(status().isNotFound())
+        .andExpect(content().string(""));
+  }
+
+  @Test
+  void shouldReturnNotFound_whenGettingApplicationWithNoAuthorizedOffice() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerNoOfficeToken())
+        .andExpect(status().isNotFound())
+        .andExpect(content().string(""));
   }
 
   @Test

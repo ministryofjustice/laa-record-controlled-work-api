@@ -141,6 +141,11 @@ public class ApplicationQueryService {
     } catch (HttpClientErrorException.NotFound exception) {
       return Optional.empty();
     }
+    if (!authorizedOfficesProvider
+        .currentAuthorizedOfficeCodes()
+        .contains(application.orElseThrow().getProviderOfficeCode())) {
+      return Optional.empty();
+    }
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
