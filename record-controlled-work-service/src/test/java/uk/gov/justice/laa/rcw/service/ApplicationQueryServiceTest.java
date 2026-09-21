@@ -164,6 +164,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
     when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
         .thenReturn(
             ApplicationResponse.builder()
@@ -186,8 +188,14 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById_forwardsBearerToken() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
     when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
-        .thenReturn(ApplicationResponse.builder().id(applicationId).build());
+        .thenReturn(
+            ApplicationResponse.builder()
+                .id(applicationId)
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
+                .build());
 
     applicationQueryService.getApplication(applicationId);
 
@@ -195,6 +203,39 @@ class ApplicationQueryServiceTest {
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
     verify(mockApplicationApi).getApplication(eq(applicationId), xAuthorizationCaptor.capture());
     assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+  }
+
+  @Test
+  void shouldGetApplicationById_returnsEmptyWhenOfficeIsNotAuthorized() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("OTHER-OFFICE"));
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .id(applicationId)
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
+                .build());
+
+    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+
+    assertThat(result).isEmpty();
+  }
+
+  @Test
+  void shouldGetApplicationById_returnsEmptyWhenNoOfficeIsAuthorized() {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
+    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+        .thenReturn(
+            ApplicationResponse.builder()
+                .id(applicationId)
+                .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
+                .build());
+
+    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+
+    assertThat(result).isEmpty();
   }
 
   @Test

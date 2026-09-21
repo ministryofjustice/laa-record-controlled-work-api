@@ -20,6 +20,18 @@ public class MockHttpServletRequestBuilderExtensions {
     return builder.header("Authorization", "Bearer " + TestJwtConfig.ACCESS_TOKEN);
   }
 
+  /** Extension method to add an unauthorized Bearer token to the headers. */
+  public static MockHttpServletRequestBuilder withBearerUnauthorizedToken(
+      MockHttpServletRequestBuilder builder) {
+    return builder.header("Authorization", "Bearer " + TestJwtConfig.UNAUTHORIZED_ACCESS_TOKEN);
+  }
+
+  /** Extension method to add a Bearer token without authorized offices to the headers. */
+  public static MockHttpServletRequestBuilder withBearerNoOfficeToken(
+      MockHttpServletRequestBuilder builder) {
+    return builder.header("Authorization", "Bearer " + TestJwtConfig.NO_OFFICE_ACCESS_TOKEN);
+  }
+
   /** Extension method to add a Bearer token to the headers. */
   public static MockHttpServletRequestBuilder withBearerWriteToken(
       MockHttpServletRequestBuilder builder) {
