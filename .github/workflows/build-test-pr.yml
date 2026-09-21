@@ -10,14 +10,14 @@ permissions:
 
 jobs:
   secrets-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Run secrets scan
         uses: ministryofjustice/devsecops-actions/sca/moj@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
   
   build-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -72,7 +72,7 @@ jobs:
           retention-days: 14
 
   vulnerability-scan-app:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - build-test
     env:
@@ -94,7 +94,7 @@ jobs:
           args: --severity-threshold=high
 
   vulnerability-scan-docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - build-test
     env:
