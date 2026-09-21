@@ -27,6 +27,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -264,6 +266,23 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
         .andExpect(status().isNotFound());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"BG123456C", "AO123456C", "js101010D", "AB123456s"})
+  void shouldReturnBadRequest_whenNiNumberDoesNotMatchUkFormat(String niNumber) throws Exception {
+    CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
+    request.setProviderOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE);
+    request.getClientDetails().setNiNumber(niNumber);
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .withBearerReadToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(request))
+                .accept(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
