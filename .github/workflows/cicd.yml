@@ -1,0 +1,149 @@
+name: CICD
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  packages: write
+  id-token: write
+  security-events: write
+
+jobs:
+  secrets-scan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Run secrets scan
+        uses: ministryofjustice/devsecops-actions/sca/moj@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
+
+  tests:
+    name: Tests
+    uses: ./.github/workflows/build-test.yml
+    with:
+      sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      publish-package: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    secrets: inherit
+
+  vulnerability-scan-app:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
+      SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
+      SNYK_TEST_EXCLUDE: build,generated
+      SNYK_TARGET_REFERENCE: main
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Fetch Snyk OAuth Token
+        uses: ./.github/actions/snyk-auth
+
+      - name: Run Snyk to check app for vulnerabilities
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 #v1.0.0
+        with:
+          command: code test
+          args: --severity-threshold=high
+
+  vulnerability-scan-docker:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
+      SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Fetch Snyk OAuth Token
+        uses: ./.github/actions/snyk-auth
+
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-java-gradle
+
+      - name: Build app jar with gradle
+        run: ./gradlew build
+
+      - name: Build a Docker image
+        run: |
+          docker build \
+            --secret id=git_token,env=GITHUB_TOKEN \
+            -t record-controlled-work:scan .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Snyk to check Docker image for vulnerabilities
+        uses: snyk/actions/docker@12140f4059e244892ae643824a95459a102120dd # master
+        with:
+          image: record-controlled-work:scan
+          args: --file=Dockerfile --severity-threshold=high
+
+  vulnerability-report:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
+      SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch Snyk OAuth Token
+        uses: ./.github/actions/snyk-auth
+
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-java-gradle
+
+      - name: Setup Snyk
+        uses: snyk/actions/setup@12140f4059e244892ae643824a95459a102120dd # master
+
+      - name: Run Snyk to check app for vulnerabilities
+        run: snyk monitor --severity-threshold=high
+        continue-on-error: true
+
+      - name: Generate sarif Snyk report
+        run: snyk test --sarif-file-output=snyk-app.sarif
+        continue-on-error: true
+
+      # Fix/hack for Snyk's sarif file to avoid this error uploading to GitHub.
+      # See https://github.com/github/codeql-action/issues/2187 for more context.
+      - name: Fix undefined values
+        run: |
+          sed -i 's/"security-severity": "undefined"/"security-severity": "0"/g' snyk-app.sarif
+
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: snyk-app.sarif
+
+  build-push-deploy-uat:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-build-push-deploy.yml@3b61534ec28baab6171267eb56187bb597e89d45 # main
+    with:
+      app_name: laa-record-controlled-work-api
+      helm_chart: ./laa-generic-helm-chart
+      environment: uat
+      helm_release_name: laa-record-controlled-work-api
+      helm_values_path: ./helm/values/uat.yml
+      k8s_service_account: rcw-api-github-action-service-account
+      dockerfile_requires_git: true
+    secrets: inherit

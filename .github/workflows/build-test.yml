@@ -1,0 +1,74 @@
+name: Build and test
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: Commit SHA to build and test
+        required: true
+        type: string
+      publish-package:
+        description: Publish build artifacts to GitHub Packages
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-java-gradle
+
+      # Single invocation so Gradle configures once rather than per task.
+      - name: Build, test and verify
+        run: >-
+          ./gradlew build jacocoTestCoverageVerification spotlessCheck checkstyleAll
+          integrationTest --tests '*IntegrationTest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package
+        if: inputs.publish-package
+        run: ./gradlew publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results
+          path: record-controlled-work-service/build/test-results
+          retention-days: 14
+
+      - name: Upload checkstyle report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checkstyle-report
+          path: record-controlled-work-service/build/reports/checkstyle
+          retention-days: 14
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-report
+          path: record-controlled-work-service/build/reports/tests
+          retention-days: 14
+
+      - name: Upload jacoco coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: jacoco-coverage-report
+          path: record-controlled-work-service/build/reports/jacoco
+          retention-days: 14
