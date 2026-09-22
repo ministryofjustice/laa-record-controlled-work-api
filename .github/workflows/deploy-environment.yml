@@ -1,0 +1,45 @@
+name: Deploy environment
+
+on:
+  workflow_call:
+    inputs:
+      app-environment:
+        description: Target environment (uat, staging, production)
+        required: true
+        type: string
+      sha:
+        description: Commit SHA of the image to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ecr:
+    runs-on: ubuntu-latest
+    outputs:
+      registry: ${{ steps.ecr.outputs.image_registry }}
+    steps:
+      - name: ECR auth
+        id: ecr
+        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@583a60502327d7b9b7701fdb11be9f7d096cf9f5 # main
+        with:
+          ecr_region: ${{ vars.ECR_REGION }}
+          ecr_role: ${{ secrets.ECR_ROLE_TO_ASSUME }}
+          role-session-name: github-cicd-deploy-${{ inputs.app-environment }}-${{ github.run_number }}
+
+  deploy:
+    needs: ecr
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-deploy.yml@3b61534ec28baab6171267eb56187bb597e89d45 # main
+    with:
+      environment: ${{ inputs.app-environment }}
+      image_registry: ${{ needs.ecr.outputs.registry }}
+      image_repo: ${{ vars.ECR_REPOSITORY }}
+      image_tag: ${{ inputs.sha }}
+      k8s_service_account: rcw-api-github-action-service-account
+      helm_release_name: laa-record-controlled-work-api
+      helm_chart: ./laa-generic-helm-chart
+      helm_values_path: ./helm/values/${{ inputs.app-environment }}.yml
+    secrets: inherit
