@@ -5,7 +5,6 @@ on:
     branches: ["main"]
   push:
     branches: ["main"]
-  merge_group:
   workflow_dispatch:
 
 permissions:
@@ -17,10 +16,14 @@ permissions:
 
 jobs:
   secrets-scan:
-    if: github.event_name == 'pull_request'
+    name: Secrets Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
       - name: Run secrets scan
         uses: ministryofjustice/devsecops-actions/sca/moj@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
 
@@ -33,16 +36,15 @@ jobs:
     secrets: inherit
 
   build-image:
-    name: Image
-    if: github.event_name != 'pull_request'
+    name: Build Docker Image
     uses: ./.github/workflows/build-image.yml
     with:
-      sha: ${{ github.sha }}
+      sha: ${{ github.event.pull_request.head.sha || github.sha }}
       push-latest: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     secrets: inherit
 
-  vulnerability-scan-app:
-    if: github.event_name == 'pull_request'
+  snyk-app-scan:
+    name: Snyk App Scan
     runs-on: ubuntu-latest
     env:
       SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
@@ -51,11 +53,12 @@ jobs:
       SNYK_TARGET_REFERENCE: main
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Fetch Snyk OAuth Token
+      - name: Fetch Snyk OAuth token
         uses: ./.github/actions/snyk-auth
 
       - name: Run Snyk to check app for vulnerabilities
@@ -64,25 +67,31 @@ jobs:
           command: code test
           args: --severity-threshold=high
 
-  vulnerability-scan-docker:
-    if: github.event_name == 'pull_request'
+      - name: Run Snyk to check dependencies for vulnerabilities
+        uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 #v1.0.0
+        with:
+          args: --severity-threshold=high --all-sub-projects
+
+  snyk-docker-scan:
+    name: Snyk Docker Scan
     runs-on: ubuntu-latest
     env:
       SNYK_CLIENT_ID: ${{ secrets.SNYK_CLIENT_ID }}
       SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Fetch Snyk OAuth Token
+      - name: Fetch Snyk OAuth token
         uses: ./.github/actions/snyk-auth
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
-      - name: Build a Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
@@ -98,8 +107,8 @@ jobs:
           image: record-controlled-work:scan
           args: --file=Dockerfile --severity-threshold=high
 
-  vulnerability-report:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  snyk-report:
+    name: Snyk Report
     runs-on: ubuntu-latest
 
     permissions:
@@ -113,22 +122,26 @@ jobs:
       SNYK_CLIENT_SECRET: ${{ secrets.SNYK_CLIENT_SECRET }}
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Fetch Snyk OAuth Token
+      - name: Fetch Snyk OAuth token
         uses: ./.github/actions/snyk-auth
 
       - name: Set up Java and Gradle
         uses: ./.github/actions/setup-java-gradle
 
-      - name: Setup Snyk
+      - name: Set up Snyk
         uses: snyk/actions/setup@12140f4059e244892ae643824a95459a102120dd # master
 
-      - name: Run Snyk to check app for vulnerabilities
+      - name: Run Snyk to monitor app for vulnerabilities
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: snyk monitor --severity-threshold=high
         continue-on-error: true
 
-      - name: Generate sarif Snyk report
+      - name: Generate Snyk sarif report
         run: snyk test --sarif-file-output=snyk-app.sarif
         continue-on-error: true
 
@@ -142,9 +155,10 @@ jobs:
         uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           sarif_file: snyk-app.sarif
+          category: snyk-app
 
   deploy-uat:
-    name: Deploy UAT
+    name: Deploy
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - tests
@@ -156,7 +170,7 @@ jobs:
     secrets: inherit
 
   deploy-staging:
-    name: Deploy staging
+    name: Deploy
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - deploy-uat

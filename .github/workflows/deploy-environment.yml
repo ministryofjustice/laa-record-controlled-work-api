@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   ecr:
+    name: ECR Auth
     runs-on: ubuntu-latest
     outputs:
       registry: ${{ steps.ecr.outputs.image_registry }}
@@ -31,6 +32,7 @@ jobs:
           role-session-name: github-cicd-deploy-${{ inputs.app-environment }}-${{ github.run_number }}
 
   deploy:
+    name: ${{ inputs.app-environment }}
     needs: ecr
     uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-deploy.yml@3b61534ec28baab6171267eb56187bb597e89d45 # main
     with:
