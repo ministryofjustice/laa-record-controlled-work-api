@@ -1,3 +1,8 @@
 subprojects {
     group = 'uk.gov.justice.laa.record-controlled-work'
+
+    // Deferred until the java plugin creates the `implementation` configuration.
+    plugins.withId('java') {
+        apply from: "$rootDir/dependency-overrides.gradle"
+    }
 }

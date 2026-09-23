@@ -1,10 +1,10 @@
 # Build stage
-FROM amazoncorretto:25.0.4-alpine@sha256:2ad5f5cf03a3970f2478b130dc28f51b179ce13c58154fe3ec1a6fdeb3b86e3a AS builder
+FROM amazoncorretto:25.0.4-alpine@sha256:4955796538972099d9c7de6e31c6a259b1de65393a58b7e0996b7cc50d7d20a7 AS builder
 
 RUN mkdir -p /build
 WORKDIR /build
 
-COPY gradlew settings.gradle build.gradle gradle.properties ./
+COPY gradlew settings.gradle build.gradle gradle.properties dependency-overrides.gradle ./
 COPY gradle/ gradle/
 COPY record-controlled-work-api/ record-controlled-work-api/
 COPY record-controlled-work-service/ record-controlled-work-service/
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
-FROM amazoncorretto:25.0.4-alpine@sha256:2ad5f5cf03a3970f2478b130dc28f51b179ce13c58154fe3ec1a6fdeb3b86e3a
+FROM amazoncorretto:25.0.4-alpine@sha256:4955796538972099d9c7de6e31c6a259b1de65393a58b7e0996b7cc50d7d20a7
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/

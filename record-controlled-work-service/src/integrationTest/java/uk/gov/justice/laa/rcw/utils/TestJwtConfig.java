@@ -13,6 +13,8 @@ import uk.gov.laa.springboot.oauth2.testsupport.StubJwtToken;
 public class TestJwtConfig {
 
   public static final String ACCESS_TOKEN = "rcw-api-access-token";
+  public static final String UNAUTHORIZED_ACCESS_TOKEN = "rcw-api-unauthorized-access-token";
+  public static final String NO_OFFICE_ACCESS_TOKEN = "rcw-api-no-office-access-token";
   public static final String AUTHORIZED_OFFICE_CODE = "AB12CD";
 
   /** Stub {@link JwtDecoder} seeded with a token containing the Applications.Read role. */
@@ -24,6 +26,18 @@ public class TestJwtConfig {
             "test-user",
             null,
             null,
-            Map.of("scp", "Applications.Read", "LAA_ACCOUNTS", List.of(AUTHORIZED_OFFICE_CODE))));
+            Map.of("scp", "Applications.Read", "LAA_ACCOUNTS", List.of(AUTHORIZED_OFFICE_CODE))),
+        new StubJwtToken(
+            UNAUTHORIZED_ACCESS_TOKEN,
+            "test-user",
+            null,
+            null,
+            Map.of("scp", "Applications.Read", "LAA_ACCOUNTS", List.of("OTHER-OFFICE"))),
+        new StubJwtToken(
+            NO_OFFICE_ACCESS_TOKEN,
+            "test-user",
+            null,
+            null,
+            Map.of("scp", "Applications.Read", "LAA_ACCOUNTS", List.of())));
   }
 }

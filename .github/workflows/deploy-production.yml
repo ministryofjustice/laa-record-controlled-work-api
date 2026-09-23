@@ -1,0 +1,39 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit SHA to deploy (must already have an image built by CICD)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-commit:
+    name: Verify Commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check the commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "${{ inputs.sha }}" origin/main; then
+            echo "::error::${{ inputs.sha }} is not an ancestor of main; only merged commits can be released."
+            exit 1
+          fi
+
+  deploy-production:
+    name: Deploy
+    needs: verify-commit
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      app-environment: production
+      sha: ${{ inputs.sha }}
+    secrets: inherit

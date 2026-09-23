@@ -5,8 +5,6 @@ plugins {
     id 'com.diffplug.spotless' version "8.10.2"
 }
 
-apply from: "$rootDir/record-controlled-work-service/dependency-overrides.gradle"
-
 repositories {
     maven {
         url = "https://maven.pkg.github.com/ministryofjustice/laa-info-and-advice-datastore"
