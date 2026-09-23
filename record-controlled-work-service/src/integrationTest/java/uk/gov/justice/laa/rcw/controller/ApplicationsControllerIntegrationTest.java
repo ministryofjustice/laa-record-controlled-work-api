@@ -285,8 +285,19 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(status().isBadRequest());
   }
 
-  @Test
-  void shouldCreateApplication() throws Exception {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "AB123456A",
+        "CE123456B",
+        "EG123456C",
+        "HJ123456D",
+        "JP123456A",
+        "PR123456B",
+        "TW123456C",
+        "WZ123456D"
+      })
+  void shouldCreateApplication(String niNumber) throws Exception {
 
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
@@ -294,6 +305,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
+    request.getClientDetails().setNiNumber(niNumber);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
@@ -315,7 +327,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "firstName": "Joe",
                             "lastName": "Bloggs",
                             "dateOfBirth": "1990-01-01",
-                            "niNumber": "AB123456C",
+                            "niNumber": "%s",
                             "noFixedAbode": false,
                             "address": {
                                 "addressLine1": "10 Downing Street",
@@ -340,7 +352,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             applicationId,
                             applicationId,
                             TestJwtConfig.AUTHORIZED_OFFICE_CODE,
-                            applicationId))));
+                            applicationId,
+                            niNumber))));
 
     mockMvc
         .perform(
@@ -370,7 +383,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "firstName": "Joe",
                             "lastName": "Bloggs",
                             "dateOfBirth": "1990-01-01",
-                            "nationalInsuranceNumber": "AB123456C",
+                            "nationalInsuranceNumber": "%s",
                             "noFixedAbode": false,
                             "createAddressCommand": {
                                 "addressLine1": "10 Downing Street",
@@ -387,7 +400,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s"
                     }
                     """
-                        .formatted(TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+                        .formatted(niNumber, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
 
     DATASTORE.verify(
         patchRequestedFor(
