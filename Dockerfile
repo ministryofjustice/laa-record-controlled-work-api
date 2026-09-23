@@ -4,7 +4,7 @@ FROM amazoncorretto:25.0.4-alpine@sha256:4955796538972099d9c7de6e31c6a259b1de653
 RUN mkdir -p /build
 WORKDIR /build
 
-COPY gradlew settings.gradle build.gradle gradle.properties ./
+COPY gradlew settings.gradle build.gradle gradle.properties dependency-overrides.gradle ./
 COPY gradle/ gradle/
 COPY record-controlled-work-api/ record-controlled-work-api/
 COPY record-controlled-work-service/ record-controlled-work-service/
