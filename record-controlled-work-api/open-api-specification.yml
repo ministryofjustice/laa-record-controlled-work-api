@@ -321,7 +321,7 @@ components:
           type: string
           minLength: 9
           maxLength: 9
-          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)(?![DFIQUV])[A-Z](?![DFIQUVO])[A-Z][0-9]{6}[ABCD]$'
+          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
         hasFixedAddress:
           type: boolean
         address:
@@ -588,7 +588,7 @@ components:
           type: string
           minLength: 9
           maxLength: 9
-          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)(?![DFIQUV])[A-Z](?![DFIQUVO])[A-Z][0-9]{6}[ABCD]$'
+          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
           nullable: true
         hasFixedAddress:
           type: boolean
