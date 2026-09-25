@@ -12,6 +12,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
 
 /**
  * Propagates the {@code X-Correlation-Id} request header into MDC as {@code correlationId},
@@ -21,24 +22,21 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {
 
-  static final String REQUEST_HEADER = "X-Correlation-Id";
-  static final String MDC_KEY = "correlationId";
-
   @Override
   protected void doFilterInternal(
       @NonNull HttpServletRequest request,
       @NonNull HttpServletResponse response,
       @NonNull FilterChain chain)
       throws ServletException, IOException {
-    String correlationId = request.getHeader(REQUEST_HEADER);
+    String correlationId = request.getHeader(CorrelationConstants.CORRELATION_ID_HEADER);
     if (correlationId == null || correlationId.isBlank()) {
       correlationId = UUID.randomUUID().toString();
     }
-    MDC.put(MDC_KEY, correlationId);
+    MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, correlationId);
     try {
       chain.doFilter(request, response);
     } finally {
-      MDC.remove(MDC_KEY);
+      MDC.remove(CorrelationConstants.CORRELATION_ID_LOG_KEY);
     }
   }
 }

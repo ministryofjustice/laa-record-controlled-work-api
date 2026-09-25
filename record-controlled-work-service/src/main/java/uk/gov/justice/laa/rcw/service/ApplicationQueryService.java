@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -14,6 +15,8 @@ import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -53,6 +56,8 @@ public class ApplicationQueryService {
     ApplicationResponses responses =
         applicationApi.getApplications(
             bearerTokenProvider.currentBearerToken(),
+            MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+            ServiceNameConstants.SERVICE_NAME,
             page,
             size,
             officeId,
@@ -77,7 +82,11 @@ public class ApplicationQueryService {
    */
   ApplicationResponse fetchApplicationResponse(UUID applicationId) {
     try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
+      return applicationApi.getApplication(
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME);
     } catch (HttpClientErrorException.NotFound exception) {
       throw new ApplicationNotFoundException(
           "No application found with id: %s".formatted(applicationId));
@@ -137,7 +146,10 @@ public class ApplicationQueryService {
           Optional.of(
               applicationMapper.toApplication(
                   applicationApi.getApplication(
-                      applicationId, bearerTokenProvider.currentBearerToken())));
+                      applicationId,
+                      bearerTokenProvider.currentBearerToken(),
+                      MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+                      ServiceNameConstants.SERVICE_NAME)));
     } catch (HttpClientErrorException.NotFound exception) {
       return Optional.empty();
     }

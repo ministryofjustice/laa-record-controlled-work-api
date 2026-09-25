@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +32,8 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
+import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -48,6 +51,8 @@ import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 class ApplicationQueryServiceTest {
 
   private static final String ORIGINAL_TOKEN = "original-incoming-token";
+
+  private static final String CORRELATION_ID = "test-correlation-id";
 
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
@@ -67,6 +72,7 @@ class ApplicationQueryServiceTest {
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();
     SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, CORRELATION_ID);
   }
 
   @AfterEach
@@ -88,7 +94,8 @@ class ApplicationQueryServiceTest {
             .eligibilityIndication(
                 uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.ELIGIBLE)
             .build();
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(
+            anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of(summary)).build());
 
     List<ApplicationOverview> result =
@@ -108,7 +115,8 @@ class ApplicationQueryServiceTest {
 
   @Test
   void shouldGetApplications_returnsEmptyListWhenNoContent() {
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(
+            anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
     List<ApplicationOverview> result =
@@ -120,7 +128,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplications_forwardsPageSizeAndOfficeIdToDatastore() {
     String officeId = "22439e72-68d3-4770-b435-c352d883d21e";
-    when(mockApplicationApi.getApplications(anyString(), any(), any(), any(), any(), any()))
+    when(mockApplicationApi.getApplications(
+            anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(ApplicationResponses.builder().content(List.of()).build());
 
     applicationQueryService.getApplications(
@@ -132,6 +141,8 @@ class ApplicationQueryServiceTest {
 
     // CHECKSTYLE.SUPPRESS: LocalVariableName
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> correlationIdCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> serviceNameCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<Integer> pageCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<Integer> sizeCaptor = ArgumentCaptor.forClass(Integer.class);
     ArgumentCaptor<String> officeIdCaptor = ArgumentCaptor.forClass(String.class);
@@ -145,6 +156,8 @@ class ApplicationQueryServiceTest {
     verify(mockApplicationApi)
         .getApplications(
             xAuthorizationCaptor.capture(),
+            correlationIdCaptor.capture(),
+            serviceNameCaptor.capture(),
             pageCaptor.capture(),
             sizeCaptor.capture(),
             officeIdCaptor.capture(),
@@ -152,6 +165,8 @@ class ApplicationQueryServiceTest {
             indicationCaptor.capture());
 
     assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
+    assertThat(correlationIdCaptor.getValue()).isEqualTo(CORRELATION_ID);
+    assertThat(serviceNameCaptor.getValue()).isEqualTo(ServiceNameConstants.SERVICE_NAME);
     assertThat(pageCaptor.getValue()).isEqualTo(2);
     assertThat(sizeCaptor.getValue()).isEqualTo(50);
     assertThat(officeIdCaptor.getValue()).isEqualTo(officeId);
@@ -166,7 +181,8 @@ class ApplicationQueryServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -190,7 +206,8 @@ class ApplicationQueryServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -201,7 +218,9 @@ class ApplicationQueryServiceTest {
 
     // CHECKSTYLE.SUPPRESS: LocalVariableName
     ArgumentCaptor<String> xAuthorizationCaptor = ArgumentCaptor.forClass(String.class);
-    verify(mockApplicationApi).getApplication(eq(applicationId), xAuthorizationCaptor.capture());
+    verify(mockApplicationApi)
+        .getApplication(
+            eq(applicationId), xAuthorizationCaptor.capture(), anyString(), anyString());
     assertThat(xAuthorizationCaptor.getValue()).isEqualTo("Bearer " + ORIGINAL_TOKEN);
   }
 
@@ -210,7 +229,8 @@ class ApplicationQueryServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of("OTHER-OFFICE"));
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -226,7 +246,8 @@ class ApplicationQueryServiceTest {
   void shouldGetApplicationById_returnsEmptyWhenNoOfficeIsAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -241,7 +262,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById_returnsEmptyWhenDatastoreReturnsNotFound() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenThrow(
             HttpClientErrorException.create(
                 HttpStatus.NOT_FOUND, "Not found", HttpHeaders.EMPTY, new byte[0], null));
@@ -255,7 +277,9 @@ class ApplicationQueryServiceTest {
   void shouldFetchApplicationResponse_returnsRawResponse() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
     ApplicationResponse expected = ApplicationResponse.builder().id(applicationId).eTag(5L).build();
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString())).thenReturn(expected);
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
+        .thenReturn(expected);
 
     ApplicationResponse result = applicationQueryService.fetchApplicationResponse(applicationId);
 
@@ -265,7 +289,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldFetchApplicationResponse_throwsApplicationNotFoundException_whenNotFound() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenThrow(
             HttpClientErrorException.create(
                 HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, new byte[0], null));
@@ -278,7 +303,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldFetchApplicationResponse_throwsApplicationBadRequestException_whenBadRequest() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenThrow(
             HttpClientErrorException.create(
                 HttpStatus.BAD_REQUEST, "Bad Request", HttpHeaders.EMPTY, new byte[0], null));
@@ -291,7 +317,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldFetchApplicationResponse_throwsApplicationUpstreamErrorException_whenServerError() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
     assertThatThrownBy(() -> applicationQueryService.fetchApplicationResponse(applicationId))
@@ -302,7 +329,8 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldFetchApplicationResponse_throwsApplicationUnavailableException_whenConnectionFails() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockApplicationApi.getApplication(eq(applicationId), anyString()))
+    when(mockApplicationApi.getApplication(
+            eq(applicationId), anyString(), anyString(), anyString()))
         .thenThrow(new ResourceAccessException("Connection refused"));
 
     assertThatThrownBy(() -> applicationQueryService.fetchApplicationResponse(applicationId))
