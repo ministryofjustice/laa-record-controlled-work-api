@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.controller;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -44,6 +45,9 @@ import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExte
 @ExtensionMethod(MockHttpServletRequestBuilderExtensions.class)
 class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
+  private static final String SERVICE_NAME = "laa-record-controlled-work-api";
+  private static final String UUID_REGEX =
+      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
   private static final WireMockServer DATASTORE =
       new WireMockServer(WireMockConfiguration.options().dynamicPort());
 
@@ -201,13 +205,42 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .param("page", "1")
                 .param("size", "1")
                 .param("officeId", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+                .header("X-Correlation-Id", "incoming-correlation-id")
                 .withBearerReadToken())
         .andExpect(status().isOk());
 
     DATASTORE.verify(
         getRequestedFor(urlPathEqualTo("/api/v0/applications"))
             .withHeader("Authorization", equalTo("Bearer obo-access-token"))
-            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN)));
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withHeader("X-Correlation-ID", equalTo("incoming-correlation-id"))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME)));
+  }
+
+  @Test
+  void shouldGenerateCorrelationIdWhenIncomingHeaderIsBlank() throws Exception {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications"))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "content": [],
+                      "page": 1,
+                      "size": 1,
+                      "totalElements": 0,
+                      "totalPages": 0
+                    }
+                    """)));
+
+    mockMvc
+        .perform(get("/api/v1/applications").header("X-Correlation-Id", "  ").withBearerReadToken())
+        .andExpect(status().isOk());
+
+    DATASTORE.verify(
+        getRequestedFor(urlPathEqualTo("/api/v0/applications"))
+            .withHeader("X-Correlation-ID", matching(UUID_REGEX))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME)));
   }
 
   @Test
@@ -418,6 +451,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         postRequestedFor(urlPathEqualTo("/api/v0/applications:start-application"))
             .withHeader("Authorization", equalTo("Bearer obo-access-token"))
             .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withHeader("X-Correlation-ID", matching(UUID_REGEX))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME))
             .withRequestBody(
                 equalToJson(
                     """
