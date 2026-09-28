@@ -19,6 +19,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,6 +32,8 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
+import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
@@ -44,6 +47,7 @@ class ApplicationGatewayTest {
   private static final String BEARER_TOKEN = "Bearer original-incoming-token";
   private static final UUID APPLICATION_ID =
       UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+  private static final String CORRELATION_ID = "test-correlation-id";
 
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private BearerTokenProvider mockBearerTokenProvider;
@@ -54,6 +58,7 @@ class ApplicationGatewayTest {
   void setUp() {
     applicationGateway = new ApplicationGateway(mockApplicationApi, mockBearerTokenProvider);
     when(mockBearerTokenProvider.currentBearerToken()).thenReturn(BEARER_TOKEN);
+    MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, CORRELATION_ID);
   }
 
   @Test
@@ -62,12 +67,19 @@ class ApplicationGatewayTest {
     StartApplicationCommand command =
         StartApplicationCommand.builder().providerOfficeCode(officeCode).build();
     ApplicationResponse response = ApplicationResponse.builder().id(APPLICATION_ID).build();
-    when(mockApplicationApi.startApplication(BEARER_TOKEN, command)).thenReturn(response);
+    when(mockApplicationApi.startApplication(
+            BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME, command))
+        .thenReturn(response);
 
     ApplicationResponse result = applicationGateway.startApplication(officeCode, command);
 
     assertThat(result).isEqualTo(response);
-    verify(mockApplicationApi).startApplication(eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi)
+        .startApplication(
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
   }
 
   @ParameterizedTest
@@ -77,7 +89,8 @@ class ApplicationGatewayTest {
       Class<? extends RuntimeException> expectedExceptionType,
       String expectedMessage) {
     String officeCode = "AB12CD";
-    when(mockApplicationApi.startApplication(eq(BEARER_TOKEN), any()))
+    when(mockApplicationApi.startApplication(
+            eq(BEARER_TOKEN), eq(CORRELATION_ID), eq(ServiceNameConstants.SERVICE_NAME), any()))
         .thenThrow(datastoreException);
 
     assertThatThrownBy(
@@ -95,7 +108,13 @@ class ApplicationGatewayTest {
 
     applicationGateway.updateScopingData(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateScopingData(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi)
+        .updateScopingData(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
   }
 
   @ParameterizedTest
@@ -106,7 +125,12 @@ class ApplicationGatewayTest {
       String expectedMessage) {
     doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateScopingData(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
+        .updateScopingData(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
 
     assertThatThrownBy(
             () -> applicationGateway.updateScopingData(APPLICATION_ID, scopingDataCommand()))
@@ -118,12 +142,19 @@ class ApplicationGatewayTest {
   void shouldFetchApplication() {
     ApplicationResponse response =
         ApplicationResponse.builder().id(APPLICATION_ID).providerOfficeCode("AB12CD").build();
-    when(mockApplicationApi.getApplication(APPLICATION_ID, BEARER_TOKEN)).thenReturn(response);
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenReturn(response);
 
     ApplicationResponse result = applicationGateway.fetchApplication(APPLICATION_ID);
 
     assertThat(result).isEqualTo(response);
-    verify(mockApplicationApi).getApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN));
+    verify(mockApplicationApi)
+        .getApplication(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME));
   }
 
   @ParameterizedTest
@@ -132,7 +163,8 @@ class ApplicationGatewayTest {
       RuntimeException datastoreException,
       Class<? extends RuntimeException> expectedExceptionType,
       String expectedMessage) {
-    when(mockApplicationApi.getApplication(APPLICATION_ID, BEARER_TOKEN))
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
         .thenThrow(datastoreException);
 
     assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
@@ -146,7 +178,13 @@ class ApplicationGatewayTest {
 
     applicationGateway.updateMeansData(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateMeansData(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi)
+        .updateMeansData(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
   }
 
   @ParameterizedTest
@@ -157,7 +195,12 @@ class ApplicationGatewayTest {
       String expectedMessage) {
     doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateMeansData(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
+        .updateMeansData(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
 
     assertThatThrownBy(() -> applicationGateway.updateMeansData(APPLICATION_ID, meansDataCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
@@ -170,7 +213,13 @@ class ApplicationGatewayTest {
 
     applicationGateway.updateEvidence(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateEvidence(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi)
+        .updateEvidence(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
   }
 
   @ParameterizedTest
@@ -182,7 +231,12 @@ class ApplicationGatewayTest {
     UpdateEvidenceCommand command = evidenceCommand();
     doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateEvidence(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
+        .updateEvidence(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
 
     assertThatThrownBy(() -> applicationGateway.updateEvidence(APPLICATION_ID, command))
         .isExactlyInstanceOf(expectedExceptionType)
@@ -195,7 +249,13 @@ class ApplicationGatewayTest {
 
     applicationGateway.updateApplication(APPLICATION_ID, command);
 
-    verify(mockApplicationApi).updateApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN), eq(command));
+    verify(mockApplicationApi)
+        .updateApplication(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
   }
 
   @ParameterizedTest
@@ -206,7 +266,12 @@ class ApplicationGatewayTest {
       String expectedMessage) {
     doThrow(datastoreException)
         .when(mockApplicationApi)
-        .updateApplication(eq(APPLICATION_ID), eq(BEARER_TOKEN), any());
+        .updateApplication(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
 
     assertThatThrownBy(
             () -> applicationGateway.updateApplication(APPLICATION_ID, updateApplicationCommand()))

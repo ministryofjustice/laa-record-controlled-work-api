@@ -440,7 +440,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             }
                         },
                         "applicationType": "RCW",
-                        "providerOfficeCode": "%s"
+                        "providerOfficeCode": "%s",
+                        "ufn": null
                     }
                     """
                         .formatted(niNumber, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
