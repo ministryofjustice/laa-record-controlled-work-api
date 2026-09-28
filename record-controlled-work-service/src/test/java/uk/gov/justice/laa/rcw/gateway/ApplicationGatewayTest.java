@@ -40,6 +40,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
+import uk.gov.justice.laa.rcw.service.DatastoreRequestContext;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationGatewayTest {
@@ -56,7 +57,11 @@ class ApplicationGatewayTest {
 
   @BeforeEach
   void setUp() {
-    applicationGateway = new ApplicationGateway(mockApplicationApi, mockBearerTokenProvider);
+    applicationGateway =
+        new ApplicationGateway(
+            mockApplicationApi,
+            mockBearerTokenProvider,
+            new DatastoreRequestContext(ServiceNameConstants.SERVICE_NAME));
     when(mockBearerTokenProvider.currentBearerToken()).thenReturn(BEARER_TOKEN);
     MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, CORRELATION_ID);
   }
