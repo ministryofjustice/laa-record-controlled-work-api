@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -46,6 +49,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   private static final WireMockServer DATASTORE =
       new WireMockServer(WireMockConfiguration.options().dynamicPort());
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   static {
     DATASTORE.start();
@@ -254,6 +258,104 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
+  }
+
+  @Test
+  void shouldOmitNullPropertiesFromEligibilityData() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String datastoreResponse =
+        """
+                {
+                    "id": "%s",
+                    "providerOfficeCode": "%s",
+                    "eligibilityResult": {
+                        "data": {
+                            "client_age": null,
+                            "level_of_help": "controlled",
+                            "passporting": false,
+                            "adult_dependants_count": 0,
+                            "incomes": [],
+                            "pending": {
+                                "null_nested": null,
+                                "sibling": "kept",
+                                "deep_collection": [
+                                    {"null_deep": null, "value": 17}
+                                ],
+                                "empty_object": {}
+                            },
+                            "benefits": [
+                                {
+                                    "benefit_amount": null,
+                                    "benefit_type": "housing"
+                                }
+                            ]
+                        },
+                        "result": {
+                            "indication": true,
+                            "null_result_value": null
+                        }
+                    }
+                }
+                """
+            .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE);
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(okJson(datastoreResponse)));
+
+    String responseBody =
+        mockMvc
+            .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    JsonNode response = objectMapper.readTree(responseBody);
+
+    assertThat(response.path("eligibility").path("data"))
+        .isEqualTo(
+            objectMapper.readTree(
+                """
+                                {
+                                    "level_of_help": "controlled",
+                                    "passporting": false,
+                                    "adult_dependants_count": 0,
+                                    "incomes": [],
+                                    "pending": {
+                                        "sibling": "kept",
+                                        "deep_collection": [{"value": 17}],
+                                        "empty_object": {}
+                                    },
+                                    "benefits": [{"benefit_type": "housing"}]
+                                }
+                                """));
+    assertThat(response.path("eligibility").path("result"))
+        .isEqualTo(objectMapper.readTree("{\"indication\":true,\"null_result_value\":null}"));
+  }
+
+  @Test
+  void shouldGetApplicationWithoutEligibility() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                                        {
+                                            "id": "%s",
+                                            "providerOfficeCode": "%s"
+                                        }
+                                        """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    String responseBody =
+        mockMvc
+            .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertThat(objectMapper.readTree(responseBody).get("eligibility").isNull()).isTrue();
   }
 
   @Test

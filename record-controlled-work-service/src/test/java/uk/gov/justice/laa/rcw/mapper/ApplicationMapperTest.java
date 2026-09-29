@@ -244,11 +244,7 @@ class ApplicationMapperTest {
     assertThat(result.getDeclaration().getCreatedBy()).isEqualTo("Joe Bloggs");
     assertThat(result.getDeclaration().getModifiedBy()).isEqualTo("Joe Bloggs");
 
-    assertThat(result.getEligibility().getData())
-        .isEqualTo(
-            uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
-                .levelOfHelp("controlled")
-                .build());
+    assertThat(result.getEligibility().getData()).isEqualTo(Map.of("level_of_help", "controlled"));
     assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
   }
 
@@ -500,5 +496,19 @@ class ApplicationMapperTest {
   @Test
   void shouldMapNullEligibilityDataToNull() {
     assertThat(applicationMapper.toDatastoreMeansData(null)).isNull();
+  }
+
+  @Test
+  void shouldMapEligibilityResultWithNullData() {
+    ApplicationResponse applicationResponse =
+        ApplicationResponse.builder()
+            .eligibilityResult(
+                EligibilityResult.builder().data(null).result(Map.of("indication", true)).build())
+            .build();
+
+    Application result = applicationMapper.toApplication(applicationResponse);
+
+    assertThat(result.getEligibility().getData()).isNull();
+    assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
   }
 }

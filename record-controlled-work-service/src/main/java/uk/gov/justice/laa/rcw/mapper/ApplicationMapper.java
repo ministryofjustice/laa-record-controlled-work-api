@@ -74,7 +74,14 @@ public interface ApplicationMapper {
   Declaration toDeclaration(DeclarationResponse declarationResponse);
 
   /** Maps the datastore's eligibility result onto the RCW API's eligibility. */
+  @Mapping(target = "data", source = "data", qualifiedByName = "omitNullProperties")
   Eligibility toEligibility(EligibilityResult eligibilityResult);
+
+  /** Removes null-valued object properties recursively from eligibility data. */
+  @Named("omitNullProperties")
+  default Object omitNullProperties(Object value) {
+    return EligibilityDataSanitizer.omitNullProperties(value);
+  }
 
   /** Maps the datastore's evidence response onto the RCW API's evidence. */
   Evidence toEvidence(EvidenceResponse evidenceResponse);
