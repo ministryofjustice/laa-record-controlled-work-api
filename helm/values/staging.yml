@@ -1,0 +1,150 @@
+# Staging Environment Values
+appName: laa-record-controlled-work-api
+namespace: laa-record-controlled-work-api-staging
+serviceAccountName: rcw-api-github-action-service-account
+environmentName: staging
+replicaCount: 1
+minReplicaCount: 1
+
+
+image:
+  repository: nginx
+  pullPolicy: Always
+  tag: "@sha256:1881968aff6f7cdcc4b888c00a11f4ce241ad7ec957e0cb4a9e19e93a3ff87ea"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  maxReplicaCount: 100
+  targetCPUUtilizationPercentage: 80
+
+ingress:
+  green:
+    className: default-non-prod
+    hostname: "laa-record-controlled-work-api-staging.cloud-platform.service.justice.gov.uk"
+    pathType: Prefix
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      external-dns.alpha.kubernetes.io/hostname: "laa-record-controlled-work-api-staging.cloud-platform.service.justice.gov.uk"
+      external-dns.alpha.kubernetes.io/aws-weight: "100"
+      external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-api-green-laa-record-controlled-work-api-staging-green"
+      # Alpha VPN ranges - HTTP via ingress only allowed on VPN.
+      nginx.ingress.kubernetes.io/whitelist-source-range: "35.176.93.186/32, 18.169.147.172/32, 18.130.148.126/32, 35.176.148.126/32"
+
+
+podSecurityContext:
+  runAsUser: 10001
+
+securityContext:
+  runAsUser: 10001
+
+podAnnotations:
+  environment: staging
+
+podLabels:
+  environment: staging
+
+
+tolerations:
+  - key: "monitoring-node"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+  - key: "containment-node"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Staging-specific configuration
+configMap:
+  enabled: true
+  data:
+    LOG_LEVEL: info
+    DEBUG_MODE: "false"
+    ENVIRONMENT: staging
+
+containerEnvironment:
+  enabled: true
+  variables:
+    LOG_LEVEL: info
+    DATASTORE_URL: "http://laa-info-and-advice-datastore.laa-info-and-advice-datastore-staging.svc.cluster.local"
+  secrets:
+    - name: ISSUER
+      secretName: rcw-api-env-secrets
+      key: ISSUER
+    - name: AUDIENCE
+      secretName: rcw-api-env-secrets
+      key: AUDIENCE
+    - name: DATASTORE_OAUTH_SCOPES
+      secretName: rcw-api-env-secrets
+      key: DATASTORE_OAUTH_SCOPES
+    - name: DATASTORE_TOKEN_URI
+      secretName: rcw-api-env-secrets
+      key: DATASTORE_TOKEN_URI
+    - name: RCW_API_CLIENT_ID
+      secretName: rcw-api-env-secrets
+      key: RCW_API_CLIENT_ID
+    - name: RCW_API_CLIENT_SECRET
+      secretName: rcw-api-env-secrets
+      key: RCW_API_CLIENT_SECRET
+
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8181
+  failureThreshold: 30
+  periodSeconds: 10
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8181
+  initialDelaySeconds: 30
+  periodSeconds: 60
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8181
+  initialDelaySeconds: 30
+  periodSeconds: 60
+
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              component: ingress-controllers
+        - namespaceSelector:
+            matchLabels:
+              cloud-platform.justice.gov.uk/namespace: laa-record-controlled-work-staging
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: rcw
+      ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    - to:
+        - namespaceSelector: {}
+
+security:
+  podSecurityStandard: baseline
+  networkIsolation: true
+
+certificate:
+  enabled: false
+
+service:
+  port: 8081

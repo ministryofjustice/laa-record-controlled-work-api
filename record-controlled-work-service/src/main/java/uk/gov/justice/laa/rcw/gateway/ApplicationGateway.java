@@ -2,6 +2,7 @@ package uk.gov.justice.laa.rcw.gateway;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -14,6 +15,8 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
+import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
@@ -40,7 +43,11 @@ public class ApplicationGateway {
   public ApplicationResponse startApplication(
       String providerOfficeCode, StartApplicationCommand command) {
     try {
-      return applicationApi.startApplication(bearerTokenProvider.currentBearerToken(), command);
+      return applicationApi.startApplication(
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.BadRequest exception) {
       throw badRequestForOffice(providerOfficeCode);
     } catch (HttpServerErrorException exception) {
@@ -60,7 +67,11 @@ public class ApplicationGateway {
   public void updateScopingData(UUID applicationId, UpdateScopingDataCommand command) {
     try {
       applicationApi.updateScopingData(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
@@ -83,7 +94,11 @@ public class ApplicationGateway {
    */
   public ApplicationResponse fetchApplication(UUID applicationId) {
     try {
-      return applicationApi.getApplication(applicationId, bearerTokenProvider.currentBearerToken());
+      return applicationApi.getApplication(
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
@@ -105,7 +120,11 @@ public class ApplicationGateway {
   public void updateMeansData(UUID applicationId, UpdateMeansDataCommand command) {
     try {
       applicationApi.updateMeansData(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
@@ -129,7 +148,11 @@ public class ApplicationGateway {
   public void updateEvidence(UUID applicationId, UpdateEvidenceCommand command) {
     try {
       applicationApi.updateEvidence(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
@@ -153,7 +176,11 @@ public class ApplicationGateway {
   public void updateDeclarationData(UUID applicationId, DeclarationCommand command) {
     try {
       applicationApi.updateDeclarationData(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
@@ -177,7 +204,11 @@ public class ApplicationGateway {
   public void updateApplication(UUID applicationId, UpdateApplicationCommand command) {
     try {
       applicationApi.updateApplication(
-          applicationId, bearerTokenProvider.currentBearerToken(), command);
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
+          ServiceNameConstants.SERVICE_NAME,
+          command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
