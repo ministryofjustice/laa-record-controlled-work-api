@@ -52,7 +52,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:8.58.0'
+    implementation 'io.sentry:sentry-spring-boot-4:8.58.0'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
