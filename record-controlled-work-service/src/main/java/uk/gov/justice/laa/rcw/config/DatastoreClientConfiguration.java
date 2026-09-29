@@ -1,10 +1,10 @@
 package uk.gov.justice.laa.rcw.config;
 
-import java.io.IOException;
-import java.util.Map;
 import io.sentry.Sentry;
 import io.sentry.metrics.MetricsUnit;
 import io.sentry.metrics.SentryMetricsParameters;
+import java.io.IOException;
+import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

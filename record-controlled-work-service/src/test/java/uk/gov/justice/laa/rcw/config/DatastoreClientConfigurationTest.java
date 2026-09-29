@@ -13,7 +13,6 @@ import io.sentry.metrics.IMetricsApi;
 import io.sentry.metrics.MetricsUnit;
 import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
-import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,7 +63,7 @@ class DatastoreClientConfigurationTest {
     mockSentry = mockStatic(Sentry.class);
     mockSentry.when(Sentry::metrics).thenReturn(mockMetricsApi);
     interceptor =
-      new DatastoreClientConfiguration.DatastoreOboInterceptor(mockClientManager, "datastore");
+        new DatastoreClientConfiguration.DatastoreOboInterceptor(mockClientManager, "datastore");
   }
 
   @AfterEach
@@ -81,7 +80,7 @@ class DatastoreClientConfigurationTest {
 
     assertThat(response).isSameAs(mockResponse);
     assertThat(requestHeaders.getFirst(HttpHeaders.AUTHORIZATION))
-      .isEqualTo("Bearer test-access-token");
+        .isEqualTo("Bearer test-access-token");
     verifyRequestDurationMetric();
   }
 
