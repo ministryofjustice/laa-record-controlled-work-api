@@ -10,11 +10,12 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
 import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 
 class DatastoreRequestContextTest {
 
   private final DatastoreRequestContext requestContext =
-      new DatastoreRequestContext("laa-record-controlled-work-api");
+      new DatastoreRequestContext(ServiceNameConstants.SERVICE_NAME);
 
   @AfterEach
   void clearMdc() {
@@ -46,6 +47,6 @@ class DatastoreRequestContextTest {
 
   @Test
   void shouldReturnConfiguredServiceName() {
-    assertThat(requestContext.serviceName()).isEqualTo("laa-record-controlled-work-api");
+    assertThat(requestContext.serviceName()).isEqualTo(ServiceNameConstants.SERVICE_NAME);
   }
 }
