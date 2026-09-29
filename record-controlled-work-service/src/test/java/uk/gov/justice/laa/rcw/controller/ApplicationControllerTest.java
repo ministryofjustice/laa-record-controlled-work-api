@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -44,6 +46,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
@@ -241,9 +244,13 @@ class ApplicationControllerTest {
                 .content(requestBody))
         .andExpect(status().isNoContent());
 
+    ArgumentCaptor<EligibilityData> eligibiltyDataCaptor =
+        ArgumentCaptor.forClass(EligibilityData.class);
+
     verify(mockApplicationMeansService)
         .updateMeans(
-            applicationId, Map.of("level_of_help", "controlled"), Map.of("indication", true));
+            eq(applicationId), eligibiltyDataCaptor.capture(), eq(Map.of("indication", true)));
+    assertEquals("controlled", eligibiltyDataCaptor.getValue().getLevelOfHelp());
   }
 
   @Test

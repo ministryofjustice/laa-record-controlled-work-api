@@ -463,7 +463,7 @@ components:
         - result
       properties:
         data:
-          type: object
+          $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
           type: object
 
