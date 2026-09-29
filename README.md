@@ -213,13 +213,9 @@ The following actuator endpoints have been configured:
 
 ### Sentry
 
-In order to integrate with Sentry, the following properties need to be configured in the `application.yml`:
+The Sentry Spring Boot integration is enabled when `SENTRY_DSN` is set. Configure the DSN as a deployment environment variable; `SENTRY_ENVIRONMENT` is optional and defaults to `ENVIRONMENT`.
 
-```
-sentry:
-  dsn: <configure sentry dsn url here>
-  environment: <configure environment name here>
-```
+Keep Sentry authentication tokens in the deployment platform's secret manager. They are not required for runtime error reporting.
 
 ### Patterns and practices
 See [patterns and practices](docs/patterns-and-practices.md) for more information.

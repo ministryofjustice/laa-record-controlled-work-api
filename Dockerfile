@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     --mount=type=secret,id=git_token \
     export GITHUB_TOKEN=$(cat /run/secrets/git_token) && \
     export GITHUB_ACTOR=x-token && \
-    chmod +x gradlew && ./gradlew :record-controlled-work-service:bootJar --no-daemon
+    chmod +x gradlew && ./gradlew -PgitHubPackagesUsername=$GITHUB_ACTOR -PgitHubPackagesPassword=$GITHUB_TOKEN :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
 FROM amazoncorretto:25.0.4-alpine@sha256:2ad5f5cf03a3970f2478b130dc28f51b179ce13c58154fe3ec1a6fdeb3b86e3a
