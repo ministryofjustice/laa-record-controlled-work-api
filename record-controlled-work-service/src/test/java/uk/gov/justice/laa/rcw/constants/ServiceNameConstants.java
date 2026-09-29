@@ -5,5 +5,5 @@ public final class ServiceNameConstants {
 
   private ServiceNameConstants() {}
 
-  public static final String SERVICE_NAME = "LAA-RCW-API";
+  public static final String SERVICE_NAME = "laa-record-controlled-work-api";
 }

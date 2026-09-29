@@ -2,7 +2,6 @@ package uk.gov.justice.laa.rcw.gateway;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -15,14 +14,13 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
-import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
-import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
+import uk.gov.justice.laa.rcw.service.DatastoreRequestContext;
 
 /** Gateway for datastore application fetch operations. */
 @Service
@@ -31,6 +29,7 @@ public class ApplicationGateway {
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
+  private final DatastoreRequestContext datastoreRequestContext;
 
   /**
    * Starts an application in datastore and translates transport-level failures to RCW application
@@ -45,8 +44,8 @@ public class ApplicationGateway {
     try {
       return applicationApi.startApplication(
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.BadRequest exception) {
       throw badRequestForOffice(providerOfficeCode);
@@ -69,8 +68,8 @@ public class ApplicationGateway {
       applicationApi.updateScopingData(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
@@ -97,8 +96,8 @@ public class ApplicationGateway {
       return applicationApi.getApplication(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME);
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName());
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.BadRequest exception) {
@@ -122,8 +121,8 @@ public class ApplicationGateway {
       applicationApi.updateMeansData(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
@@ -150,8 +149,8 @@ public class ApplicationGateway {
       applicationApi.updateEvidence(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
@@ -178,8 +177,8 @@ public class ApplicationGateway {
       applicationApi.updateDeclarationData(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
@@ -206,8 +205,8 @@ public class ApplicationGateway {
       applicationApi.updateApplication(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME,
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
