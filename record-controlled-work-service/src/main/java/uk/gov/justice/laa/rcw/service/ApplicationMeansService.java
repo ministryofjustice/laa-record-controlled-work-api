@@ -11,7 +11,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
-import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 
 /** Service class for updating application means data. */
@@ -23,7 +23,7 @@ public class ApplicationMeansService {
 
   private final ApplicationGateway applicationGateway;
   private final ApplicationGuard applicationGuard;
-  private final ApplicationMapper applicationMapper;
+  private final EligibilityMapper eligibilityMapper;
 
   /**
    * Updates the means data for an application. The datastore requires an eTag for optimistic
@@ -46,7 +46,7 @@ public class ApplicationMeansService {
     UpdateMeansDataCommand command =
         UpdateMeansDataCommand.builder()
             .eTag(application.geteTag())
-            .data(applicationMapper.toDatastoreMeansData(data))
+            .data(eligibilityMapper.toDatastoreMeansData(data))
             .result(result)
             .build();
     try {

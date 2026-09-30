@@ -20,13 +20,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
-import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,14 +40,14 @@ class ApplicationMeansServiceTest {
 
   private ApplicationGuard applicationGuard;
   private ApplicationMeansService applicationMeansService;
-  private ApplicationMapperImpl applicationMapper;
+  private EligibilityMapperImpl eligibilityMapper;
 
   @BeforeEach
   void setUp() {
     applicationGuard = new ApplicationGuard(mockAuthorizedOfficesProvider);
-    applicationMapper = new ApplicationMapperImpl();
+    eligibilityMapper = new EligibilityMapperImpl();
     applicationMeansService =
-        new ApplicationMeansService(mockApplicationGateway, applicationGuard, applicationMapper);
+        new ApplicationMeansService(mockApplicationGateway, applicationGuard, eligibilityMapper);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
@@ -71,13 +72,10 @@ class ApplicationMeansServiceTest {
     ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
         ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
     verify(mockApplicationGateway).updateMeansData(eq(applicationId), commandCaptor.capture());
-    assertThat(commandCaptor.getValue())
-        .isEqualTo(
-            UpdateMeansDataCommand.builder()
-                .eTag(7L)
-                .data(applicationMapper.toDatastoreMeansData(eligibilityData))
-                .result(result)
-                .build());
+    assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
+    assertThat(commandCaptor.getValue().getData().getLevelOfHelp_JsonNullable())
+        .isEqualTo(JsonNullable.of("controlled"));
+    assertThat(commandCaptor.getValue().getResult()).isEqualTo(result);
   }
 
   @Test
