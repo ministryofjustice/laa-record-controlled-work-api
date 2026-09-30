@@ -2,11 +2,14 @@ package uk.gov.justice.laa.rcw.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.Address;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
@@ -158,7 +161,10 @@ class ApplicationMapperTest {
             .build();
     EligibilityResult eligibilityResult =
         EligibilityResult.builder()
-            .data(Map.of("level_of_help", "controlled"))
+            .data(
+                uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
+                    .levelOfHelp("controlled")
+                    .build())
             .result(Map.of("indication", true))
             .build();
     EvidenceResponse evidence =
@@ -238,7 +244,11 @@ class ApplicationMapperTest {
     assertThat(result.getDeclaration().getCreatedBy()).isEqualTo("Joe Bloggs");
     assertThat(result.getDeclaration().getModifiedBy()).isEqualTo("Joe Bloggs");
 
-    assertThat(result.getEligibility().getData()).isEqualTo(Map.of("level_of_help", "controlled"));
+    assertThat(result.getEligibility().getData())
+        .isEqualTo(
+            uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
+                .levelOfHelp("controlled")
+                .build());
     assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
   }
 
@@ -441,5 +451,54 @@ class ApplicationMapperTest {
   @Test
   void shouldMapNullDatastoreAddressToNull() {
     assertThat(applicationMapper.toAddress(null)).isNull();
+  }
+
+  @Test
+  void shouldMapEligibilityDataToDatastoreMeansData() {
+    uk.gov.justice.laa.rcw.model.EligibilityData data =
+        uk.gov.justice.laa.rcw.model.EligibilityData.builder()
+            .levelOfHelp("controlled")
+            .adultDependants(true)
+            .incomes(
+                List.of(
+                    uk.gov.justice.laa.rcw.model.EligibilityDataIncome.builder()
+                        .grossIncome(BigDecimal.valueOf(500))
+                        .incomeFrequency("monthly")
+                        .build()))
+            .bankAccounts(
+                List.of(
+                    uk.gov.justice.laa.rcw.model.EligibilityDataBankAccount.builder()
+                        .amount(BigDecimal.valueOf(1000))
+                        .build()))
+            .build();
+
+    uk.gov.justice.laa.ia.datastore.client.model.EligibilityData result =
+        applicationMapper.toDatastoreMeansData(data);
+
+    assertThat(result.getLevelOfHelp_JsonNullable()).isEqualTo(JsonNullable.of("controlled"));
+    assertThat(result.getAdultDependants_JsonNullable()).isEqualTo(JsonNullable.of(true));
+    assertThat(result.getIncomes().get(0).getGrossIncome_JsonNullable())
+        .isEqualTo(JsonNullable.of(BigDecimal.valueOf(500)));
+    assertThat(result.getIncomes().get(0).getIncomeFrequency_JsonNullable())
+        .isEqualTo(JsonNullable.of("monthly"));
+    assertThat(result.getBankAccounts().get(0).getAmount_JsonNullable())
+        .isEqualTo(JsonNullable.of(BigDecimal.valueOf(1000)));
+  }
+
+  @Test
+  void shouldMapEligibilityDataWithNoNestedListsToDatastoreMeansData() {
+    uk.gov.justice.laa.rcw.model.EligibilityData data =
+        uk.gov.justice.laa.rcw.model.EligibilityData.builder().levelOfHelp("controlled").build();
+
+    uk.gov.justice.laa.ia.datastore.client.model.EligibilityData result =
+        applicationMapper.toDatastoreMeansData(data);
+
+    assertThat(result.getIncomes_JsonNullable()).isEqualTo(JsonNullable.undefined());
+    assertThat(result.getBankAccounts_JsonNullable()).isEqualTo(JsonNullable.undefined());
+  }
+
+  @Test
+  void shouldMapNullEligibilityDataToNull() {
+    assertThat(applicationMapper.toDatastoreMeansData(null)).isNull();
   }
 }

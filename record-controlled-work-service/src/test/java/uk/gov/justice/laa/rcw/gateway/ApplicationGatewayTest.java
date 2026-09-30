@@ -27,6 +27,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
@@ -356,7 +357,11 @@ class ApplicationGatewayTest {
   }
 
   private static UpdateMeansDataCommand meansDataCommand() {
-    return UpdateMeansDataCommand.builder().eTag(1L).data("d").result("r").build();
+    return UpdateMeansDataCommand.builder()
+        .eTag(1L)
+        .data(EligibilityData.builder().clientAge("1").build())
+        .result("r")
+        .build();
   }
 
   private static UpdateApplicationCommand updateApplicationCommand() {
