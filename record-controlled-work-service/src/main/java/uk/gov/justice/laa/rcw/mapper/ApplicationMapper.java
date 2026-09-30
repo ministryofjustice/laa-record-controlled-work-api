@@ -63,6 +63,7 @@ public interface ApplicationMapper {
 
   /** Maps the RCW create request to the datastore start-application command. */
   @Mapping(target = "client", source = "clientDetails")
+  @Mapping(target = "ufn", ignore = true)
   @Mapping(
       target = "applicationType",
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
