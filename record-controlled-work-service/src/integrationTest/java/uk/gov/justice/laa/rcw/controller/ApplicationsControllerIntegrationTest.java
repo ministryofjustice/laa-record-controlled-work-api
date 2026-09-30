@@ -244,6 +244,39 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldReturnBadRequest_whenListDatastoreRejectsRequest() throws Exception {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications"))
+            .willReturn(WireMock.aResponse().withStatus(400)));
+
+    mockMvc
+        .perform(get("/api/v1/applications").withBearerReadToken())
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void shouldReturnBadGateway_whenListDatastoreReturnsServerError() throws Exception {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications"))
+            .willReturn(WireMock.aResponse().withStatus(500)));
+
+    mockMvc
+        .perform(get("/api/v1/applications").withBearerReadToken())
+        .andExpect(status().isBadGateway());
+  }
+
+  @Test
+  void shouldReturnServiceUnavailable_whenListDatastoreCannotBeReached() throws Exception {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications"))
+            .willReturn(WireMock.aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+
+    mockMvc
+        .perform(get("/api/v1/applications").withBearerReadToken())
+        .andExpect(status().isServiceUnavailable());
+  }
+
+  @Test
   void shouldGetApplication() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
@@ -341,7 +374,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(content().string(""));
   }
 
   @ParameterizedTest
