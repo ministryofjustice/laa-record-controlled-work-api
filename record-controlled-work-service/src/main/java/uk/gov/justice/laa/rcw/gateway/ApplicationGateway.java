@@ -8,7 +8,10 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
@@ -47,6 +50,42 @@ public class ApplicationGateway {
           datastoreRequestContext.correlationId(),
           datastoreRequestContext.serviceName(),
           command);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw badRequestForOffice(providerOfficeCode);
+    } catch (HttpServerErrorException exception) {
+      throw upstreamErrorForOffice(providerOfficeCode);
+    } catch (ResourceAccessException exception) {
+      throw unavailableErrorForOffice(providerOfficeCode);
+    }
+  }
+
+  /**
+   * Fetches applications from datastore and translates transport-level failures to RCW application
+   * exceptions.
+   *
+   * @param page the page number
+   * @param size the page size
+   * @param providerOfficeCode the provider office code used in error messages
+   * @param status the application state filter
+   * @param eligibilityIndication the eligibility indication filter
+   * @return the paginated application responses from datastore
+   */
+  public ApplicationResponses getApplications(
+      Integer page,
+      Integer size,
+      String providerOfficeCode,
+      ApplicationState status,
+      EligibilityIndication eligibilityIndication) {
+    try {
+      return applicationApi.getApplications(
+          bearerTokenProvider.currentBearerToken(),
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
+          page,
+          size,
+          providerOfficeCode,
+          status,
+          eligibilityIndication);
     } catch (HttpClientErrorException.BadRequest exception) {
       throw badRequestForOffice(providerOfficeCode);
     } catch (HttpServerErrorException exception) {
