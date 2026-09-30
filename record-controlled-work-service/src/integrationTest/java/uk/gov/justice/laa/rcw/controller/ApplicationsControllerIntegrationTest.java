@@ -265,38 +265,38 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     String datastoreResponse =
         """
-                {
-                    "id": "%s",
-                    "providerOfficeCode": "%s",
-                    "eligibilityResult": {
-                        "data": {
-                            "client_age": null,
-                            "level_of_help": "controlled",
-                            "passporting": false,
-                            "adult_dependants_count": 0,
-                            "incomes": [],
-                            "pending": {
-                                "null_nested": null,
-                                "sibling": "kept",
-                                "deep_collection": [
-                                    {"null_deep": null, "value": 17}
-                                ],
-                                "empty_object": {}
-                            },
-                            "benefits": [
-                                {
-                                    "benefit_amount": null,
-                                    "benefit_type": "housing"
-                                }
-                            ]
-                        },
-                        "result": {
-                            "indication": true,
-                            "null_result_value": null
+        {
+            "id": "%s",
+            "providerOfficeCode": "%s",
+            "eligibilityResult": {
+                "data": {
+                    "client_age": null,
+                    "level_of_help": "controlled",
+                    "passporting": false,
+                    "adult_dependants_count": 0,
+                    "incomes": [],
+                    "pending": {
+                        "null_nested": null,
+                        "sibling": "kept",
+                        "deep_collection": [
+                            {"null_deep": null, "value": 17}
+                        ],
+                        "empty_object": {}
+                    },
+                    "benefits": [
+                        {
+                            "benefit_amount": null,
+                            "benefit_type": "housing"
                         }
-                    }
+                    ]
+                },
+                "result": {
+                    "indication": true,
+                    "null_result_value": null
                 }
-                """
+            }
+        }
+        """
             .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE);
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
@@ -315,19 +315,19 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .isEqualTo(
             objectMapper.readTree(
                 """
-                                {
-                                    "level_of_help": "controlled",
-                                    "passporting": false,
-                                    "adult_dependants_count": 0,
-                                    "incomes": [],
-                                    "pending": {
-                                        "sibling": "kept",
-                                        "deep_collection": [{"value": 17}],
-                                        "empty_object": {}
-                                    },
-                                    "benefits": [{"benefit_type": "housing"}]
-                                }
-                                """));
+                {
+                    "level_of_help": "controlled",
+                    "passporting": false,
+                    "adult_dependants_count": 0,
+                    "incomes": [],
+                    "pending": {
+                        "sibling": "kept",
+                        "deep_collection": [{"value": 17}],
+                        "empty_object": {}
+                    },
+                    "benefits": [{"benefit_type": "housing"}]
+                }
+                """));
     assertThat(response.path("eligibility").path("result"))
         .isEqualTo(objectMapper.readTree("{\"indication\":true,\"null_result_value\":null}"));
   }
@@ -340,11 +340,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                                        {
-                                            "id": "%s",
-                                            "providerOfficeCode": "%s"
-                                        }
-                                        """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s"
+                    }
+                    """
                         .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
 
     String responseBody =
