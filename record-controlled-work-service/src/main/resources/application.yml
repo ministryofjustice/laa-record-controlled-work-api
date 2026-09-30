@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: laa-record-controlled-work
+    name: laa-record-controlled-work-api
     version: @version@
 
   autoconfigure:

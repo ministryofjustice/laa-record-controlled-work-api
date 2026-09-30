@@ -68,6 +68,7 @@ class ApplicationQueryServiceTest {
             mockApplicationApi,
             applicationMapper,
             bearerTokenProvider,
+            new DatastoreRequestContext(ServiceNameConstants.SERVICE_NAME),
             mockAuthorizedOfficesProvider);
     Jwt jwt =
         Jwt.withTokenValue(ORIGINAL_TOKEN).header("alg", "none").claim("sub", "test-user").build();

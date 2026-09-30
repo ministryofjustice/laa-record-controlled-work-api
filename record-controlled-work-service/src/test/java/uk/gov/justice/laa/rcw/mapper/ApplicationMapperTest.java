@@ -244,7 +244,11 @@ class ApplicationMapperTest {
     assertThat(result.getDeclaration().getCreatedBy()).isEqualTo("Joe Bloggs");
     assertThat(result.getDeclaration().getModifiedBy()).isEqualTo("Joe Bloggs");
 
-    assertThat(result.getEligibility().getData()).isEqualTo(Map.of("level_of_help", "controlled"));
+    assertThat(result.getEligibility().getData())
+        .isEqualTo(
+            uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
+                .levelOfHelp("controlled")
+                .build());
     assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
   }
 
