@@ -2,20 +2,15 @@ package uk.gov.justice.laa.rcw.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.Address;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.ia.datastore.client.model.ClientDetails;
-import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
-import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
@@ -31,10 +26,14 @@ class ApplicationMapperTest {
   private static final UUID APPLICATION_ID =
       UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
   private static final String REFERENCE_NUMBER = "CW-111111";
-  private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2024-01-01T09:00:00Z");
   private static final OffsetDateTime MODIFIED_AT = OffsetDateTime.parse("2024-01-02T10:00:00Z");
 
-  private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
+  private final ApplicationMapper applicationMapper =
+      new ApplicationMapperImpl(
+          new ClientDetailsMapperImpl(new AddressMapperImpl()),
+          new DeclarationMapperImpl(),
+          new EligibilityMapperImpl(),
+          new EvidenceMapperImpl());
 
   @Test
   void shouldMapApplicationSummaryToApplicationOverview() {
@@ -105,23 +104,6 @@ class ApplicationMapperTest {
   @Test
   void shouldMapNullStatusToNull() {
     assertThat(applicationMapper.toDatastoreApplicationState(null)).isNull();
-  }
-
-  @Test
-  void shouldMapEligibleIndicationToDatastoreEligibilityIndication() {
-    assertThat(applicationMapper.toDatastoreEligibilityIndication(EligibilityIndication.ELIGIBLE))
-        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.ELIGIBLE);
-  }
-
-  @Test
-  void shouldMapIneligibleIndicationToDatastoreEligibilityIndication() {
-    assertThat(applicationMapper.toDatastoreEligibilityIndication(EligibilityIndication.INELIGIBLE))
-        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication.INELIGIBLE);
-  }
-
-  @Test
-  void shouldMapNullIndicationToNull() {
-    assertThat(applicationMapper.toDatastoreEligibilityIndication(null)).isNull();
   }
 
   @Test
@@ -218,37 +200,11 @@ class ApplicationMapperTest {
     assertThat(result.getModifiedBy()).isEqualTo("Random User");
     assertThat(result.getEvidence()).isNotNull();
     assertThat(result.getEvidence().getEvidenceExemptionCode()).isEqualTo("adviceOverPhone");
-    assertThat(result.getEvidence().getEvidenceExemptionReason())
-        .isEqualTo("Client was advised over the phone");
-    assertThat(result.getEvidence().getIncomeEvidenceChecklist())
-        .isEqualTo(Map.of("payslips", true));
-    assertThat(result.getEvidence().getExpenditureCapitalEvidenceChecklist())
-        .isEqualTo(Map.of("bankStatements", true));
-
     assertThat(result.getClientDetails().getFirstName()).isEqualTo("Joe");
-    assertThat(result.getClientDetails().getLastName()).isEqualTo("Bloggs");
-    assertThat(result.getClientDetails().getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
-    assertThat(result.getClientDetails().getNiNumber()).isEqualTo("QQ123456C");
     assertThat(result.getClientDetails().getHasFixedAddress()).isTrue();
-    assertThat(result.getClientDetails().getCreatedAt()).isEqualTo(now);
-    assertThat(result.getClientDetails().getModifiedAt()).isEqualTo(now);
-
     assertThat(result.getClientDetails().getAddress().getAddressLine1())
         .isEqualTo("10 Downing Street");
-    assertThat(result.getClientDetails().getAddress().getTownOrCity()).isEqualTo("London");
-    assertThat(result.getClientDetails().getAddress().getPostCode()).isEqualTo("SW1A 2AA");
-    assertThat(result.getClientDetails().getAddress().getCountry()).isEqualTo("GB");
-
-    assertThat(result.getDeclaration().getId()).isEqualTo(declarationId);
     assertThat(result.getDeclaration().getDeclarationConfirmation()).isTrue();
-    assertThat(result.getDeclaration().getCreatedBy()).isEqualTo("Joe Bloggs");
-    assertThat(result.getDeclaration().getModifiedBy()).isEqualTo("Joe Bloggs");
-
-    assertThat(result.getEligibility().getData())
-        .isEqualTo(
-            uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
-                .levelOfHelp("controlled")
-                .build());
     assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
   }
 
@@ -308,54 +264,11 @@ class ApplicationMapperTest {
         .isEqualTo(StartApplicationCommand.ApplicationTypeEnum.RCW);
     assertThat(result.getProviderOfficeCode()).isEqualTo(request.getProviderOfficeCode());
     assertThat(result.getClient()).isNotNull();
-  }
-
-  @Test
-  void shouldMapClientDetailsToCreateClientCommand() {
-    uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody clientDetails =
-        CreateApplicationRequestGenerator.ClientDetails.createWithName(null);
-
-    CreateClientCommand result = applicationMapper.toCreateClientCommand(clientDetails);
-
-    assertThat(result.getFirstName()).isEqualTo(clientDetails.getFirstName());
-    assertThat(result.getLastName()).isEqualTo(clientDetails.getLastName());
-    assertThat(result.getDateOfBirth()).isEqualTo(clientDetails.getDateOfBirth());
-    assertThat(result.getNationalInsuranceNumber()).isEqualTo(clientDetails.getNiNumber());
-    assertThat(result.getNoFixedAbode()).isFalse();
-    assertThat(result.getCreateAddressCommand()).isNotNull();
-  }
-
-  @Test
-  void shouldMapClientDetailsToCreateClientCommand_whenHasFixedAddressIsFalse() {
-    uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody clientDetails =
-        CreateApplicationRequestGenerator.ClientDetails.createWithName(
-            b -> b.hasFixedAddress(false));
-
-    assertThat(applicationMapper.toCreateClientCommand(clientDetails).getNoFixedAbode()).isTrue();
-  }
-
-  @Test
-  void shouldMapNullClientDetailsToNull() {
-    assertThat(applicationMapper.toCreateClientCommand(null)).isNull();
-  }
-
-  @Test
-  void shouldMapAddressToCreateAddressCommand() {
-    uk.gov.justice.laa.rcw.model.CreateAddressRequestBody address =
-        CreateApplicationRequestGenerator.Address.create(null);
-
-    CreateAddressCommand result = applicationMapper.toCreateAddressCommand(address);
-
-    assertThat(result.getAddressLine1()).isEqualTo(address.getAddressLine1());
-    assertThat(result.getAddressLine2()).isEqualTo(address.getAddressLine2());
-    assertThat(result.getTownOrCity()).isEqualTo(address.getTownOrCity());
-    assertThat(result.getPostCode()).isEqualTo(address.getPostCode());
-    assertThat(result.getCountry()).isEqualTo(address.getCountry());
-  }
-
-  @Test
-  void shouldMapNullAddressToNullCreateAddressCommand() {
-    assertThat(applicationMapper.toCreateAddressCommand(null)).isNull();
+    assertThat(result.getClient().getFirstName())
+        .isEqualTo(request.getClientDetails().getFirstName());
+    assertThat(result.getClient().getNoFixedAbode()).isFalse();
+    assertThat(result.getClient().getCreateAddressCommand().getAddressLine1())
+        .isEqualTo(request.getClientDetails().getAddress().getAddressLine1());
   }
 
   @Test
@@ -382,123 +295,5 @@ class ApplicationMapperTest {
   @Test
   void shouldMapNullDatastoreApplicationStateToNull() {
     assertThat(applicationMapper.toApplicationState(null)).isNull();
-  }
-
-  @Test
-  void shouldMapDatastoreClientDetailsToClientDetails() {
-    uk.gov.justice.laa.ia.datastore.client.model.ClientDetails datastoreClient =
-        uk.gov.justice.laa.ia.datastore.client.model.ClientDetails.builder()
-            .firstName("Joe")
-            .lastName("Bloggs")
-            .dateOfBirth(LocalDate.of(1990, 1, 1))
-            .niNumber("QQ123456C")
-            .noFixedAbode(false)
-            .createdAt(CREATED_AT)
-            .modifiedAt(MODIFIED_AT)
-            .build();
-
-    uk.gov.justice.laa.rcw.model.ClientDetails result =
-        applicationMapper.toClientDetails(datastoreClient);
-
-    assertThat(result.getFirstName()).isEqualTo("Joe");
-    assertThat(result.getLastName()).isEqualTo("Bloggs");
-    assertThat(result.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
-    assertThat(result.getNiNumber()).isEqualTo("QQ123456C");
-    assertThat(result.getHasFixedAddress()).isTrue();
-    assertThat(result.getCreatedAt()).isEqualTo(CREATED_AT);
-    assertThat(result.getModifiedAt()).isEqualTo(MODIFIED_AT);
-  }
-
-  @Test
-  void shouldMapDatastoreClientDetailsToClientDetails_whenNoFixedAbodeIsTrue() {
-    uk.gov.justice.laa.ia.datastore.client.model.ClientDetails datastoreClient =
-        uk.gov.justice.laa.ia.datastore.client.model.ClientDetails.builder()
-            .noFixedAbode(true)
-            .build();
-
-    assertThat(applicationMapper.toClientDetails(datastoreClient).getHasFixedAddress()).isFalse();
-  }
-
-  @Test
-  void shouldMapNullDatastoreClientDetailsToNull() {
-    assertThat(applicationMapper.toClientDetails(null)).isNull();
-  }
-
-  @Test
-  void shouldMapDatastoreAddressToAddress() {
-    uk.gov.justice.laa.ia.datastore.client.model.Address datastoreAddress =
-        uk.gov.justice.laa.ia.datastore.client.model.Address.builder()
-            .addressLine1("10 Downing Street")
-            .addressLine2("Prime ministers address")
-            .townOrCity("London")
-            .postCode("SW1A 2AA")
-            .country("GB")
-            .createdAt(CREATED_AT)
-            .modifiedAt(MODIFIED_AT)
-            .build();
-
-    uk.gov.justice.laa.rcw.model.Address result = applicationMapper.toAddress(datastoreAddress);
-
-    assertThat(result.getAddressLine1()).isEqualTo("10 Downing Street");
-    assertThat(result.getAddressLine2()).isEqualTo("Prime ministers address");
-    assertThat(result.getTownOrCity()).isEqualTo("London");
-    assertThat(result.getPostCode()).isEqualTo("SW1A 2AA");
-    assertThat(result.getCountry()).isEqualTo("GB");
-    assertThat(result.getCreatedAt()).isEqualTo(CREATED_AT);
-    assertThat(result.getModifiedAt()).isEqualTo(MODIFIED_AT);
-  }
-
-  @Test
-  void shouldMapNullDatastoreAddressToNull() {
-    assertThat(applicationMapper.toAddress(null)).isNull();
-  }
-
-  @Test
-  void shouldMapEligibilityDataToDatastoreMeansData() {
-    uk.gov.justice.laa.rcw.model.EligibilityData data =
-        uk.gov.justice.laa.rcw.model.EligibilityData.builder()
-            .levelOfHelp("controlled")
-            .adultDependants(true)
-            .incomes(
-                List.of(
-                    uk.gov.justice.laa.rcw.model.EligibilityDataIncome.builder()
-                        .grossIncome(BigDecimal.valueOf(500))
-                        .incomeFrequency("monthly")
-                        .build()))
-            .bankAccounts(
-                List.of(
-                    uk.gov.justice.laa.rcw.model.EligibilityDataBankAccount.builder()
-                        .amount(BigDecimal.valueOf(1000))
-                        .build()))
-            .build();
-
-    uk.gov.justice.laa.ia.datastore.client.model.EligibilityData result =
-        applicationMapper.toDatastoreMeansData(data);
-
-    assertThat(result.getLevelOfHelp_JsonNullable()).isEqualTo(JsonNullable.of("controlled"));
-    assertThat(result.getAdultDependants_JsonNullable()).isEqualTo(JsonNullable.of(true));
-    assertThat(result.getIncomes().get(0).getGrossIncome_JsonNullable())
-        .isEqualTo(JsonNullable.of(BigDecimal.valueOf(500)));
-    assertThat(result.getIncomes().get(0).getIncomeFrequency_JsonNullable())
-        .isEqualTo(JsonNullable.of("monthly"));
-    assertThat(result.getBankAccounts().get(0).getAmount_JsonNullable())
-        .isEqualTo(JsonNullable.of(BigDecimal.valueOf(1000)));
-  }
-
-  @Test
-  void shouldMapEligibilityDataWithNoNestedListsToDatastoreMeansData() {
-    uk.gov.justice.laa.rcw.model.EligibilityData data =
-        uk.gov.justice.laa.rcw.model.EligibilityData.builder().levelOfHelp("controlled").build();
-
-    uk.gov.justice.laa.ia.datastore.client.model.EligibilityData result =
-        applicationMapper.toDatastoreMeansData(data);
-
-    assertThat(result.getIncomes_JsonNullable()).isEqualTo(JsonNullable.undefined());
-    assertThat(result.getBankAccounts_JsonNullable()).isEqualTo(JsonNullable.undefined());
-  }
-
-  @Test
-  void shouldMapNullEligibilityDataToNull() {
-    assertThat(applicationMapper.toDatastoreMeansData(null)).isNull();
   }
 }

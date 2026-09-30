@@ -22,6 +22,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -36,6 +37,7 @@ public class ApplicationQueryService {
 
   private final ApplicationApi applicationApi;
   private final ApplicationMapper applicationMapper;
+  private final EligibilityMapper eligibilityMapper;
   private final BearerTokenProvider bearerTokenProvider;
   private final DatastoreRequestContext datastoreRequestContext;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
@@ -60,7 +62,7 @@ public class ApplicationQueryService {
             size,
             officeId,
             applicationMapper.toDatastoreApplicationState(status),
-            applicationMapper.toDatastoreEligibilityIndication(eligibilityIndication));
+            eligibilityMapper.toDatastoreEligibilityIndication(eligibilityIndication));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()

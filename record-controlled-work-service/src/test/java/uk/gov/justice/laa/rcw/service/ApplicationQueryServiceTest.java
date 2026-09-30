@@ -40,8 +40,14 @@ import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.mapper.AddressMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.ClientDetailsMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.DeclarationMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.EvidenceMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -57,7 +63,13 @@ class ApplicationQueryServiceTest {
   @Mock private ApplicationApi mockApplicationApi;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
-  private final ApplicationMapper applicationMapper = new ApplicationMapperImpl();
+  private final ApplicationMapper applicationMapper =
+      new ApplicationMapperImpl(
+          new ClientDetailsMapperImpl(new AddressMapperImpl()),
+          new DeclarationMapperImpl(),
+          new EligibilityMapperImpl(),
+          new EvidenceMapperImpl());
+  private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl();
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
   private ApplicationQueryService applicationQueryService;
 
@@ -67,6 +79,7 @@ class ApplicationQueryServiceTest {
         new ApplicationQueryService(
             mockApplicationApi,
             applicationMapper,
+            eligibilityMapper,
             bearerTokenProvider,
             new DatastoreRequestContext(ServiceNameConstants.SERVICE_NAME),
             mockAuthorizedOfficesProvider);
