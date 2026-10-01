@@ -16,18 +16,20 @@ class EligibilityMapperTest {
 
   @Test
   void shouldMapEligibilityResult() {
-    EligibilityResult eligibilityResult =
-        EligibilityResult.builder()
-            .data(
-                uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
-                    .levelOfHelp("controlled")
-                    .build())
-            .result(Map.of("eligible", true))
+    var data =
+        uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
+            .levelOfHelp("controlled")
+            .adultDependants(false)
+            .adultDependantsCount(0)
             .build();
+    EligibilityResult eligibilityResult =
+        EligibilityResult.builder().data(data).result(Map.of("eligible", true)).build();
 
     var result = eligibilityMapper.toEligibility(eligibilityResult);
 
-    assertThat(result.getData()).isEqualTo(eligibilityResult.getData());
+    assertThat(result.getData().getLevelOfHelp()).isEqualTo("controlled");
+    assertThat(result.getData().getAdultDependants()).isFalse();
+    assertThat(result.getData().getAdultDependantsCount()).isZero();
     assertThat(result.getResult()).isEqualTo(Map.of("eligible", true));
   }
 

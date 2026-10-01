@@ -9,6 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -291,6 +292,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerFirmCode": "123456",
                         "providerOfficeCode": "%s",
                         "referenceNumber": "CW-111111",
+                        "ufn": "123456/123",
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter"
                         },
@@ -315,12 +317,128 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(
             jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
+        .andExpect(jsonPath("$.ufn").value("123456/123"))
         .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("yesSameMatter"))
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
+  }
+
+  @Test
+  void shouldOmitNullEligibilityDataPropertiesAndPreservePopulatedValues() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "referenceNumber": null,
+                        "eligibilityResult": {
+                            "data": {
+                                "additional_property_owned": null,
+                                "adult_dependants": false,
+                                "adult_dependants_count": 0,
+                                "bank_accounts": [
+                                    {
+                                        "amount": 0,
+                                        "account_in_dispute": false
+                                    }
+                                ],
+                                "benefits": [],
+                                "early_result": {
+                                    "result": null,
+                                    "gross_income_excess": 0,
+                                    "type": "income"
+                                },
+                                "incomes": [
+                                    {
+                                        "gross_income": 0,
+                                        "income_frequency": "monthly",
+                                        "income_tax": null
+                                    }
+                                ],
+                                "api_response": {
+                                    "legacy": true
+                                },
+                                "feature_flags": {
+                                    "active": false,
+                                    "discard": null
+                                },
+                                "pending": {
+                                    "saved": 0,
+                                    "discard": null
+                                }
+                            },
+                            "result": {
+                                "keep": false,
+                                "discard": null,
+                                "empty": []
+                            }
+                        }
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.eligibility.data.additional_property_owned").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.level_of_help").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.adult_dependants").value(false))
+        .andExpect(jsonPath("$.eligibility.data.adult_dependants_count").value(0))
+        .andExpect(jsonPath("$.eligibility.data.bank_accounts[0].amount").value(0))
+        .andExpect(jsonPath("$.eligibility.data.bank_accounts[0].account_in_dispute").value(false))
+        .andExpect(jsonPath("$.eligibility.data.benefits").isEmpty())
+        .andExpect(jsonPath("$.eligibility.data.early_result.result").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.early_result.gross_income_excess").value(0))
+        .andExpect(jsonPath("$.eligibility.data.early_result.type").value("income"))
+        .andExpect(jsonPath("$.eligibility.data.incomes[0].gross_income").value(0))
+        .andExpect(jsonPath("$.eligibility.data.incomes[0].income_frequency").value("monthly"))
+        .andExpect(jsonPath("$.eligibility.data.incomes[0].income_tax").doesNotHaveJsonPath())
+        .andExpect(
+            jsonPath("$.eligibility.data.incomes[0].national_insurance").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.api_response").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.feature_flags.active").value(false))
+        .andExpect(jsonPath("$.eligibility.data.feature_flags.discard").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.data.pending.saved").value(0))
+        .andExpect(jsonPath("$.eligibility.data.pending.discard").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibility.result.keep").value(false))
+        .andExpect(jsonPath("$.eligibility.result.discard").value(nullValue()))
+        .andExpect(jsonPath("$.eligibility.result.empty").isEmpty())
+        .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
+  }
+
+  @Test
+  void shouldKeepNullEligibilityDataAndResultAndNullableApplicationFields() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "referenceNumber": null,
+                        "eligibilityResult": {
+                            "data": null,
+                            "result": {"indication": false}
+                        }
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.eligibility.data").value(nullValue()))
+        .andExpect(jsonPath("$.eligibility.result.indication").value(false))
+        .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
   }
 
   @Test

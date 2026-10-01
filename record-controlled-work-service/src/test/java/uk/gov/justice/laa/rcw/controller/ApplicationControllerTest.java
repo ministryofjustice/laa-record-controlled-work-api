@@ -139,7 +139,8 @@ class ApplicationControllerTest {
   @Test
   void getApplicationWithId_returnsOkStatusAndApplicationResponse() throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
+    Application applicationResponse =
+        ApplicationGenerator.create(b -> b.id(applicationId).ufn("123456/123"));
 
     when(mockApplicationQueryService.getApplication(applicationId))
         .thenReturn(Optional.of(applicationResponse));
@@ -150,6 +151,7 @@ class ApplicationControllerTest {
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
+        .andExpect(jsonPath("$.ufn").value("123456/123"))
         .andExpect(
             jsonPath("$.individualLegalAidNumber").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.modifiedAt").exists())
@@ -158,6 +160,21 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$.providerFirmCode").value("123456"))
         .andExpect(jsonPath("$.modifiedBy").value("Random User"))
         .andExpect(jsonPath("$.createdBy").value("Random User"));
+  }
+
+  @Test
+  void getApplicationWithId_returnsOkStatus_whenUfnIsAbsent() throws Exception {
+    UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
+
+    when(mockApplicationQueryService.getApplication(applicationId))
+        .thenReturn(Optional.of(applicationResponse));
+
+    mockMvc
+        .perform(get("/api/v1/applications/%s".formatted(applicationId)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
+        .andExpect(jsonPath("$.ufn").doesNotExist());
   }
 
   @Test

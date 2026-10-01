@@ -177,6 +177,7 @@ class ApplicationMapperTest {
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
             .referenceNumber(REFERENCE_NUMBER)
+            .ufn("123456/123")
             .createdAt(now)
             .createdBy("Random User")
             .modifiedAt(now)
@@ -187,6 +188,7 @@ class ApplicationMapperTest {
 
     assertThat(result.getId()).isEqualTo(APPLICATION_ID);
     assertThat(result.getApplicationRefNumber()).isEqualTo(REFERENCE_NUMBER);
+    assertThat(result.getUfn()).isEqualTo("123456/123");
     assertThat(result.getIndividualLegalAidNumber()).isEqualTo(individualLegalAidNumber);
     assertThat(result.getProviderFirmCode()).isEqualTo("123456");
     assertThat(result.getProviderOfficeCode()).isEqualTo("22439e72-68d3-4770-b435-c352d883d21e");
@@ -255,6 +257,7 @@ class ApplicationMapperTest {
     assertThat(result.getDeclaration()).isNull();
     assertThat(result.getEligibility()).isNull();
     assertThat(result.getEvidence()).isNull();
+    assertThat(result.getUfn()).isNull();
     assertThat(result.getClientDetails().getAddress()).isNull();
   }
 

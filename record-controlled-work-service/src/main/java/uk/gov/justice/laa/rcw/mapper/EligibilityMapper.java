@@ -14,6 +14,7 @@ import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 public interface EligibilityMapper {
 
   /** Maps the datastore eligibility result onto the RCW API model. */
+  @Mapping(target = "data._apiResponse", ignore = true)
   Eligibility toEligibility(EligibilityResult eligibilityResult);
 
   /** Maps RCW eligibility data onto the datastore's means-data command payload. */
