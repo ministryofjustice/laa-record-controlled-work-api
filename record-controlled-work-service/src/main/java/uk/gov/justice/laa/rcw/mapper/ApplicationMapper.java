@@ -1,18 +1,25 @@
 package uk.gov.justice.laa.rcw.mapper;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
 @Mapper(
@@ -70,6 +77,35 @@ public interface ApplicationMapper {
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
   StartApplicationCommand toStartApplicationCommand(
       CreateApplicationRequestBody createApplicationRequestBody);
+
+  /**
+   * Maps the validated details snapshot to a sparse datastore edit command.
+   *
+   * @param request the complete validated details snapshot
+   * @param version the caller's version precondition
+   * @return the sparse datastore command
+   */
+  @BeanMapping(ignoreByDefault = true)
+  @Mapping(target = "eTag", source = "version")
+  @Mapping(target = "clientDetails", source = "request.clientDetails")
+  EditApplicationCommand toEditApplicationCommand(
+      UpdateApplicationDetailsRequestBody request, long version);
+
+  /**
+   * Sets nullable root fields as present, including explicit clears.
+   *
+   * @param request the complete validated details snapshot
+   * @param command the sparse datastore command
+   */
+  @AfterMapping
+  default void mapEditableNullableFields(
+      UpdateApplicationDetailsRequestBody request, @MappingTarget EditApplicationCommand command) {
+    command.setReasonForReapplication_JsonNullable(
+        JsonNullable.of(request.getReasonForReapplication()));
+    command.setEcfFlag_JsonNullable(JsonNullable.of(request.getEcfFlag()));
+    command.setScopingQuestions_JsonNullable(
+        JsonNullable.of(Map.of("priorLegalAid", request.getPriorLegalAid().getValue())));
+  }
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(

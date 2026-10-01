@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -29,6 +30,7 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
@@ -346,6 +348,59 @@ class ApplicationGatewayTest {
             () -> applicationGateway.updateApplication(APPLICATION_ID, updateApplicationCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
         .hasMessage(expectedMessage);
+  }
+
+  @Test
+  void shouldEditApplicationAndReturnResponseEtag() {
+    EditApplicationCommand command = editApplicationCommand();
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.setETag("\"23\"");
+    ResponseEntity<Void> downstreamResponse =
+        new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            APPLICATION_ID,
+            BEARER_TOKEN,
+            CORRELATION_ID,
+            ServiceNameConstants.SERVICE_NAME,
+            command))
+        .thenReturn(downstreamResponse);
+
+    ResponseEntity<Void> result = applicationGateway.editApplication(APPLICATION_ID, command);
+
+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    assertThat(result.getHeaders().getETag()).isEqualTo("\"23\"");
+    verify(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
+  }
+
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldEditApplication_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
+        .when(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
+  }
+
+  private static EditApplicationCommand editApplicationCommand() {
+    return EditApplicationCommand.builder().eTag(23L).build();
   }
 
   private static Stream<Arguments> officeScopedErrorMappings() {

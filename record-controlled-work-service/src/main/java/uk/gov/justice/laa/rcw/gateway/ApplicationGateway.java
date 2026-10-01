@@ -13,6 +13,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -24,6 +25,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
@@ -316,6 +318,34 @@ public class ApplicationGateway {
   public void updateApplication(UUID applicationId, UpdateApplicationCommand command) {
     try {
       applicationApi.updateApplication(
+          applicationId,
+          bearerTokenProvider.currentBearerToken(),
+          datastoreRequestContext.correlationId(),
+          datastoreRequestContext.serviceName(),
+          command);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw notFound(applicationId);
+    } catch (HttpClientErrorException.Conflict exception) {
+      throw conflict(applicationId);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw badRequestForApplication(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw upstreamErrorForApplication(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw unavailableErrorForApplication(applicationId);
+    }
+  }
+
+  /**
+   * Edits application details and returns the downstream response headers.
+   *
+   * @param applicationId the application id
+   * @param command complete editable details and caller version
+   * @return the datastore response, including its new ETag
+   */
+  public ResponseEntity<Void> editApplication(UUID applicationId, EditApplicationCommand command) {
+    try {
+      return applicationApi.editApplicationWithHttpInfo(
           applicationId,
           bearerTokenProvider.currentBearerToken(),
           datastoreRequestContext.correlationId(),

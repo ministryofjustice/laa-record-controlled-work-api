@@ -1,6 +1,12 @@
 package uk.gov.justice.laa.rcw.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +15,7 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
@@ -28,6 +35,7 @@ import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.config.DatastoreClientProperties;
 import uk.gov.justice.laa.ia.datastore.client.invoker.ApiClient;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 
 /**
  * Configures the datastore {@link ApplicationApi} client to use a true On-Behalf-Of (jwt-bearer)
@@ -38,6 +46,7 @@ import uk.gov.justice.laa.ia.datastore.client.invoker.ApiClient;
  * applicationApi} bean, which uses a client-credentials grant instead.
  */
 @Configuration
+@SuppressWarnings({"deprecation", "removal"})
 public class DatastoreClientConfiguration {
 
   /** Manages OBO (jwt-bearer) authorized clients for the {@code datastore} registration. */
@@ -86,6 +95,7 @@ public class DatastoreClientConfiguration {
       DatastoreClientProperties props,
       OAuth2AuthorizedClientManager datastoreAuthorizedClientManager) {
     RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
+    restTemplate.getMessageConverters().add(0, new EditApplicationCommandHttpMessageConverter());
     restTemplate
         .getInterceptors()
         .add(
@@ -94,6 +104,31 @@ public class DatastoreClientConfiguration {
 
     ApiClient apiClient = new ApiClient(restTemplate).setBasePath(props.baseUrl());
     return new ApplicationApi(apiClient);
+  }
+
+  @SuppressWarnings({"deprecation", "removal"})
+  private static final class EditApplicationCommandHttpMessageConverter
+      extends MappingJackson2HttpMessageConverter {
+
+    EditApplicationCommandHttpMessageConverter() {
+      super(editApplicationCommandObjectMapper());
+    }
+
+    @Override
+    protected boolean supports(Class<?> clazz) {
+      return EditApplicationCommand.class.isAssignableFrom(clazz);
+    }
+  }
+
+  private static ObjectMapper editApplicationCommandObjectMapper() {
+    ObjectMapper objectMapper =
+        JsonMapper.builder()
+            .addModule(new JavaTimeModule())
+            .addModule(new JsonNullableModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .build();
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    return objectMapper;
   }
 
   /**
