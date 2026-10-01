@@ -2,17 +2,20 @@ package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,10 +54,12 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
+import uk.gov.justice.laa.rcw.service.ApplicationQueryService.VersionedApplication;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
@@ -136,18 +141,21 @@ class ApplicationControllerTest {
         .getApplications(0, 25, null, ApplicationState.COMPLETED, EligibilityIndication.INELIGIBLE);
   }
 
-  @Test
-  void getApplicationWithId_returnsOkStatusAndApplicationResponse() throws Exception {
+  @ParameterizedTest
+  @ValueSource(longs = {0L, 7L, Long.MAX_VALUE})
+  void getApplicationWithId_returnsOkStatusAndApplicationResponse(long version) throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     Application applicationResponse =
         ApplicationGenerator.create(b -> b.id(applicationId).ufn("123456/123"));
 
     when(mockApplicationQueryService.getApplication(applicationId))
-        .thenReturn(Optional.of(applicationResponse));
+        .thenReturn(Optional.of(new VersionedApplication(applicationResponse, version)));
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
         .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"" + version + "\""))
+        .andExpect(jsonPath("$.eTag").doesNotExist())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
@@ -168,7 +176,7 @@ class ApplicationControllerTest {
     Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
 
     when(mockApplicationQueryService.getApplication(applicationId))
-        .thenReturn(Optional.of(applicationResponse));
+        .thenReturn(Optional.of(new VersionedApplication(applicationResponse, 0L)));
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
@@ -185,7 +193,52 @@ class ApplicationControllerTest {
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(header().doesNotExist("ETag"));
+  }
+
+  @Test
+  void getApplicationWithId_returnsBadGatewayWithoutEtagForInvalidVersion() throws Exception {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationQueryService.getApplication(id))
+        .thenThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an invalid application version",
+                "DATASTORE_INVALID_APPLICATION_VERSION"));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id))
+        .andExpect(status().isBadGateway())
+        .andExpect(header().doesNotExist("ETag"))
+        .andExpect(jsonPath("$.status").value(502))
+        .andExpect(jsonPath("$.reason").value("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @Test
+  void updateApplicationDetails_failsClosedWithoutCallingServices() {
+    ApplicationController controller =
+        new ApplicationController(
+            mockApplicationQueryService,
+            mockApplicationMeansService,
+            mockApplicationUpdateService,
+            mockApplicationEvidenceService,
+            mockApplicationCreationService);
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+
+    ApplicationUnavailableException error =
+        assertThrows(
+            ApplicationUnavailableException.class,
+            () ->
+                controller.updateApplicationDetails(
+                    id, new UpdateApplicationDetailsRequestBody(), "\"0\""));
+
+    assertEquals("APPLICATION_DETAILS_UNAVAILABLE", error.getReason());
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
   }
 
   @Test

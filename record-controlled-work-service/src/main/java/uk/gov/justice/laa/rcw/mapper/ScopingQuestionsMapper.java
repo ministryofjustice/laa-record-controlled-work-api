@@ -6,11 +6,23 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Map;
 import org.mapstruct.Mapper;
+import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 /** Maps scoping questions between the RCW model and the datastore's loose JSON. */
 @Mapper(componentModel = "spring")
 public interface ScopingQuestionsMapper {
+
+  /** Reads nullable legacy answers for the application response. */
+  default ApplicationScopingQuestions toApplicationScopingQuestions(Object value) {
+    if (value == null) {
+      return null;
+    }
+    if (!(value instanceof Map<?, ?>)) {
+      return new ApplicationScopingQuestions();
+    }
+    return jsonMapper().convertValue(value, ApplicationScopingQuestions.class);
+  }
 
   /** Reads recognised answers without rejecting unknown datastore fields or enum values. */
   default ScopingQuestions toScopingQuestions(Object value) {

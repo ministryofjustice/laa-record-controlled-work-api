@@ -8,12 +8,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
+import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationStatusRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateDeclarationRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
@@ -65,8 +67,17 @@ public class ApplicationController implements ApplicationsApi {
   public ResponseEntity<Application> getApplication(UUID id) {
     return applicationQueryService
         .getApplication(id)
-        .map(ResponseEntity::ok)
+        .map(
+            result ->
+                ResponseEntity.ok().eTag("\"" + result.version() + "\"").body(result.application()))
         .orElse(ResponseEntity.notFound().build());
+  }
+
+  @Override
+  public ResponseEntity<Void> updateApplicationDetails(
+      UUID id, UpdateApplicationDetailsRequestBody request, String ifMatch) {
+    throw new ApplicationUnavailableException(
+        "Application details editing is not yet available", "APPLICATION_DETAILS_UNAVAILABLE");
   }
 
   @Override

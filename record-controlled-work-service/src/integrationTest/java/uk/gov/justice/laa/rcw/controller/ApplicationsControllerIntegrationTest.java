@@ -279,6 +279,114 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldFailDetailsPutClosedWithoutDatastoreRequests() throws Exception {
+    String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", id)
+                .withBearerWriteToken()
+                .header("If-Match", "\"0\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                                        {
+                                            "priorLegalAid": "no",
+                                            "legalAidLast6Months": false,
+                                            "reasonForReapplication": null,
+                                            "ecfFlag": false,
+                                            "clientDetails": {
+                                                "firstName": "Test",
+                                                "lastName": "Client",
+                                                "dateOfBirth": "1990-01-01",
+                                                "niNumber": null,
+                                                "hasFixedAddress": false,
+                                                "address": null
+                                            }
+                                        }
+                                        """))
+        .andExpect(status().isServiceUnavailable())
+        .andExpect(header().doesNotExist("ETag"))
+        .andExpect(jsonPath("$.status").value(503))
+        .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
+
+    DATASTORE.verify(0, WireMock.anyRequestedFor(WireMock.urlMatching("/api/v0/.*")));
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {0L, 17L, Long.MAX_VALUE})
+  void shouldReturnDatastoreBodyVersionAndUnknownLegacyDetails(long version) throws Exception {
+    String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String body =
+        """
+        {
+          "id":"%s",
+          "providerOfficeCode":"%s",
+          "eTag":%d,
+          "ecfFlag":null,
+          "scopingQuestions":{"otherAnswer":true}
+        }
+        """
+            .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version);
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + id))
+            .willReturn(okJson(body).withHeader("ETag", "\"999\"")));
+
+    mockMvc
+        .perform(
+            get("/api/v1/applications/{id}", id)
+                .header("X-Correlation-ID", "get-details-correlation")
+                .withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"" + version + "\""))
+        .andExpect(jsonPath("$.id").value(id))
+        .andExpect(jsonPath("$.ecfFlag").value(nullValue()))
+        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value(nullValue()))
+        .andExpect(jsonPath("$.eTag").doesNotExist());
+
+    DATASTORE.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/api/v0/applications/" + id))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withHeader("X-Correlation-ID", equalTo("get-details-correlation"))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "",
+        ",\"eTag\":null",
+        ",\"eTag\":-1",
+        ",\"eTag\":\"invalid\"",
+        ",\"eTag\":9223372036854775808",
+        ",\"eTag\":1.5",
+        ",\"eTag\":-0.5",
+        ",\"eTag\":\"0\"",
+        ",\"eTag\":true",
+        ",\"eTag\":{}",
+        ",\"eTag\":[]"
+      })
+  void shouldReturnBadGatewayForInvalidBodyVersion(String version) throws Exception {
+    String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + id))
+            .willReturn(
+                okJson(
+                    "{\"id\":\"%s\",\"providerOfficeCode\":\"%s\"%s}"
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version))));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+        .andExpect(status().isBadGateway())
+        .andExpect(header().doesNotExist("ETag"))
+        .andExpect(jsonPath("$.status").value(502))
+        .andExpect(jsonPath("$.reason").value("DATASTORE_INVALID_APPLICATION_VERSION"));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + id)));
+  }
+
+  @Test
   void shouldGetApplication() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
@@ -293,6 +401,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "referenceNumber": "CW-111111",
                         "ufn": "123456/123",
+                        "eTag": 5,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter"
                         },
@@ -338,6 +447,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "id": "%s",
                         "providerOfficeCode": "%s",
                         "referenceNumber": null,
+                        "eTag": 0,
                         "eligibilityResult": {
                             "data": {
                                 "additional_property_owned": null,
@@ -425,6 +535,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "id": "%s",
                         "providerOfficeCode": "%s",
                         "referenceNumber": null,
+                        "eTag": 0,
                         "eligibilityResult": {
                             "data": null,
                             "result": {"indication": false}
@@ -460,6 +571,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .perform(
             get("/api/v1/applications/%s".formatted(applicationId)).withBearerUnauthorizedToken())
         .andExpect(status().isNotFound())
+        .andExpect(header().doesNotExist("ETag"))
         .andExpect(content().string(""));
   }
 
@@ -481,6 +593,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerNoOfficeToken())
         .andExpect(status().isNotFound())
+        .andExpect(header().doesNotExist("ETag"))
         .andExpect(content().string(""));
   }
 
@@ -494,6 +607,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
         .andExpect(status().isNotFound())
+        .andExpect(header().doesNotExist("ETag"))
         .andExpect(content().string(""));
   }
 

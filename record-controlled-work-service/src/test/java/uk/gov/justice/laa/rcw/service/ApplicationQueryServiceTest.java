@@ -8,11 +8,12 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.AddressMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -32,7 +34,6 @@ import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EvidenceMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapperImpl;
-import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
@@ -136,11 +137,40 @@ class ApplicationQueryServiceTest {
   }
 
   @Test
-  void shouldGetApplicationById() {
+  void shouldRejectMissingDatastoreVersion() {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("OFFICE"));
+    when(mockApplicationGateway.fetchApplicationDetails(id))
+        .thenReturn(ApplicationResponse.builder().id(id).providerOfficeCode("OFFICE").build());
+
+    assertThatThrownBy(() -> applicationQueryService.getApplication(id))
+        .isInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version");
+    verify(mockApplicationGateway).fetchApplicationDetails(id);
+  }
+
+  @Test
+  void shouldRejectNegativeDatastoreVersion() {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
+        .thenReturn(List.of("OFFICE"));
+    when(mockApplicationGateway.fetchApplicationDetails(id))
+        .thenReturn(
+            ApplicationResponse.builder().id(id).providerOfficeCode("OFFICE").eTag(-1L).build());
+
+    assertThatThrownBy(() -> applicationQueryService.getApplication(id))
+        .isInstanceOf(ApplicationUpstreamErrorException.class);
+    verify(mockApplicationGateway).fetchApplicationDetails(id);
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {0L, 7L, Long.MAX_VALUE})
+  void shouldGetApplicationById(long version) {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
-    when(mockApplicationGateway.fetchApplication(applicationId))
+    when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
@@ -149,14 +179,17 @@ class ApplicationQueryServiceTest {
                 .applicationType("CONTROLLED_WORK")
                 .createdBy("Random User")
                 .modifiedBy("Random User")
+                .eTag(version)
                 .build());
 
-    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+    var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isPresent();
-    assertThat(result.get().getId()).isEqualTo(applicationId);
-    assertThat(result.get().getProviderFirmCode()).isEqualTo("123456");
-    assertThat(result.get().getApplicationType()).isEqualTo("CONTROLLED_WORK");
+    assertThat(result.get().application().getId()).isEqualTo(applicationId);
+    assertThat(result.get().application().getProviderFirmCode()).isEqualTo("123456");
+    assertThat(result.get().application().getApplicationType()).isEqualTo("CONTROLLED_WORK");
+    assertThat(result.get().version()).isEqualTo(version);
+    verify(mockApplicationGateway).fetchApplicationDetails(applicationId);
   }
 
   @Test
@@ -164,14 +197,14 @@ class ApplicationQueryServiceTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of("OTHER-OFFICE"));
-    when(mockApplicationGateway.fetchApplication(applicationId))
+    when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .build());
 
-    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+    var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isEmpty();
   }
@@ -180,14 +213,14 @@ class ApplicationQueryServiceTest {
   void shouldGetApplicationById_returnsEmptyWhenNoOfficeIsAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
-    when(mockApplicationGateway.fetchApplication(applicationId))
+    when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .build());
 
-    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+    var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isEmpty();
   }
@@ -195,10 +228,10 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldGetApplicationById_returnsEmptyWhenGatewayReportsNotFound() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockApplicationGateway.fetchApplication(applicationId))
+    when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenThrow(new ApplicationNotFoundException("No application found"));
 
-    Optional<Application> result = applicationQueryService.getApplication(applicationId);
+    var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isEmpty();
   }
@@ -208,7 +241,7 @@ class ApplicationQueryServiceTest {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
     ApplicationUnavailableException failure =
         new ApplicationUnavailableException("Datastore is unavailable");
-    when(mockApplicationGateway.fetchApplication(applicationId)).thenThrow(failure);
+    when(mockApplicationGateway.fetchApplicationDetails(applicationId)).thenThrow(failure);
 
     assertThatThrownBy(() -> applicationQueryService.getApplication(applicationId))
         .isSameAs(failure);

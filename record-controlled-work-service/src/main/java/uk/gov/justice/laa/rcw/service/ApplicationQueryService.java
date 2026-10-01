@@ -8,10 +8,12 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -95,27 +97,35 @@ public class ApplicationQueryService {
   /**
    * Gets an Application or empty optional if not found.
    *
-   * @return {@link Optional} of {@link Application}
+   * @return the application and its original datastore version, when visible
    */
-  public Optional<Application> getApplication(UUID applicationId) {
-    Optional<Application> application;
+  public Optional<VersionedApplication> getApplication(UUID applicationId) {
+    ApplicationResponse response;
     try {
-      application =
-          Optional.of(
-              applicationMapper.toApplication(applicationGateway.fetchApplication(applicationId)));
+      response = applicationGateway.fetchApplicationDetails(applicationId);
     } catch (ApplicationNotFoundException exception) {
       return Optional.empty();
     }
     if (!authorizedOfficesProvider
         .currentAuthorizedOfficeCodes()
-        .contains(application.orElseThrow().getProviderOfficeCode())) {
+        .contains(response.getProviderOfficeCode())) {
       return Optional.empty();
+    }
+    Long version = response.geteTag();
+    if (version == null || version < 0) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an invalid application version",
+          "DATASTORE_INVALID_APPLICATION_VERSION");
     }
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
-    return application;
+    return Optional.of(
+        new VersionedApplication(applicationMapper.toApplication(response), version));
   }
+
+  /** A mapped application with its original datastore version, outside the public body. */
+  public record VersionedApplication(Application application, long version) {}
 }

@@ -1,11 +1,24 @@
 package uk.gov.justice.laa.rcw.gateway;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.openapitools.jackson.nullable.JsonNullableModule;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
@@ -29,6 +42,13 @@ import uk.gov.justice.laa.rcw.service.DatastoreRequestContext;
 @Service
 @RequiredArgsConstructor
 public class ApplicationGateway {
+
+  private static final JsonMapper RESPONSE_MAPPER =
+      JsonMapper.builder()
+          .addModule(new JavaTimeModule())
+          .addModule(new JsonNullableModule())
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .build();
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
@@ -120,6 +140,60 @@ public class ApplicationGateway {
       throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
       throw unavailableErrorForApplication(applicationId);
+    }
+  }
+
+  /**
+   * Fetches GET details without allowing numeric coercion to invent a datastore version.
+   *
+   * @param applicationId the application id
+   * @return the application response with an unknown version if the body version is invalid
+   */
+  public ApplicationResponse fetchApplicationDetails(UUID applicationId) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("X-Authorization", bearerTokenProvider.currentBearerToken());
+    headers.set("X-Correlation-ID", datastoreRequestContext.correlationId());
+    headers.set("X-Service-Name", datastoreRequestContext.serviceName());
+    try {
+      Map<String, Object> body =
+          applicationApi
+              .getApiClient()
+              .invokeAPI(
+                  "/api/v0/applications/{id}",
+                  HttpMethod.GET,
+                  Map.of("id", applicationId),
+                  new LinkedMultiValueMap<>(),
+                  null,
+                  headers,
+                  new LinkedMultiValueMap<>(),
+                  new LinkedMultiValueMap<>(),
+                  List.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_PROBLEM_JSON),
+                  MediaType.APPLICATION_JSON,
+                  new String[0],
+                  new ParameterizedTypeReference<Map<String, Object>>() {})
+              .getBody();
+      if (body == null) {
+        throw new ApplicationUpstreamErrorException(
+            "Datastore returned an invalid application version",
+            "DATASTORE_INVALID_APPLICATION_VERSION");
+      }
+      Map<String, Object> values = new HashMap<>(body);
+      Object version = values.get("eTag");
+      if (!(version instanceof Integer || version instanceof Long)) {
+        values.put("eTag", null);
+      }
+      return RESPONSE_MAPPER.convertValue(values, ApplicationResponse.class);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw notFound(applicationId);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw badRequestForApplication(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw upstreamErrorForApplication(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw unavailableErrorForApplication(applicationId);
+    } catch (RestClientException | IllegalArgumentException exception) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an invalid application response", "DATASTORE_INVALID_RESPONSE");
     }
   }
 

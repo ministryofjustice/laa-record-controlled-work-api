@@ -7,6 +7,9 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.gov.justice.laa.ia.datastore.client.model.Address;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
@@ -18,10 +21,10 @@ import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 class ApplicationMapperTest {
 
@@ -198,7 +201,7 @@ class ApplicationMapperTest {
     assertThat(result.getTypeOfNonMeans()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
     assertThat(result.getScopingQuestions())
-        .isEqualTo(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+        .isEqualTo(new ApplicationScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");
@@ -212,6 +215,26 @@ class ApplicationMapperTest {
         .isEqualTo("10 Downing Street");
     assertThat(result.getDeclaration().getDeclarationConfirmation()).isTrue();
     assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
+  }
+
+  @Test
+  void shouldPreserveMissingPriorLegalAid() {
+    Application result =
+        applicationMapper.toApplication(
+            ApplicationResponse.builder().scopingQuestions(Map.of("otherAnswer", true)).build());
+
+    assertThat(result.getScopingQuestions()).isNotNull();
+    assertThat(result.getScopingQuestions().getPriorLegalAid()).isNull();
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(booleans = {true, false})
+  void shouldPreserveNullableEcf(Boolean ecf) {
+    Application result =
+        applicationMapper.toApplication(ApplicationResponse.builder().ecfFlag(ecf).build());
+
+    assertThat(result.getEcfFlag()).isEqualTo(ecf);
   }
 
   @Test
