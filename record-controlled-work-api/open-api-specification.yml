@@ -297,10 +297,16 @@ components:
         providerOfficeCode:
           type: string
         scopingQuestions:
-          type: object
-          additionalProperties: true
+          $ref: '#/components/schemas/ScopingQuestions'
         clientDetails:
           $ref: "#/components/schemas/CreateClientDetailsRequestBody"
+
+    ScopingQuestions:
+      type: object
+      additionalProperties: false
+      properties:
+        priorLegalAid:
+          $ref: "#/components/schemas/PriorLegalAid"
 
     CreateClientDetailsRequestBody:
       required:
@@ -429,8 +435,9 @@ components:
           type: string
           nullable: true
         scopingQuestions:
-          type: object
           nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ScopingQuestions'
         applicationType:
           type: string
         createdAt:
@@ -661,6 +668,13 @@ components:
       enum:
         - eligible
         - ineligible
+
+    PriorLegalAid:
+      type: string
+      enum:
+        - 'no'
+        - yesDifferentMatter
+        - yesSameMatter
 
     ProblemDetail:
       type: object
