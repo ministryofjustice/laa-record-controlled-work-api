@@ -9,8 +9,8 @@ repositories {
     maven {
         url = "https://maven.pkg.github.com/ministryofjustice/laa-info-and-advice-datastore"
         credentials {
-            // needs username as well, must be set using GITHUB_ACTOR
-            password = project.ext.gitHubPackagesPassword
+            username = project.hasProperty('gitHubPackagesUsername') ? project.gitHubPackagesUsername : System.getenv('GITHUB_ACTOR')
+            password = project.hasProperty('gitHubPackagesPassword') ? project.gitHubPackagesPassword : System.getenv('GITHUB_TOKEN')
         }
     }
 }
@@ -52,6 +52,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'io.sentry:sentry-spring-boot-4:8.58.0'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'

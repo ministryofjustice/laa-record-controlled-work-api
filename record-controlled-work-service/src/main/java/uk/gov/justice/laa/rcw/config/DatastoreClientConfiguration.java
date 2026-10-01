@@ -1,6 +1,10 @@
 package uk.gov.justice.laa.rcw.config;
 
+import io.sentry.Sentry;
+import io.sentry.metrics.MetricsUnit;
+import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
+import java.util.Map;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -101,7 +105,7 @@ public class DatastoreClientConfiguration {
    * token is forwarded separately as an explicit {@code X-Authorization} parameter on each {@link
    * ApplicationApi} call, since the datastore API models it as a required request parameter.
    */
-  private record DatastoreOboInterceptor(
+  record DatastoreOboInterceptor(
       OAuth2AuthorizedClientManager clientManager, String clientRegistrationId)
       implements ClientHttpRequestInterceptor {
 
@@ -115,7 +119,18 @@ public class DatastoreClientConfiguration {
               .build();
       OAuth2AccessToken accessToken = clientManager.authorize(authorizeRequest).getAccessToken();
       request.getHeaders().setBearerAuth(accessToken.getTokenValue());
-      return execution.execute(request, body);
+      long startTimeNanos = System.nanoTime();
+      try {
+        return execution.execute(request, body);
+      } finally {
+        double durationMillis = (System.nanoTime() - startTimeNanos) / 1_000_000.0;
+        Sentry.metrics()
+            .distribution(
+                "datastore_api_request_duration",
+                durationMillis,
+                MetricsUnit.Duration.MILLISECOND,
+                SentryMetricsParameters.create(Map.of("http.method", request.getMethod().name())));
+      }
     }
   }
 }
