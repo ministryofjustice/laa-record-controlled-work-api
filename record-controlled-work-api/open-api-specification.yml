@@ -389,6 +389,7 @@ components:
         - declaration
         - evidence
         - eligibility
+        - scopingQuestions
         - applicationType
       properties:
         id:
