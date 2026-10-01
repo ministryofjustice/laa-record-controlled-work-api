@@ -304,6 +304,8 @@ components:
     ScopingQuestions:
       type: object
       additionalProperties: false
+      required:
+        - priorLegalAid
       properties:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"

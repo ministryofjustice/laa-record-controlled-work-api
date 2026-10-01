@@ -248,19 +248,17 @@ class ApplicationControllerTest {
   }
 
   @Test
-  void createApplication_acceptsEmptyScopingQuestions() throws Exception {
+  void createApplication_rejectsScopingQuestionsWithoutPriorLegalAid() throws Exception {
     ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.set("scopingQuestions", mapper.createObjectNode());
-    when(mockApplicationCreationService.createApplication(any()))
-        .thenReturn(ApplicationGenerator.create(null));
-
     mockMvc
         .perform(
             post("/api/v1/applications")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(request.toString()))
-        .andExpect(status().isCreated());
+        .andExpect(status().isBadRequest());
+    org.mockito.Mockito.verifyNoInteractions(mockApplicationCreationService);
   }
 
   @Test
