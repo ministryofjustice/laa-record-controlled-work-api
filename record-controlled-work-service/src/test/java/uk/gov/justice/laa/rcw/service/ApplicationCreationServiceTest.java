@@ -30,8 +30,11 @@ import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationCreationServiceTest {
@@ -40,6 +43,7 @@ class ApplicationCreationServiceTest {
 
   @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private ApplicationMapper mockApplicationMapper;
+  @Mock private ScopingQuestionsMapper mockScopingQuestionsMapper;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private ApplicationCreationService applicationCreationService;
@@ -48,7 +52,10 @@ class ApplicationCreationServiceTest {
   void setUp() {
     applicationCreationService =
         new ApplicationCreationService(
-            mockApplicationGateway, mockApplicationMapper, mockAuthorizedOfficesProvider);
+            mockApplicationGateway,
+            mockApplicationMapper,
+            mockScopingQuestionsMapper,
+            mockAuthorizedOfficesProvider);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
@@ -61,7 +68,8 @@ class ApplicationCreationServiceTest {
             builder ->
                 builder
                     .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
-                    .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
+                    .scopingQuestions(
+                        new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER)));
     StartApplicationCommand startCommand =
         StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
@@ -73,6 +81,8 @@ class ApplicationCreationServiceTest {
     when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
         .thenReturn(datastoreResponse);
     when(mockApplicationMapper.toApplication(datastoreResponse)).thenReturn(expectedApplication);
+    when(mockScopingQuestionsMapper.toDatastoreScopingQuestions(request.getScopingQuestions()))
+        .thenReturn(Map.of("priorLegalAid", "yesSameMatter"));
 
     Application result = applicationCreationService.createApplication(request);
 
@@ -83,7 +93,7 @@ class ApplicationCreationServiceTest {
         .updateScopingData(eq(applicationId), scopingCommandCaptor.capture());
     assertThat(scopingCommandCaptor.getValue().geteTag()).isEqualTo(5L);
     assertThat(scopingCommandCaptor.getValue().getScopingQuestions())
-        .isEqualTo(Map.of("priorLegalAid", "same_matter"));
+        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
     assertThat(result).isEqualTo(expectedApplication);
   }
 
