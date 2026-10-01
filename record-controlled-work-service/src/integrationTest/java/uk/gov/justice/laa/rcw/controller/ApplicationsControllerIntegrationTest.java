@@ -847,17 +847,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "createAddressCommand": {
                                 "addressLine1": "10 Downing Street",
                                 "addressLine2": "Prime ministers address",
-                                "addressLine3": null,
-                                "addressLine4": null,
                                 "postCode": "SW1A 2AA",
-                                "county": null,
                                 "townOrCity": "London",
                                 "country": "GB"
                             }
                         },
                         "applicationType": "RCW",
-                        "providerOfficeCode": "%s",
-                        "ufn": null
+                        "providerOfficeCode": "%s"
                     }
                     """
                         .formatted(niNumber, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
