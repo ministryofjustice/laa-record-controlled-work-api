@@ -48,6 +48,7 @@ import uk.gov.justice.laa.rcw.mapper.DeclarationMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EvidenceMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapperImpl;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -68,7 +69,8 @@ class ApplicationQueryServiceTest {
           new ClientDetailsMapperImpl(new AddressMapperImpl()),
           new DeclarationMapperImpl(),
           new EligibilityMapperImpl(),
-          new EvidenceMapperImpl());
+          new EvidenceMapperImpl(),
+          new ScopingQuestionsMapperImpl());
   private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl();
   private final BearerTokenProvider bearerTokenProvider = new BearerTokenProvider();
   private ApplicationQueryService applicationQueryService;

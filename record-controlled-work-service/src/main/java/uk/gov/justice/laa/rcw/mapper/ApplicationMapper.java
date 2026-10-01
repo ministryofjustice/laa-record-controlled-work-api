@@ -21,7 +21,8 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
       ClientDetailsMapper.class,
       DeclarationMapper.class,
       EligibilityMapper.class,
-      EvidenceMapper.class
+      EvidenceMapper.class,
+      ScopingQuestionsMapper.class
     },
     injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface ApplicationMapper {

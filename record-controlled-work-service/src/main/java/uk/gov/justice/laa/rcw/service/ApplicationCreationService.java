@@ -10,6 +10,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
@@ -22,6 +23,7 @@ public class ApplicationCreationService {
 
   private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
+  private final ScopingQuestionsMapper scopingQuestionsMapper;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
@@ -40,7 +42,9 @@ public class ApplicationCreationService {
         applicationResponse.getId(),
         UpdateScopingDataCommand.builder()
             .eTag(applicationResponse.geteTag())
-            .scopingQuestions(applicationRequestBody.getScopingQuestions())
+            .scopingQuestions(
+                scopingQuestionsMapper.toDatastoreScopingQuestions(
+                    applicationRequestBody.getScopingQuestions()))
             .build());
 
     Application application = applicationMapper.toApplication(applicationResponse);
