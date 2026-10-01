@@ -1070,13 +1070,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                                        {
-                                            "id": "%s",
-                                            "providerOfficeCode": "%s",
-                                            "applicationState": "DRAFT",
-                                            "eTag": 100
-                                        }
-                                        """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT",
+                        "eTag": 100
+                    }
+                    """
                         .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     if ("connection".equals(downstreamFailure)) {
       DATASTORE.stubFor(
@@ -1122,13 +1122,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                            {
-                              "id": "%s",
-                              "providerOfficeCode": "%s",
-                              "applicationState": "DRAFT",
-                              "eTag": 4
-                            }
-                            """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "DRAFT",
+                      "eTag": 4
+                    }
+                    """
                         .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.put(urlPathEqualTo(meansPath))
