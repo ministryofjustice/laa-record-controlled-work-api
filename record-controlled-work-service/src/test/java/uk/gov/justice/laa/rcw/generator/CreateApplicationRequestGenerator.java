@@ -2,11 +2,8 @@ package uk.gov.justice.laa.rcw.generator;
 
 import java.time.LocalDate;
 import java.util.function.Consumer;
-import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
-import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
+
+import uk.gov.justice.laa.rcw.model.*;
 
 /** Generator for an Application model for tests. */
 public class CreateApplicationRequestGenerator {
@@ -30,7 +27,7 @@ public class CreateApplicationRequestGenerator {
     var builder =
         CreateApplicationRequestBody.builder()
             .legalAidBefore("false")
-            .scopingQuestions(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER))
+            .scopingQuestions(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER).familyLawClassification(FamilyLawClassification.PUBLIC))
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e");
     if (customizer != null) {
       customizer.accept(builder);
