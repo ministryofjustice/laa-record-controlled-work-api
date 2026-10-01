@@ -289,25 +289,84 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                                        {
-                                            "priorLegalAid": "no",
-                                            "legalAidLast6Months": false,
-                                            "reasonForReapplication": null,
-                                            "ecfFlag": false,
-                                            "clientDetails": {
-                                                "firstName": "Test",
-                                                "lastName": "Client",
-                                                "dateOfBirth": "1990-01-01",
-                                                "niNumber": null,
-                                                "hasFixedAddress": false,
-                                                "address": null
-                                            }
-                                        }
-                                        """))
+                    {
+                        "priorLegalAid": "no",
+                        "legalAidLast6Months": false,
+                        "reasonForReapplication": null,
+                        "ecfFlag": false,
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "hasFixedAddress": false,
+                            "address": null
+                        }
+                    }
+                    """))
         .andExpect(status().isServiceUnavailable())
         .andExpect(header().doesNotExist("ETag"))
         .andExpect(jsonPath("$.status").value(503))
         .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
+
+    DATASTORE.verify(0, WireMock.anyRequestedFor(WireMock.urlMatching("/api/v0/.*")));
+  }
+
+  @Test
+  void shouldRejectUnauthenticatedDetailsPutWithoutDatastoreRequests() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+                .header("If-Match", "\"0\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                        "priorLegalAid": "no",
+                        "legalAidLast6Months": false,
+                        "reasonForReapplication": null,
+                        "ecfFlag": false,
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "hasFixedAddress": false,
+                            "address": null
+                        }
+                    }
+                    """))
+        .andExpect(status().isUnauthorized());
+
+    DATASTORE.verify(0, WireMock.anyRequestedFor(WireMock.urlMatching("/api/v0/.*")));
+  }
+
+  @Test
+  void shouldRejectInvalidDetailsWithoutDatastoreRequests() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+                .withBearerWriteToken()
+                .header("If-Match", "\"0\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                        "priorLegalAid": "no",
+                        "legalAidLast6Months": false,
+                        "reasonForReapplication": null,
+                        "ecfFlag": false,
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "hasFixedAddress": false,
+                            "address": null
+                        }
+                    }
+                    """))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
 
     DATASTORE.verify(0, WireMock.anyRequestedFor(WireMock.urlMatching("/api/v0/.*")));
   }

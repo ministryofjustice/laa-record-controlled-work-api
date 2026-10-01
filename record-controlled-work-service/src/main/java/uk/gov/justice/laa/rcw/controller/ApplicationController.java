@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
+import uk.gov.justice.laa.rcw.exception.ApplicationPreconditionRequiredException;
+import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
@@ -76,8 +78,23 @@ public class ApplicationController implements ApplicationsApi {
   @Override
   public ResponseEntity<Void> updateApplicationDetails(
       UUID id, UpdateApplicationDetailsRequestBody request, String ifMatch) {
+    validateIfMatch(ifMatch);
     throw new ApplicationUnavailableException(
         "Application details editing is not yet available", "APPLICATION_DETAILS_UNAVAILABLE");
+  }
+
+  private long validateIfMatch(String ifMatch) {
+    if (ifMatch == null) {
+      throw new ApplicationPreconditionRequiredException();
+    }
+    if (!ifMatch.matches("\\\"[0-9]+\\\"")) {
+      throw new ApplicationRequestValidationException("INVALID_IF_MATCH");
+    }
+    try {
+      return Long.parseLong(ifMatch.substring(1, ifMatch.length() - 1));
+    } catch (NumberFormatException exception) {
+      throw new ApplicationRequestValidationException("INVALID_IF_MATCH");
+    }
   }
 
   @Override
