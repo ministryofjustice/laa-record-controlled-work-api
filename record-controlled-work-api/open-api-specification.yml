@@ -393,6 +393,9 @@ components:
         applicationRefNumber:
           type: string
           nullable: true
+        ufn:
+          type: string
+          nullable: true
         individualLegalAidNumber:
           type: string
           format: uuid
@@ -503,8 +506,9 @@ components:
       type: object
       properties:
         data:
-          type: object
           nullable: true
+          allOf:
+            - $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
           type: object
           nullable: true
