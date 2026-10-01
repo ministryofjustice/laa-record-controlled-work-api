@@ -21,7 +21,6 @@ class EligibilityMapperTest {
             .levelOfHelp("controlled")
             .adultDependants(false)
             .adultDependantsCount(0)
-            ._apiResponse(Map.of("cached", false))
             .build();
     EligibilityResult eligibilityResult =
         EligibilityResult.builder().data(data).result(Map.of("eligible", true)).build();
@@ -31,7 +30,6 @@ class EligibilityMapperTest {
     assertThat(result.getData().getLevelOfHelp()).isEqualTo("controlled");
     assertThat(result.getData().getAdultDependants()).isFalse();
     assertThat(result.getData().getAdultDependantsCount()).isZero();
-    assertThat(result.getData().getApiResponse()).isEqualTo(Map.of("cached", false));
     assertThat(result.getResult()).isEqualTo(Map.of("eligible", true));
   }
 

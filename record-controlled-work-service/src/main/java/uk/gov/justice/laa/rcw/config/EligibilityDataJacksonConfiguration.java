@@ -39,13 +39,13 @@ public class EligibilityDataJacksonConfiguration {
   @JsonInclude(Include.NON_NULL)
   abstract static class EligibilityDataMixin {
 
-    @JsonInclude(content = Include.NON_NULL)
+    @JsonInclude(value = Include.NON_NULL, content = Include.NON_NULL)
     abstract Map<String, Object> getApiResponse();
 
-    @JsonInclude(content = Include.NON_NULL)
+    @JsonInclude(value = Include.NON_NULL, content = Include.NON_NULL)
     abstract Map<String, Boolean> getFeatureFlags();
 
-    @JsonInclude(content = Include.NON_NULL)
+    @JsonInclude(value = Include.NON_NULL, content = Include.NON_NULL)
     abstract Map<String, Object> getPending();
   }
 }

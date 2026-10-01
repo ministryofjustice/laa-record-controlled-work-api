@@ -362,9 +362,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                     }
                                 ],
                                 "api_response": {
-                                    "keep": false,
-                                    "discard": null,
-                                    "empty": []
+                                    "legacy": true
                                 },
                                 "feature_flags": {
                                     "active": false,
@@ -375,7 +373,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                     "discard": null
                                 }
                             },
-                            "result": {"indication": true}
+                            "result": {
+                                "keep": false,
+                                "discard": null,
+                                "empty": []
+                            }
                         }
                     }
                     """
@@ -399,14 +401,14 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.eligibility.data.incomes[0].income_tax").doesNotHaveJsonPath())
         .andExpect(
             jsonPath("$.eligibility.data.incomes[0].national_insurance").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.api_response.keep").value(false))
-        .andExpect(jsonPath("$.eligibility.data.api_response.discard").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.api_response.empty").isEmpty())
+        .andExpect(jsonPath("$.eligibility.data.api_response").doesNotHaveJsonPath())
         .andExpect(jsonPath("$.eligibility.data.feature_flags.active").value(false))
         .andExpect(jsonPath("$.eligibility.data.feature_flags.discard").doesNotHaveJsonPath())
         .andExpect(jsonPath("$.eligibility.data.pending.saved").value(0))
         .andExpect(jsonPath("$.eligibility.data.pending.discard").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.result.indication").value(true))
+        .andExpect(jsonPath("$.eligibility.result.keep").value(false))
+        .andExpect(jsonPath("$.eligibility.result.discard").value(nullValue()))
+        .andExpect(jsonPath("$.eligibility.result.empty").isEmpty())
         .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
   }
 
