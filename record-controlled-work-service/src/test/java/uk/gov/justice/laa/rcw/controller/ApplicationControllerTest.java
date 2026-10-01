@@ -2,10 +2,10 @@ package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -57,6 +57,7 @@ import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
@@ -124,6 +125,7 @@ class ApplicationControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
+  @MockitoBean private ApplicationDetailsService mockApplicationDetailsService;
   @MockitoBean private ApplicationMeansService mockApplicationMeansService;
   @MockitoBean private ApplicationEvidenceService mockApplicationEvidenceService;
   @MockitoBean private ApplicationUpdateService mockApplicationUpdateService;
@@ -261,24 +263,25 @@ class ApplicationControllerTest {
   }
 
   @Test
-  void updateApplicationDetails_failsClosedWithoutCallingServices() {
+  void updateApplicationDetails_returnsNoContentAndNewEtag() {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationDetailsService.updateApplicationDetails(eq(id), any(), eq(0L)))
+        .thenReturn("\"1\"");
     ApplicationController controller =
         new ApplicationController(
             mockApplicationQueryService,
+            mockApplicationDetailsService,
             mockApplicationMeansService,
             mockApplicationUpdateService,
             mockApplicationEvidenceService,
             mockApplicationCreationService);
-    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
 
-    ApplicationUnavailableException error =
-        assertThrows(
-            ApplicationUnavailableException.class,
-            () ->
-                controller.updateApplicationDetails(
-                    id, new UpdateApplicationDetailsRequestBody(), "\"0\""));
+    var response =
+        controller.updateApplicationDetails(id, new UpdateApplicationDetailsRequestBody(), "\"0\"");
 
-    assertEquals("APPLICATION_DETAILS_UNAVAILABLE", error.getReason());
+    assertEquals(204, response.getStatusCode().value());
+    assertEquals("\"1\"", response.getHeaders().getETag());
+    verify(mockApplicationDetailsService).updateApplicationDetails(eq(id), any(), eq(0L));
     verifyNoInteractions(
         mockApplicationQueryService,
         mockApplicationMeansService,
@@ -296,6 +299,7 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$.reason").value("IF_MATCH_REQUIRED"));
     verifyNoInteractions(
         mockApplicationQueryService,
+        mockApplicationDetailsService,
         mockApplicationMeansService,
         mockApplicationUpdateService,
         mockApplicationEvidenceService,
@@ -314,6 +318,7 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$.reason").value("INVALID_IF_MATCH"));
     verifyNoInteractions(
         mockApplicationQueryService,
+        mockApplicationDetailsService,
         mockApplicationMeansService,
         mockApplicationUpdateService,
         mockApplicationEvidenceService,
@@ -323,9 +328,15 @@ class ApplicationControllerTest {
   @ParameterizedTest
   @ValueSource(strings = {"\"0\"", "\"000\"", "\"9223372036854775807\""})
   void updateApplicationDetails_acceptsValidIfMatchVersions(String ifMatch) throws Exception {
+    stubSuccessfulDetailsEdit();
     performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
+    verify(mockApplicationDetailsService)
+        .updateApplicationDetails(
+            eq(UUID.fromString(DETAILS_APPLICATION_ID)),
+            any(),
+            eq(Long.parseLong(ifMatch.substring(1, ifMatch.length() - 1))));
   }
 
   @ParameterizedTest
@@ -346,6 +357,7 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
     verifyNoInteractions(
         mockApplicationQueryService,
+        mockApplicationDetailsService,
         mockApplicationMeansService,
         mockApplicationUpdateService,
         mockApplicationEvidenceService,
@@ -354,9 +366,10 @@ class ApplicationControllerTest {
 
   @Test
   void updateApplicationDetails_allowsExplicitNullForNullableProperties() throws Exception {
+    stubSuccessfulDetailsEdit();
     performDetailsPut("\"0\"", VALID_DETAILS_REQUEST)
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
     verifyNoInteractions(
         mockApplicationQueryService,
         mockApplicationMeansService,
@@ -481,9 +494,10 @@ class ApplicationControllerTest {
     request.put("reasonForReapplication", "Same matter reason");
     ((ObjectNode) request.path("clientDetails").path("address")).put("addressLine2", "");
 
+    stubSuccessfulDetailsEdit();
     performDetailsPut("\"0\"", request.toString())
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
   }
 
   @Test
@@ -529,6 +543,7 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
     verifyNoInteractions(
         mockApplicationQueryService,
+        mockApplicationDetailsService,
         mockApplicationMeansService,
         mockApplicationUpdateService,
         mockApplicationEvidenceService,
@@ -544,6 +559,11 @@ class ApplicationControllerTest {
       request.header("If-Match", ifMatch);
     }
     return mockMvc.perform(request);
+  }
+
+  private void stubSuccessfulDetailsEdit() {
+    when(mockApplicationDetailsService.updateApplicationDetails(any(), any(), anyLong()))
+        .thenReturn("\"42\"");
   }
 
   @Test

@@ -10,6 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,6 +24,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -48,6 +50,23 @@ import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExte
 class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   private static final String SERVICE_NAME = "laa-record-controlled-work-api";
+  private static final String VALID_DETAILS_PUT_BODY =
+      """
+      {
+          "priorLegalAid": "no",
+          "legalAidLast6Months": false,
+          "reasonForReapplication": null,
+          "ecfFlag": true,
+          "clientDetails": {
+              "firstName": "Test",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "niNumber": null,
+              "hasFixedAddress": false,
+              "address": null
+          }
+      }
+      """;
   private static final String UUID_REGEX =
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
   private static final WireMockServer DATASTORE =
@@ -279,37 +298,68 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void shouldFailDetailsPutClosedWithoutDatastoreRequests() throws Exception {
+  void shouldEditApplicationDetailsOnceWithCallerVersionAndReturnNewEtag() throws Exception {
     String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + id))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "DRAFT",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo("/api/v0/applications/" + id + ":edit-application"))
+            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
+
     mockMvc
         .perform(
             put("/api/v1/applications/{id}/details", id)
                 .withBearerWriteToken()
-                .header("If-Match", "\"0\"")
+                .header("If-Match", "\"31\"")
+                .header("X-Correlation-ID", "details-edit-correlation")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
+                .content(VALID_DETAILS_PUT_BODY))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"32\""));
+
+    DATASTORE.verify(
+        1,
+        getRequestedFor(urlPathEqualTo("/api/v0/applications/" + id))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withHeader("X-Correlation-ID", equalTo("details-edit-correlation"))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME)));
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(urlPathEqualTo("/api/v0/applications/" + id + ":edit-application"))
+            .withHeader("Authorization", equalTo("Bearer obo-access-token"))
+            .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
+            .withHeader("X-Correlation-ID", equalTo("details-edit-correlation"))
+            .withHeader("X-Service-Name", equalTo(SERVICE_NAME))
+            .withRequestBody(
+                equalToJson(
                     """
                     {
-                        "priorLegalAid": "no",
-                        "legalAidLast6Months": false,
+                        "eTag": 31,
                         "reasonForReapplication": null,
-                        "ecfFlag": false,
+                          "ecfFlag": true,
+                        "scopingQuestions": {"priorLegalAid": "no"},
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
                             "dateOfBirth": "1990-01-01",
                             "niNumber": null,
-                            "hasFixedAddress": false,
+                            "noFixedAbode": true,
                             "address": null
                         }
                     }
-                    """))
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(header().doesNotExist("ETag"))
-        .andExpect(jsonPath("$.status").value(503))
-        .andExpect(jsonPath("$.reason").value("APPLICATION_DETAILS_UNAVAILABLE"));
-
-    DATASTORE.verify(0, WireMock.anyRequestedFor(WireMock.urlMatching("/api/v0/.*")));
+                    """)));
   }
 
   @Test
@@ -823,6 +873,120 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         }
                     }
                     """)));
+  }
+
+  @Test
+  void shouldReturnSameNotFoundForMissingAndUnauthorizedOffice() throws Exception {
+    String id = "c2c3d4e5-f6a7-8901-bcde-f12345678902";
+    String path = "/api/v0/applications/" + id;
+    String scenario = "details-put-office-visibility";
+    DATASTORE.resetScenarios();
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.aResponse().withStatus(404))
+            .willSetStateTo("application at unauthorized office"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs("application at unauthorized office")
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "UNAUTHORIZED",
+                      "applicationState": "DRAFT",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id))));
+
+    String missingResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String hiddenResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertEquals(missingResponse, hiddenResponse);
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @Test
+  void shouldRejectCompletedApplicationWithoutEditing() throws Exception {
+    String id = "d2c3d4e5-f6a7-8901-bcde-f12345678903";
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "COMPLETED",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+
+    performValidDetailsPut(id)
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.reason").value("APPLICATION_COMPLETED"));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @Test
+  void shouldReturnBadGatewayWhenEditResponseHasNoEtag() throws Exception {
+    String id = "e2c3d4e5-f6a7-8901-bcde-f12345678904";
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "DRAFT",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .willReturn(WireMock.aResponse().withStatus(204)));
+
+    performValidDetailsPut(id)
+        .andExpect(status().isBadGateway())
+        .andExpect(header().doesNotExist("ETag"))
+        .andExpect(jsonPath("$.status").value(502))
+        .andExpect(jsonPath("$.reason").value("DATASTORE_INVALID_APPLICATION_VERSION"));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  private org.springframework.test.web.servlet.ResultActions performValidDetailsPut(String id)
+      throws Exception {
+    return mockMvc.perform(
+        put("/api/v1/applications/{id}/details", id)
+            .withBearerWriteToken()
+            .header("If-Match", "\"31\"")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(VALID_DETAILS_PUT_BODY));
   }
 
   @Test
