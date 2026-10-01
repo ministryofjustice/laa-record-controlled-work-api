@@ -27,7 +27,10 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateEvidenceCommand;
@@ -174,6 +177,66 @@ class ApplicationGatewayTest {
         .thenThrow(datastoreException);
 
     assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
+  }
+
+  @Test
+  void shouldGetApplications_andForwardFiltersAndRequestHeaders() {
+    String officeCode = "AB12CD";
+    ApplicationState status = ApplicationState.COMPLETED;
+    EligibilityIndication eligibilityIndication = EligibilityIndication.INELIGIBLE;
+    ApplicationResponses response =
+        ApplicationResponses.builder().content(java.util.List.of()).build();
+    when(mockApplicationApi.getApplications(
+            BEARER_TOKEN,
+            CORRELATION_ID,
+            ServiceNameConstants.SERVICE_NAME,
+            2,
+            50,
+            officeCode,
+            status,
+            eligibilityIndication))
+        .thenReturn(response);
+
+    ApplicationResponses result =
+        applicationGateway.getApplications(2, 50, officeCode, status, eligibilityIndication);
+
+    assertThat(result).isSameAs(response);
+    verify(mockApplicationApi)
+        .getApplications(
+            BEARER_TOKEN,
+            CORRELATION_ID,
+            ServiceNameConstants.SERVICE_NAME,
+            2,
+            50,
+            officeCode,
+            status,
+            eligibilityIndication);
+  }
+
+  @Test
+  void shouldGetApplications_whenDatastoreReturnsNoContent() {
+    ApplicationResponses response =
+        ApplicationResponses.builder().content(java.util.List.of()).build();
+    when(mockApplicationApi.getApplications(any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(response);
+
+    ApplicationResponses result = applicationGateway.getApplications(0, 25, null, null, null);
+
+    assertThat(result.getContent()).isEmpty();
+  }
+
+  @ParameterizedTest
+  @MethodSource("officeScopedErrorMappings")
+  void shouldGetApplications_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    when(mockApplicationApi.getApplications(any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenThrow(datastoreException);
+
+    assertThatThrownBy(() -> applicationGateway.getApplications(0, 25, "AB12CD", null, null))
         .isExactlyInstanceOf(expectedExceptionType)
         .hasMessage(expectedMessage);
   }
