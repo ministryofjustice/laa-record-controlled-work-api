@@ -310,7 +310,6 @@ components:
       additionalProperties: false
       required:
         - priorLegalAid
-        - familyLawClassification
       properties:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"
