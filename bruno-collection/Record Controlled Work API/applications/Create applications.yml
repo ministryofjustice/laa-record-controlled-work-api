@@ -15,7 +15,7 @@ http:
         "legalAidBefore": "false",
         "providerOfficeCode": "R1XEVG",
         "scopingQuestions": {
-          "priorLegalAid": "same_matter"
+          "priorLegalAid": "yesSameMatter"
         },
         "clientDetails": {
           "firstName": "Joe",
@@ -87,7 +87,7 @@ examples:
             "legalAidBefore": "false",
             "providerOfficeCode": "R1XEVG",
             "scopingQuestions": {
-              "priorLegalAid": "same_matter"
+              "priorLegalAid": "yesSameMatter"
             },
             "clientDetails": {
               "firstName": "Joe",

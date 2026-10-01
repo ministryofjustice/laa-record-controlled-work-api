@@ -22,7 +22,6 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
-import java.util.Map;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +36,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
 import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExtensions;
@@ -291,7 +292,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "referenceNumber": "CW-111111",
                         "scopingQuestions": {
-                            "priorLegalAid": "same_matter"
+                            "priorLegalAid": "yesSameMatter"
                         },
                         "applicationType": "CONTROLLED_WORK",
                         "declaration": {
@@ -314,7 +315,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(
             jsonPath("$.individualLegalAidNumber").value("ebd50ba0-9ed9-4003-83a8-c11ac07d9e32"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
-        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("same_matter"))
+        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("yesSameMatter"))
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
@@ -414,7 +415,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             builder ->
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
-                    .scopingQuestions(Map.of("priorLegalAid", "same_matter")));
+                    .scopingQuestions(
+                        new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER)));
     request.getClientDetails().setNiNumber(niNumber);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
@@ -526,7 +528,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     {
                         "eTag": 0,
                         "scopingQuestions": {
-                            "priorLegalAid": "same_matter"
+                            "priorLegalAid": "yesSameMatter"
                         }
                     }
                     """)));

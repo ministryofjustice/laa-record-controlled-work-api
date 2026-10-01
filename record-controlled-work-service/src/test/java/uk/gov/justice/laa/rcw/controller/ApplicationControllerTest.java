@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -26,6 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -226,6 +229,51 @@ class ApplicationControllerTest {
                         + "\"status\":400,"
                         + "\"detail\":\"Invalid request content.\","
                         + "\"instance\":\"/api/v1/applications\"}"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "{\"priorLegalAid\":\"same_matter\"}"})
+  void createApplication_rejectsInvalidScopingQuestions(String scopingQuestions) throws Exception {
+    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+    org.mockito.Mockito.verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsScopingQuestionsWithoutPriorLegalAid() throws Exception {
+    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.createObjectNode());
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+    org.mockito.Mockito.verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsMissingScopingQuestions() throws Exception {
+    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.remove("scopingQuestions");
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+    org.mockito.Mockito.verifyNoInteractions(mockApplicationCreationService);
   }
 
   @Test
