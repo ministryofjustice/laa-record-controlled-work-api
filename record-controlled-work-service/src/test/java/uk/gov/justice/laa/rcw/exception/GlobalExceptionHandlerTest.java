@@ -6,6 +6,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,23 @@ class GlobalExceptionHandlerTest {
     ProblemDetail body = (ProblemDetail) result.getBody();
     assert body != null;
     assertThat(body.getProperties()).containsEntry("reason", "APPLICATION_ALREADY_RECORDED");
+  }
+
+  @Test
+  void handleApplicationConflict_returnsPreconditionFailedForVersionConflict() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("PUT", "/api/v1/applications/99/details");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleApplicationConflict(
+            new ApplicationConflictException(
+                "Application details changed concurrently", "APPLICATION_VERSION_CONFLICT"),
+            new ServletWebRequest(request));
+
+    assertThat(result.getStatusCode()).isEqualTo(PRECONDITION_FAILED);
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assert body != null;
+    assertThat(body.getStatus()).isEqualTo(412);
+    assertThat(body.getProperties()).containsEntry("reason", "APPLICATION_VERSION_CONFLICT");
   }
 
   @Test

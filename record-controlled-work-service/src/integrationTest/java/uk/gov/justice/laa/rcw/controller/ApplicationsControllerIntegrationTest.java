@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,12 +26,15 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.util.stream.Stream;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -977,6 +981,181 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
     DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @ParameterizedTest
+  @MethodSource("detailsEditConflictResponses")
+  void shouldClassifyDetailsEditConflictByReason(
+      String downstreamBody, int expectedStatus, String expectedReason) throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "DRAFT",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(409)
+                    .withHeader("Content-Type", "application/problem+json")
+                    .withBody(downstreamBody)));
+
+    var response =
+        performValidDetailsPut(id)
+            .andExpect(status().is(expectedStatus))
+            .andExpect(jsonPath("$.status").value(expectedStatus))
+            .andExpect(jsonPath("$.reason").value(expectedReason))
+            .andReturn()
+            .getResponse();
+
+    assertFalse(response.getContentAsString().contains("untrusted downstream detail"));
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                      "eTag": 31,
+                      "reasonForReapplication": null,
+                      "ecfFlag": true,
+                      "scopingQuestions": {"priorLegalAid": "no"},
+                      "clientDetails": {
+                        "firstName": "Test",
+                        "lastName": "Client",
+                        "dateOfBirth": "1990-01-01",
+                        "niNumber": null,
+                        "noFixedAbode": true,
+                        "address": null
+                      }
+                    }
+                    """)));
+  }
+
+  private static Stream<Arguments> detailsEditConflictResponses() {
+    return Stream.of(
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\","
+                + "\"detail\":\"untrusted downstream detail\"}",
+            412,
+            "APPLICATION_VERSION_CONFLICT"),
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\","
+                + "\"detail\":\"different conflict source\"}",
+            412,
+            "APPLICATION_VERSION_CONFLICT"),
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_COMPLETED\"}", 409, "APPLICATION_COMPLETED"),
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"OTHER_CONFLICT\"}", 409, "CONCURRENT_MODIFICATION"),
+        Arguments.of("{\"status\":409}", 409, "CONCURRENT_MODIFICATION"),
+        Arguments.of("not-json", 409, "CONCURRENT_MODIFICATION"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("detailsEditFailureResponses")
+  void shouldMapDatastoreEditFailuresSafely(
+      String downstreamFailure, int expectedStatus, String expectedReason) throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                                        {
+                                            "id": "%s",
+                                            "providerOfficeCode": "%s",
+                                            "applicationState": "DRAFT",
+                                            "eTag": 100
+                                        }
+                                        """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    if ("connection".equals(downstreamFailure)) {
+      DATASTORE.stubFor(
+          WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+              .willReturn(WireMock.aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)));
+    } else {
+      DATASTORE.stubFor(
+          WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+              .willReturn(
+                  WireMock.aResponse()
+                      .withStatus(Integer.parseInt(downstreamFailure))
+                      .withBody("untrusted downstream detail")));
+    }
+
+    var response =
+        performValidDetailsPut(id)
+            .andExpect(status().is(expectedStatus))
+            .andExpect(jsonPath("$.status").value(expectedStatus))
+            .andExpect(jsonPath("$.reason").value(expectedReason))
+            .andReturn()
+            .getResponse();
+
+    assertFalse(response.getContentAsString().contains("untrusted downstream detail"));
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  private static Stream<Arguments> detailsEditFailureResponses() {
+    return Stream.of(
+        Arguments.of("400", 400, "DATASTORE_REJECTED_REQUEST"),
+        Arguments.of("500", 502, "DATASTORE_SERVER_ERROR"),
+        Arguments.of("503", 502, "DATASTORE_SERVER_ERROR"),
+        Arguments.of("connection", 503, "DATASTORE_UNAVAILABLE"));
+  }
+
+  @Test
+  void shouldPreserveDatastore503RetryForMeansUpdates() throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String applicationPath = "/api/v0/applications/" + id;
+    String meansPath = applicationPath + ":update-means-data";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(applicationPath))
+            .willReturn(
+                okJson(
+                    """
+                            {
+                              "id": "%s",
+                              "providerOfficeCode": "%s",
+                              "applicationState": "DRAFT",
+                              "eTag": 4
+                            }
+                            """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo(meansPath))
+            .inScenario("means update retries on 503")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.aResponse().withStatus(503))
+            .willSetStateTo("retry succeeds"));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo(meansPath))
+            .inScenario("means update retries on 503")
+            .whenScenarioStateIs("retry succeeds")
+            .willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/means", id)
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\":{},\"result\":{}}"))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
+    DATASTORE.verify(2, putRequestedFor(urlPathEqualTo(meansPath)));
   }
 
   private org.springframework.test.web.servlet.ResultActions performValidDetailsPut(String id)

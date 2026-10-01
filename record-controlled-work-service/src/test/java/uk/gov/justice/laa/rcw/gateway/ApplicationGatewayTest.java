@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -399,6 +400,28 @@ class ApplicationGatewayTest {
         .hasMessage(expectedMessage);
   }
 
+  @ParameterizedTest
+  @MethodSource("detailsConflictReasons")
+  void shouldEditApplication_classifyConflictByStructuredReason(
+      String responseBody, String expectedReason) {
+    doThrow(conflict(responseBody))
+        .when(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationConflictException) exception).getReason())
+                    .isEqualTo(expectedReason));
+  }
+
   private static EditApplicationCommand editApplicationCommand() {
     return EditApplicationCommand.builder().eTag(23L).build();
   }
@@ -456,6 +479,29 @@ class ApplicationGatewayTest {
     return (HttpClientErrorException.Conflict)
         HttpClientErrorException.create(
             HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.Conflict conflict(String responseBody) {
+    return (HttpClientErrorException.Conflict)
+        HttpClientErrorException.create(
+            HttpStatus.CONFLICT,
+            "Conflict",
+            HttpHeaders.EMPTY,
+            responseBody.getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+  }
+
+  private static Stream<Arguments> detailsConflictReasons() {
+    return Stream.of(
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\","
+                + "\"detail\":\"untrusted downstream detail\"}",
+            "APPLICATION_VERSION_CONFLICT"),
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_COMPLETED\"}", "APPLICATION_COMPLETED"),
+        Arguments.of("{\"status\":409,\"reason\":\"OTHER_CONFLICT\"}", "CONCURRENT_MODIFICATION"),
+        Arguments.of("{\"status\":409}", "CONCURRENT_MODIFICATION"),
+        Arguments.of("not-json", "CONCURRENT_MODIFICATION"));
   }
 
   private static HttpServerErrorException serverError() {

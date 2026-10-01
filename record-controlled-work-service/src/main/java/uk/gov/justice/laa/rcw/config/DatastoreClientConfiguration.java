@@ -6,6 +6,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import org.apache.hc.client5.http.HttpRequestRetryStrategy;
+import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.util.TimeValue;
 import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -94,7 +102,10 @@ public class DatastoreClientConfiguration {
   public ApplicationApi applicationApi(
       DatastoreClientProperties props,
       OAuth2AuthorizedClientManager datastoreAuthorizedClientManager) {
-    RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
+    CloseableHttpClient httpClient =
+        HttpClients.custom().setRetryStrategy(datastoreRetryStrategy()).build();
+    RestTemplate restTemplate =
+        new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
     restTemplate.getMessageConverters().add(0, new EditApplicationCommandHttpMessageConverter());
     restTemplate
         .getInterceptors()
@@ -104,6 +115,39 @@ public class DatastoreClientConfiguration {
 
     ApiClient apiClient = new ApiClient(restTemplate).setBasePath(props.baseUrl());
     return new ApplicationApi(apiClient);
+  }
+
+  private HttpRequestRetryStrategy datastoreRetryStrategy() {
+    HttpRequestRetryStrategy defaultStrategy = DefaultHttpRequestRetryStrategy.INSTANCE;
+    return new HttpRequestRetryStrategy() {
+      @Override
+      public boolean retryRequest(
+          org.apache.hc.core5.http.HttpRequest request,
+          IOException exception,
+          int execCount,
+          HttpContext context) {
+        return !isDetailsEdit(request)
+            && defaultStrategy.retryRequest(request, exception, execCount, context);
+      }
+
+      @Override
+      public boolean retryRequest(HttpResponse response, int execCount, HttpContext context) {
+        org.apache.hc.core5.http.HttpRequest request = HttpClientContext.cast(context).getRequest();
+        return !isDetailsEdit(request)
+            && defaultStrategy.retryRequest(response, execCount, context);
+      }
+
+      @Override
+      public TimeValue getRetryInterval(HttpResponse response, int execCount, HttpContext context) {
+        return defaultStrategy.getRetryInterval(response, execCount, context);
+      }
+    };
+  }
+
+  private boolean isDetailsEdit(org.apache.hc.core5.http.HttpRequest request) {
+    return request != null
+        && "PATCH".equalsIgnoreCase(request.getMethod())
+        && request.getRequestUri().endsWith(":edit-application");
   }
 
   @SuppressWarnings({"deprecation", "removal"})

@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.rcw.gateway;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.HashMap;
@@ -354,7 +356,7 @@ public class ApplicationGateway {
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw detailsConflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
       throw badRequestForApplication(applicationId);
     } catch (HttpServerErrorException exception) {
@@ -372,6 +374,30 @@ public class ApplicationGateway {
   private ApplicationConflictException conflict(UUID applicationId) {
     return new ApplicationConflictException(
         "Application %s was modified concurrently".formatted(applicationId));
+  }
+
+  private ApplicationConflictException detailsConflict(
+      UUID applicationId, HttpClientErrorException.Conflict exception) {
+    String reason = downstreamConflictReason(exception);
+    if ("APPLICATION_VERSION_CONFLICT".equals(reason)) {
+      return new ApplicationConflictException(
+          "Application %s was modified concurrently".formatted(applicationId), reason);
+    }
+    if ("APPLICATION_COMPLETED".equals(reason)) {
+      return new ApplicationConflictException(
+          "Application %s has already been completed".formatted(applicationId), reason);
+    }
+    return conflict(applicationId);
+  }
+
+  private String downstreamConflictReason(HttpClientErrorException.Conflict exception) {
+    try {
+      JsonNode body = RESPONSE_MAPPER.readTree(exception.getResponseBodyAsString());
+      JsonNode reason = body == null ? null : body.get("reason");
+      return reason != null && reason.isTextual() ? reason.textValue() : null;
+    } catch (JsonProcessingException | IllegalArgumentException ignored) {
+      return null;
+    }
   }
 
   private ApplicationBadRequestException badRequestForApplication(UUID applicationId) {

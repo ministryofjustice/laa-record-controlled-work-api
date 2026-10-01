@@ -6,6 +6,7 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
 import static org.springframework.http.HttpStatus.PRECONDITION_REQUIRED;
 import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
 import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_DOWNSTREAM_ERROR;
@@ -60,7 +61,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationConflictException.class)
   public ResponseEntity<Object> handleApplicationConflict(
       ApplicationConflictException exception, WebRequest request) {
-    return handleKnownException(exception, CONFLICT, request);
+    HttpStatusCode status =
+        "APPLICATION_VERSION_CONFLICT".equals(exception.getReason())
+            ? PRECONDITION_FAILED
+            : CONFLICT;
+    return handleKnownException(exception, status, request);
   }
 
   /**
