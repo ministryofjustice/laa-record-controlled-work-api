@@ -110,6 +110,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Application"
+          headers:
+            ETag:
+              description: Strong application version validator, quoted as an integer
+              schema:
+                type: string
+                pattern: '^"[0-9]+"$'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
