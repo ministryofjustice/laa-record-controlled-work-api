@@ -9,7 +9,7 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302886
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302889
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20304748
-    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.25'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.26'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.7'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-20059179
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-19778370
