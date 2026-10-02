@@ -310,9 +310,12 @@ components:
       additionalProperties: false
       required:
         - priorLegalAid
+        - familyLawClassification
       properties:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"
+        familyLawClassification:
+          $ref: "#/components/schemas/familyLawClassification"
 
     CreateClientDetailsRequestBody:
       required:
@@ -686,6 +689,12 @@ components:
         - 'no'
         - yesDifferentMatter
         - yesSameMatter
+
+    familyLawClassification:
+      type: string
+      enum:
+        - public
+        - private
 
     ProblemDetail:
       type: object

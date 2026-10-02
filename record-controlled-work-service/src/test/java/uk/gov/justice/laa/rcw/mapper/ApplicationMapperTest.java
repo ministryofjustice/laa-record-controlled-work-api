@@ -20,6 +20,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
@@ -172,7 +173,8 @@ class ApplicationMapperTest {
             .meansAssessmentRequired(true)
             .typeOfNonMeans(false)
             .contribution("100.00")
-            .scopingQuestions(Map.of("priorLegalAid", "yesSameMatter"))
+            .scopingQuestions(
+                Map.of("priorLegalAid", "yesSameMatter", "familyLawClassification", "public"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
@@ -198,7 +200,10 @@ class ApplicationMapperTest {
     assertThat(result.getTypeOfNonMeans()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
     assertThat(result.getScopingQuestions())
-        .isEqualTo(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+        .isEqualTo(
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
+                .familyLawClassification(FamilyLawClassification.PUBLIC));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");

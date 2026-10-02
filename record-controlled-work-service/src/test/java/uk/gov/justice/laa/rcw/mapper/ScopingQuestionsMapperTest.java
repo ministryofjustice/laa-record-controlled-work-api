@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
@@ -15,8 +16,10 @@ class ScopingQuestionsMapperTest {
   void shouldMapScopingQuestionsToDatastoreMap() {
     assertThat(
             scopingQuestionsMapper.toDatastoreScopingQuestions(
-                new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER)))
-        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
+                new ScopingQuestions()
+                    .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
+                    .familyLawClassification(FamilyLawClassification.PUBLIC)))
+        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter", "familyLawClassification", "public"));
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new ScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
