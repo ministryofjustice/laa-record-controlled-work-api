@@ -3,6 +3,7 @@ plugins {
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
     //    id 'io.sentry.jvm.gradle' version '6.5.0'
     id 'com.diffplug.spotless' version "8.10.2"
+    id 'au.com.dius.pact' version '4.7.0-beta.3'
 }
 
 repositories {
@@ -27,6 +28,42 @@ processResources {
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+}
+
+// --- Pact consumer contract: dedicated source set, calls the real generated datastore client
+// directly against a Pact MockServer (bypassing the app's Spring context / OBO token exchange,
+// which is this app's own concern, not part of the HTTP wire contract being verified here). ---
+sourceSets {
+    pactTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += compileClasspath
+    }
+}
+
+configurations {
+    pactTestImplementation.extendsFrom implementation, testImplementation
+    pactTestRuntimeOnly.extendsFrom   runtimeOnly, testRuntimeOnly
+}
+
+// Generates pacts into build/pacts on every run; publishing is a separate `pactPublish` task
+// (see the `pact { publish { ... } }` block below), invoked only in CI on merge to main.
+tasks.register('pactTest', Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.pactTest.output.classesDirs
+    classpath       = sourceSets.pactTest.runtimeClasspath
+    doFirst { delete fileTree("${buildDir}/pacts") }
+}
+
+// Publish config: everything from env; local runs are a no-op when unset, CI publishes on main.
+pact {
+    publish {
+        pactBrokerUrl      = System.getenv('PACT_BROKER_URL')
+        pactBrokerUsername = System.getenv('PACT_BROKER_USERNAME')
+        pactBrokerPassword = System.getenv('PACT_BROKER_PASSWORD')
+        consumerVersion    = System.getenv('GIT_SHA') ?: project.version
+        consumerBranch     = System.getenv('GIT_BRANCH') ?: 'main'
+        tags               = [System.getenv('GIT_BRANCH') ?: 'main']
+    }
 }
 
 jacocoTestReport {
@@ -84,6 +121,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    pactTestImplementation 'au.com.dius.pact.consumer:junit5:4.7.0-beta.3'
 }
 
 spotless {
@@ -104,8 +143,8 @@ spotless {
 
 tasks.register('checkstyleAll') {
     group = 'verification'
-    description = 'Runs checkstyleMain, checkstyleTest, and checkstyleIntegrationTest.'
-    dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest'] }
+    description = 'Runs checkstyleMain, checkstyleTest, checkstyleIntegrationTest, and checkstylePactTest.'
+    dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest', 'checkstylePactTest'] }
 }
 
 // When -PcheckstyleFiles is supplied (comma-separated paths, e.g. from the pre-commit hook),
