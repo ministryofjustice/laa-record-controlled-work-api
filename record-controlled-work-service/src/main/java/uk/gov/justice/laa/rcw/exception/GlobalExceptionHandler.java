@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.exception;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CONTENT_TOO_LARGE;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -163,6 +164,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail problemDetail =
         buildProblemDetail(BAD_REQUEST, "Invalid request content.", exception.getReason(), request);
     return ResponseEntity.badRequest().body(problemDetail);
+  }
+
+  /**
+   * Handle an application details request body that exceeds the configured size limit.
+   *
+   * @param exception the oversized request exception
+   * @param request the web request
+   * @return the response with status 413
+   */
+  @ExceptionHandler(ApplicationRequestTooLargeException.class)
+  public ResponseEntity<Object> handleApplicationRequestTooLarge(
+      ApplicationRequestTooLargeException exception, WebRequest request) {
+    return handleKnownException(exception, CONTENT_TOO_LARGE, request);
   }
 
   /**

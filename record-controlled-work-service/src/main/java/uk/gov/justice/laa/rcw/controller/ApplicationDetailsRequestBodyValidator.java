@@ -11,18 +11,19 @@ import java.time.format.DateTimeParseException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
+import uk.gov.justice.laa.rcw.exception.ApplicationRequestTooLargeException;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** Validates the complete JSON details snapshot before generated models lose key presence. */
 @ControllerAdvice(assignableTypes = ApplicationController.class)
-public class ApplicationDetailsRequestBodyAdvice extends RequestBodyAdviceAdapter {
+public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAdapter {
 
   private static final ObjectMapper STRICT_MAPPER =
       new ObjectMapper(
@@ -50,6 +51,17 @@ public class ApplicationDetailsRequestBodyAdvice extends RequestBodyAdviceAdapte
           "county",
           "country");
 
+  private final int maxBodySizeBytes;
+
+  /** Creates the details request validator with a configured byte limit. */
+  public ApplicationDetailsRequestBodyValidator(
+      @Value("${laa.request.body.max-size-bytes}") int maxBodySizeBytes) {
+    if (maxBodySizeBytes < 1 || maxBodySizeBytes == Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Request body size limit must be a positive integer");
+    }
+    this.maxBodySizeBytes = maxBodySizeBytes;
+  }
+
   @Override
   public boolean supports(
       MethodParameter methodParameter,
@@ -68,7 +80,10 @@ public class ApplicationDetailsRequestBodyAdvice extends RequestBodyAdviceAdapte
       java.lang.reflect.Type targetType,
       Class<? extends HttpMessageConverter<?>> converterType)
       throws IOException {
-    byte[] body = StreamUtils.copyToByteArray(inputMessage.getBody());
+    byte[] body = inputMessage.getBody().readNBytes(maxBodySizeBytes + 1);
+    if (body.length > maxBodySizeBytes) {
+      throw new ApplicationRequestTooLargeException();
+    }
     validate(STRICT_MAPPER.readTree(body));
     return new HttpInputMessage() {
       @Override

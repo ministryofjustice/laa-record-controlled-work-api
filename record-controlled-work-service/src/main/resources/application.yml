@@ -71,6 +71,10 @@ logging:
         node_name: ${HOSTNAME:unknown}
 
 laa:
+  request:
+    body:
+      # Maximum application details JSON size in bytes.
+      max-size-bytes: ${APPLICATION_DETAILS_MAX_BODY_SIZE_BYTES:65536}
   datastore:
     client:
       base-url: ${DATASTORE_URL:http://localhost:8080}

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CONTENT_TOO_LARGE;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.PRECONDITION_FAILED;
@@ -83,6 +84,21 @@ class GlobalExceptionHandlerTest {
     assert body != null;
     assertThat(body.getStatus()).isEqualTo(412);
     assertThat(body.getProperties()).containsEntry("reason", "APPLICATION_VERSION_CONFLICT");
+  }
+
+  @Test
+  void handleApplicationRequestTooLarge_returnsPayloadTooLargeWithoutRequestValues() {
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("PUT", "/api/v1/applications/99/details");
+    ResponseEntity<Object> result =
+        globalExceptionHandler.handleApplicationRequestTooLarge(
+            new ApplicationRequestTooLargeException(), new ServletWebRequest(request));
+
+    assertThat(result.getStatusCode()).isEqualTo(CONTENT_TOO_LARGE);
+    ProblemDetail body = (ProblemDetail) result.getBody();
+    assertThat(body).isNotNull();
+    assertThat(body.getDetail()).isEqualTo("Request body exceeds the configured size limit.");
+    assertThat(body.getProperties()).containsEntry("reason", "REQUEST_BODY_TOO_LARGE");
   }
 
   @Test
