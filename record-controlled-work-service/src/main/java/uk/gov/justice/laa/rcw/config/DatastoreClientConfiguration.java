@@ -44,6 +44,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
+import uk.gov.justice.laa.ia.datastore.client.config.ApplicationResponseHttpMessageConverter;
 import uk.gov.justice.laa.ia.datastore.client.config.DatastoreClientProperties;
 import uk.gov.justice.laa.ia.datastore.client.invoker.ApiClient;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
@@ -109,6 +110,7 @@ public class DatastoreClientConfiguration {
         HttpClients.custom().setRetryStrategy(datastoreRetryStrategy()).build();
     RestTemplate restTemplate =
         new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
+    restTemplate.getMessageConverters().add(0, new ApplicationResponseHttpMessageConverter());
     restTemplate.getMessageConverters().add(0, new EditApplicationCommandHttpMessageConverter());
     restTemplate
         .getInterceptors()

@@ -34,7 +34,7 @@ public class ApplicationDetailsService {
    */
   public String updateApplicationDetails(
       UUID applicationId, UpdateApplicationDetailsRequestBody request, long version) {
-    ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
+    ApplicationResponse application = applicationGateway.fetchApplicationDetails(applicationId);
     try {
       applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     } catch (ApplicationForbiddenException exception) {

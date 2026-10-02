@@ -60,7 +60,7 @@ class ApplicationDetailsServiceTest {
   void shouldEditOnceWithCallerVersionAndReturnDatastoreEtag() {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
     EditApplicationCommand command = EditApplicationCommand.builder().eTag(CALLER_VERSION).build();
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.DRAFT));
     when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
         .thenReturn(command);
@@ -71,7 +71,7 @@ class ApplicationDetailsServiceTest {
         applicationDetailsService.updateApplicationDetails(APPLICATION_ID, request, CALLER_VERSION);
 
     assertThat(etag).isEqualTo("\"32\"");
-    verify(mockApplicationGateway, times(1)).fetchApplication(APPLICATION_ID);
+    verify(mockApplicationGateway, times(1)).fetchApplicationDetails(APPLICATION_ID);
     verify(mockApplicationGuard).checkAuthorizedForOffice(APPLICATION_ID, OFFICE_CODE);
     verify(mockApplicationMapper).toEditApplicationCommand(request, CALLER_VERSION);
     verify(mockApplicationGateway, times(1)).editApplication(APPLICATION_ID, command);
@@ -80,7 +80,7 @@ class ApplicationDetailsServiceTest {
   @Test
   void shouldReturnNotFoundWithoutEditingWhenOfficeIsUnauthorized() {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.DRAFT));
     doThrow(new ApplicationForbiddenException("Not authorized"))
         .when(mockApplicationGuard)
@@ -97,7 +97,7 @@ class ApplicationDetailsServiceTest {
                 assertThat(((ApplicationNotFoundException) exception).getReason())
                     .isEqualTo("APPLICATION_NOT_FOUND"));
 
-    verify(mockApplicationGateway, times(1)).fetchApplication(APPLICATION_ID);
+    verify(mockApplicationGateway, times(1)).fetchApplicationDetails(APPLICATION_ID);
     verify(mockApplicationGateway, never())
         .editApplication(eq(APPLICATION_ID), any(EditApplicationCommand.class));
     verifyNoInteractions(mockApplicationMapper);
@@ -106,7 +106,7 @@ class ApplicationDetailsServiceTest {
   @Test
   void shouldRejectCompletedApplicationAfterOfficeAuthorization() {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.COMPLETED));
 
     assertThatThrownBy(
@@ -128,7 +128,7 @@ class ApplicationDetailsServiceTest {
   @Test
   void shouldHideCompletedApplicationWhenOfficeIsUnauthorized() {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.COMPLETED));
     doThrow(new ApplicationForbiddenException("Not authorized"))
         .when(mockApplicationGuard)
@@ -151,7 +151,7 @@ class ApplicationDetailsServiceTest {
     EditApplicationCommand command = EditApplicationCommand.builder().eTag(CALLER_VERSION).build();
     ApplicationUnavailableException failure =
         new ApplicationUnavailableException("Datastore is unavailable");
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.DRAFT));
     when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
         .thenReturn(command);
@@ -163,7 +163,7 @@ class ApplicationDetailsServiceTest {
                     APPLICATION_ID, request, CALLER_VERSION))
         .isSameAs(failure);
 
-    verify(mockApplicationGateway, times(1)).fetchApplication(APPLICATION_ID);
+    verify(mockApplicationGateway, times(1)).fetchApplicationDetails(APPLICATION_ID);
     verify(mockApplicationGateway, times(1)).editApplication(APPLICATION_ID, command);
   }
 
@@ -173,7 +173,7 @@ class ApplicationDetailsServiceTest {
   void shouldFailClosedWhenDatastoreEtagIsMissingOrInvalid(String etag) {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
     EditApplicationCommand command = EditApplicationCommand.builder().eTag(CALLER_VERSION).build();
-    when(mockApplicationGateway.fetchApplication(APPLICATION_ID))
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.DRAFT));
     when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
         .thenReturn(command);

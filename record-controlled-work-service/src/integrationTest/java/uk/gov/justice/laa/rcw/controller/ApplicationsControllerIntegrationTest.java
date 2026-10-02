@@ -724,6 +724,44 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(content().string(""));
   }
 
+  @Test
+  void shouldReturnSameNotFoundForMissingAndForbiddenDatastoreGet() throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    String scenario = "get-visibility-" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.notFound())
+            .willSetStateTo("forbidden"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs("forbidden")
+            .willReturn(WireMock.aResponse().withStatus(403)));
+
+    String missingResponse =
+        mockMvc
+            .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+            .andExpect(status().isNotFound())
+            .andExpect(header().doesNotExist("ETag"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String forbiddenResponse =
+        mockMvc
+            .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+            .andExpect(status().isNotFound())
+            .andExpect(header().doesNotExist("ETag"))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertEquals(missingResponse, forbiddenResponse);
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"BG123456C", "AO123456C", "js101010D", "AB123456s"})
   void shouldReturnBadRequest_whenNiNumberDoesNotMatchUkFormat(String niNumber) throws Exception {
@@ -919,6 +957,115 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     assertEquals(missingResponse, hiddenResponse);
     DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
     DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @Test
+  void shouldReturnSameNotFoundForMissingAndForbiddenDetailsPreflight() throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    String scenario = "details-preflight-visibility-" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.notFound())
+            .willSetStateTo("forbidden"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs("forbidden")
+            .willReturn(WireMock.aResponse().withStatus(403)));
+
+    String missingResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String forbiddenResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertEquals(missingResponse, forbiddenResponse);
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @Test
+  void shouldHideCompletedApplicationBeforeCheckingCompletionWhenOfficeIsUnauthorized()
+      throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "OTHER-OFFICE",
+                      "applicationState": "COMPLETED",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id))));
+
+    performValidDetailsPut(id)
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.reason").value("APPLICATION_NOT_FOUND"));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  @Test
+  void shouldReturnSameNotFoundForMissingAndForbiddenDetailsEdit() throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    String scenario = "details-edit-visibility-" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "%s",
+                      "applicationState": "DRAFT",
+                      "eTag": 100
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .inScenario(scenario)
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.notFound())
+            .willSetStateTo("forbidden"));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .inScenario(scenario)
+            .whenScenarioStateIs("forbidden")
+            .willReturn(WireMock.aResponse().withStatus(403)));
+
+    String missingResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String forbiddenResponse =
+        performValidDetailsPut(id)
+            .andExpect(status().isNotFound())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    assertEquals(missingResponse, forbiddenResponse);
+    DATASTORE.verify(2, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
   }
 
   @Test
@@ -1354,6 +1501,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     {"data": {}, "result": {}}
                     """))
         .andExpect(status().isForbidden());
+
+    DATASTORE.verify(
+        0,
+        WireMock.putRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data")));
   }
 
   @Test
@@ -1570,6 +1722,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
         .andExpect(status().isForbidden());
+
+    DATASTORE.verify(
+        0,
+        WireMock.putRequestedFor(
+            urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence")));
   }
 
   @Test
@@ -1644,6 +1801,38 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "dateSigned": "2026-08-14"
                     }
                     """)));
+  }
+
+  @Test
+  void shouldReturnForbidden_whenUpdatingDeclarationForApplicationInAnotherOffice()
+      throws Exception {
+    String applicationId = java.util.UUID.randomUUID().toString();
+    String applicationPath = "/api/v0/applications/" + applicationId;
+    final String declarationPath = applicationPath + ":update-declaration-data";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(applicationPath))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "OTHER-OFFICE",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId))));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/declaration", applicationId)
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"declarationConfirmation\":true,\"dateSigned\":\"2026-08-14\"}"))
+        .andExpect(status().isForbidden());
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(declarationPath)));
   }
 
   @Test
@@ -1729,6 +1918,37 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "applicationState": "COMPLETED"
                     }
                     """)));
+  }
+
+  @Test
+  void shouldReturnForbidden_whenUpdatingStatusForApplicationInAnotherOffice() throws Exception {
+    String applicationId = java.util.UUID.randomUUID().toString();
+    String applicationPath = "/api/v0/applications/" + applicationId;
+    final String statusPath = applicationPath + ":update-application";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(applicationPath))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "OTHER-OFFICE",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId))));
+
+    mockMvc
+        .perform(
+            patch("/api/v1/applications/{id}/status", applicationId)
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"applicationState\":\"COMPLETED\",\"eTag\":5}"))
+        .andExpect(status().isForbidden());
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
+    DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(statusPath)));
   }
 
   @Test
