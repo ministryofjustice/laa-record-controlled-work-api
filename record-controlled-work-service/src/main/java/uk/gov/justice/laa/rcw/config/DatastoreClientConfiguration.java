@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import org.apache.hc.client5.http.HttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -18,7 +19,9 @@ import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.ResolvableType;
 import org.springframework.http.HttpRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -161,6 +164,31 @@ public class DatastoreClientConfiguration {
     @Override
     protected boolean supports(Class<?> clazz) {
       return EditApplicationCommand.class.isAssignableFrom(clazz);
+    }
+
+    private boolean supports(Type type) {
+      Class<?> clazz = ResolvableType.forType(type).resolve();
+      return clazz != null && supports(clazz);
+    }
+
+    @Override
+    public boolean canRead(Class<?> clazz, MediaType mediaType) {
+      return supports(clazz) && super.canRead(clazz, mediaType);
+    }
+
+    @Override
+    public boolean canRead(Type type, Class<?> contextClass, MediaType mediaType) {
+      return supports(type) && super.canRead(type, contextClass, mediaType);
+    }
+
+    @Override
+    public boolean canWrite(Class<?> clazz, MediaType mediaType) {
+      return supports(clazz) && super.canWrite(clazz, mediaType);
+    }
+
+    @Override
+    public boolean canWrite(Type type, Class<?> clazz, MediaType mediaType) {
+      return supports(clazz) && super.canWrite(type, clazz, mediaType);
     }
   }
 

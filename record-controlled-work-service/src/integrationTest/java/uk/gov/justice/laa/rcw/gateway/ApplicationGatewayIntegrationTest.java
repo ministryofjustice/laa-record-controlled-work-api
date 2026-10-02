@@ -25,6 +25,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -89,12 +91,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void shouldSendSparseEditJsonAndReturnDownstreamEtag() {
-    Jwt jwt =
-        Jwt.withTokenValue(TestJwtConfig.ACCESS_TOKEN)
-            .header("alg", "none")
-            .claim("sub", "test-user")
-            .build();
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    authenticateRequest();
     MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, CORRELATION_ID);
 
     DATASTORE.stubFor(
@@ -143,6 +140,53 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
                       }
                     }
                     """)));
+  }
+
+  @Test
+  void shouldUseDefaultJacksonBehaviourForUnrelatedApplicationReads() {
+    authenticateRequest();
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "123456",
+                      "futureField": "ignored"
+                    }
+                    """
+                        .formatted(APPLICATION_ID))));
+
+    ApplicationResponse response = applicationGateway.fetchApplication(APPLICATION_ID);
+
+    assertThat(response.getId()).isEqualTo(APPLICATION_ID);
+  }
+
+  @Test
+  void shouldUseDefaultJacksonBehaviourForUnrelatedApplicationCommands() {
+    authenticateRequest();
+    DATASTORE.stubFor(
+        WireMock.patch(
+                urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID + ":update-application"))
+            .willReturn(WireMock.aResponse().withStatus(204)));
+
+    applicationGateway.updateApplication(APPLICATION_ID, new UpdateApplicationCommand().eTag(31L));
+
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID + ":update-application"))
+            .withRequestBody(equalToJson("{\"eTag\":31,\"applicationState\":null}")));
+  }
+
+  private static void authenticateRequest() {
+    Jwt jwt =
+        Jwt.withTokenValue(TestJwtConfig.ACCESS_TOKEN)
+            .header("alg", "none")
+            .claim("sub", "test-user")
+            .build();
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
   }
 
   private static UpdateApplicationDetailsRequestBody detailsRequest() {
