@@ -16,7 +16,13 @@ import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
-import uk.gov.justice.laa.rcw.model.*;
+import uk.gov.justice.laa.rcw.model.Application;
+import uk.gov.justice.laa.rcw.model.ApplicationOverview;
+import uk.gov.justice.laa.rcw.model.ApplicationState;
+import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 class ApplicationMapperTest {
 

@@ -2,7 +2,13 @@ package uk.gov.justice.laa.rcw.generator;
 
 import java.time.LocalDate;
 import java.util.function.Consumer;
-import uk.gov.justice.laa.rcw.model.*;
+
+import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 /** Generator for an Application model for tests. */
 public class CreateApplicationRequestGenerator {
