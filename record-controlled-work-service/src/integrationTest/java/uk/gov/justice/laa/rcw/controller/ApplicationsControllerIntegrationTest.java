@@ -293,7 +293,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "referenceNumber": "CW-111111",
                         "scopingQuestions": {
-                            "priorLegalAid": "yesSameMatter"
+                            "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "public"
                         },
                         "applicationType": "CONTROLLED_WORK",
