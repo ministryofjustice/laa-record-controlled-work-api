@@ -1,0 +1,40 @@
+# Pact consumer (Java/pact-jvm): generates the contract on every PR (does NOT publish), and
+# publishes it to the broker only on merge to main - so every change is validated for pact-DSL
+# compile errors before anything reaches the broker, but the broker's "latest from main" pacticipant
+# version only ever reflects what's actually on main.
+name: Pact — publish consumer contracts
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  pact-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-java-gradle
+
+      - name: Generate pacts
+        run: ./gradlew :record-controlled-work-service:pactTest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish pacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: ./gradlew :record-controlled-work-service:pactPublish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACT_BROKER_URL: ${{ secrets.PACT_BROKER_URL }}
+          PACT_BROKER_USERNAME: ${{ secrets.PACT_BROKER_USERNAME }}
+          PACT_BROKER_PASSWORD: ${{ secrets.PACT_BROKER_PASSWORD }}
+          GIT_SHA: ${{ github.sha }}
+          GIT_BRANCH: ${{ github.ref_name }}

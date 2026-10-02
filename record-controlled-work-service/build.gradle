@@ -3,6 +3,7 @@ plugins {
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
     //    id 'io.sentry.jvm.gradle' version '6.5.0'
     id 'com.diffplug.spotless' version "8.10.2"
+    id 'au.com.dius.pact' version '4.7.5'
 }
 
 repositories {
@@ -27,6 +28,42 @@ processResources {
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
+}
+
+// --- Pact consumer contract: dedicated source set, calls the real generated datastore client
+// directly against a Pact MockServer (bypassing the app's Spring context / OBO token exchange,
+// which is this app's own concern, not part of the HTTP wire contract being verified here). ---
+sourceSets {
+    pactTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += compileClasspath
+    }
+}
+
+configurations {
+    pactTestImplementation.extendsFrom implementation, testImplementation
+    pactTestRuntimeOnly.extendsFrom   runtimeOnly, testRuntimeOnly
+}
+
+// Generates pacts into build/pacts on every run; publishing is a separate `pactPublish` task
+// (see the `pact { publish { ... } }` block below), invoked only in CI on merge to main.
+tasks.register('pactTest', Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.pactTest.output.classesDirs
+    classpath       = sourceSets.pactTest.runtimeClasspath
+    doFirst { delete fileTree("${buildDir}/pacts") }
+}
+
+// Publish config: everything from env; local runs are a no-op when unset, CI publishes on main.
+pact {
+    publish {
+        pactBrokerUrl      = System.getenv('PACT_BROKER_URL')
+        pactBrokerUsername = System.getenv('PACT_BROKER_USERNAME')
+        pactBrokerPassword = System.getenv('PACT_BROKER_PASSWORD')
+        consumerVersion    = System.getenv('GIT_SHA') ?: project.version
+        consumerBranch     = System.getenv('GIT_BRANCH') ?: 'main'
+        tags               = [System.getenv('GIT_BRANCH') ?: 'main']
+    }
 }
 
 jacocoTestReport {
@@ -84,6 +121,37 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    pactTestImplementation 'au.com.dius.pact.consumer:junit5:4.7.5'
+
+    // au.com.dius.pact.consumer:junit5 pulls in io.pact.plugin.driver:core, which (even at its
+    // latest release) still pins vulnerable transitive versions of bouncycastle and netty.
+    // These libraries are only exercised by the Pact mock server in test scope, but Snyk still
+    // flags them, so force patched versions here rather than waiting on an upstream pact-jvm fix.
+    constraints {
+        pactTestImplementation('org.bouncycastle:bcprov-jdk18on:1.86') {
+            because 'fixes multiple HIGH/CRITICAL bouncycastle CVEs pulled in transitively by io.pact.plugin.driver:core'
+        }
+        pactTestImplementation('org.bouncycastle:bcutil-jdk18on:1.86') {
+            because 'fixes multiple HIGH bouncycastle CVEs pulled in transitively by io.pact.plugin.driver:core'
+        }
+        pactTestImplementation('org.bouncycastle:bcpkix-jdk18on:1.86') {
+            because 'fixes CRITICAL bouncycastle CVEs pulled in transitively by io.pact.plugin.driver:core'
+        }
+    }
+}
+
+// Spring Boot's dependency-management plugin forces its own BOM-managed netty version via a
+// resolution rule, which otherwise wins over a plain constraint above. Bump the whole io.netty
+// group together (mixing versions across netty modules is unsupported) to the latest 4.2.x,
+// which fixes SNYK-JAVA-IONETTY-20074868 pulled in transitively via grpc-netty.
+configurations.matching { it.name.startsWith('pactTest') }.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'io.netty' && details.requested.version != null && details.requested.version.startsWith('4.2.')) {
+            details.useVersion '4.2.18.Final'
+            details.because 'fixes SNYK-JAVA-IONETTY-20074868, pulled in transitively via grpc-netty'
+        }
+    }
 }
 
 spotless {
@@ -104,8 +172,8 @@ spotless {
 
 tasks.register('checkstyleAll') {
     group = 'verification'
-    description = 'Runs checkstyleMain, checkstyleTest, and checkstyleIntegrationTest.'
-    dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest'] }
+    description = 'Runs checkstyleMain, checkstyleTest, checkstyleIntegrationTest, and checkstylePactTest.'
+    dependsOn tasks.matching { it.name in ['checkstyleMain', 'checkstyleTest', 'checkstyleIntegrationTest', 'checkstylePactTest'] }
 }
 
 // When -PcheckstyleFiles is supplied (comma-separated paths, e.g. from the pre-commit hook),
