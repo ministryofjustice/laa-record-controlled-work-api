@@ -15,14 +15,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
@@ -30,7 +24,6 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
@@ -64,8 +57,7 @@ class ApplicationDetailsServiceTest {
         .thenReturn(application(ApplicationState.DRAFT));
     when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
         .thenReturn(command);
-    when(mockApplicationGateway.editApplication(APPLICATION_ID, command))
-        .thenReturn(ResponseEntity.noContent().eTag("\"32\"").build());
+    when(mockApplicationGateway.editApplication(APPLICATION_ID, command)).thenReturn("\"32\"");
 
     String etag =
         applicationDetailsService.updateApplicationDetails(APPLICATION_ID, request, CALLER_VERSION);
@@ -85,8 +77,7 @@ class ApplicationDetailsServiceTest {
         .thenReturn(application(ApplicationState.DRAFT));
     when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
         .thenReturn(command);
-    when(mockApplicationGateway.editApplication(APPLICATION_ID, command))
-        .thenReturn(ResponseEntity.noContent().eTag("\"00032\"").build());
+    when(mockApplicationGateway.editApplication(APPLICATION_ID, command)).thenReturn("\"00032\"");
 
     String etag =
         applicationDetailsService.updateApplicationDetails(APPLICATION_ID, request, CALLER_VERSION);
@@ -184,45 +175,11 @@ class ApplicationDetailsServiceTest {
     verify(mockApplicationGateway, times(1)).editApplication(APPLICATION_ID, command);
   }
 
-  @ParameterizedTest
-  @NullSource
-  @ValueSource(strings = {"W/\"32\"", "\"invalid\"", "\"9223372036854775808\""})
-  void shouldFailClosedWhenDatastoreEtagIsMissingOrInvalid(String etag) {
-    UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
-    EditApplicationCommand command = EditApplicationCommand.builder().eTag(CALLER_VERSION).build();
-    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
-        .thenReturn(application(ApplicationState.DRAFT));
-    when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
-        .thenReturn(command);
-    when(mockApplicationGateway.editApplication(APPLICATION_ID, command))
-        .thenReturn(responseWithEtag(etag));
-
-    assertThatThrownBy(
-            () ->
-                applicationDetailsService.updateApplicationDetails(
-                    APPLICATION_ID, request, CALLER_VERSION))
-        .isInstanceOf(ApplicationUpstreamErrorException.class)
-        .satisfies(
-            exception ->
-                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
-                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
-
-    verify(mockApplicationGateway, times(1)).editApplication(APPLICATION_ID, command);
-  }
-
   private static ApplicationResponse application(ApplicationState state) {
     return ApplicationResponse.builder()
         .eTag(100L)
         .providerOfficeCode(OFFICE_CODE)
         .applicationState(state)
         .build();
-  }
-
-  private static ResponseEntity<Void> responseWithEtag(String etag) {
-    HttpHeaders headers = new HttpHeaders();
-    if (etag != null) {
-      headers.set("ETag", etag);
-    }
-    return new ResponseEntity<>(headers, HttpStatus.NO_CONTENT);
   }
 }

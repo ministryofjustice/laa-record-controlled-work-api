@@ -2,7 +2,6 @@ package uk.gov.justice.laa.rcw.service;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
@@ -10,11 +9,9 @@ import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
-import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Service for atomically updating an application's editable details. */
 @Service
@@ -49,28 +46,11 @@ public class ApplicationDetailsService {
     }
 
     EditApplicationCommand command = applicationMapper.toEditApplicationCommand(request, version);
-    ResponseEntity<Void> response = applicationGateway.editApplication(applicationId, command);
-    return requireValidEtag(response);
-  }
-
-  private String requireValidEtag(ResponseEntity<Void> response) {
-    if (response != null) {
-      String etag = response.getHeaders().getETag();
-      if (ApplicationVersionParser.parseIfMatch(etag).isPresent()) {
-        return etag;
-      }
-    }
-    throw invalidVersion();
+    return applicationGateway.editApplication(applicationId, command);
   }
 
   private ApplicationNotFoundException notFound(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
-  }
-
-  private ApplicationUpstreamErrorException invalidVersion() {
-    return new ApplicationUpstreamErrorException(
-        "Datastore returned an invalid application version",
-        "DATASTORE_INVALID_APPLICATION_VERSION");
   }
 }

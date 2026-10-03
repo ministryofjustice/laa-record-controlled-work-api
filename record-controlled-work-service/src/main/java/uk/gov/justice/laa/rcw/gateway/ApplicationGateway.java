@@ -33,6 +33,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
 import uk.gov.justice.laa.rcw.service.DatastoreRequestContext;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Gateway for datastore application fetch operations. */
 @Service
@@ -313,20 +314,22 @@ public class ApplicationGateway {
   }
 
   /**
-   * Edits application details and returns the downstream response headers.
+   * Edits application details and returns the validated downstream ETag.
    *
    * @param applicationId the application id
    * @param command complete editable details and caller version
-   * @return the datastore response, including its new ETag
+   * @return the validated datastore ETag
    */
-  public ResponseEntity<Void> editApplication(UUID applicationId, EditApplicationCommand command) {
+  public String editApplication(UUID applicationId, EditApplicationCommand command) {
     try {
-      return applicationApi.editApplicationWithHttpInfo(
-          applicationId,
-          bearerTokenProvider.currentBearerToken(),
-          datastoreRequestContext.correlationId(),
-          datastoreRequestContext.serviceName(),
-          command);
+      ResponseEntity<Void> response =
+          applicationApi.editApplicationWithHttpInfo(
+              applicationId,
+              bearerTokenProvider.currentBearerToken(),
+              datastoreRequestContext.correlationId(),
+              datastoreRequestContext.serviceName(),
+              command);
+      return requireValidEtag(response);
     } catch (HttpClientErrorException.NotFound exception) {
       throw notFound(applicationId);
     } catch (HttpClientErrorException.Forbidden exception) {
@@ -340,6 +343,18 @@ public class ApplicationGateway {
     } catch (ResourceAccessException exception) {
       throw unavailableErrorForApplication(applicationId);
     }
+  }
+
+  private String requireValidEtag(ResponseEntity<Void> response) {
+    if (response != null) {
+      String etag = response.getHeaders().getETag();
+      if (ApplicationVersionParser.parseIfMatch(etag).isPresent()) {
+        return etag;
+      }
+    }
+    throw new ApplicationUpstreamErrorException(
+        "Datastore returned an invalid application version",
+        "DATASTORE_INVALID_APPLICATION_VERSION");
   }
 
   private ApplicationNotFoundException notFound(UUID applicationId) {

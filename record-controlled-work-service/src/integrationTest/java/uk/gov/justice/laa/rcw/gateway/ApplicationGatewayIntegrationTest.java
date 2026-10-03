@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -90,7 +89,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void shouldSendSparseEditJsonAndReturnDownstreamEtag() {
+  void shouldSendSparseEditJsonAndReturnValidatedEtag() {
     authenticateRequest();
     MDC.put(CorrelationConstants.CORRELATION_ID_LOG_KEY, CORRELATION_ID);
 
@@ -99,12 +98,11 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
                 urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID + ":edit-application"))
             .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
 
-    ResponseEntity<Void> response =
+    String etag =
         applicationGateway.editApplication(
             APPLICATION_ID, applicationMapper.toEditApplicationCommand(detailsRequest(), 31L));
 
-    assertThat(response.getStatusCode().value()).isEqualTo(204);
-    assertThat(response.getHeaders().getETag()).isEqualTo("\"32\"");
+    assertThat(etag).isEqualTo("\"32\"");
     DATASTORE.verify(
         1,
         patchRequestedFor(

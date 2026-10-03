@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
@@ -352,12 +354,9 @@ class ApplicationGatewayTest {
   }
 
   @Test
-  void shouldEditApplicationAndReturnResponseEtag() {
+  void shouldReturnValidatedEtagFromEdit() {
     EditApplicationCommand command = editApplicationCommand();
-    HttpHeaders responseHeaders = new HttpHeaders();
-    responseHeaders.setETag("\"23\"");
-    ResponseEntity<Void> downstreamResponse =
-        new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+    ResponseEntity<Void> downstreamResponse = responseWithEtag("\"00023\"");
     when(mockApplicationApi.editApplicationWithHttpInfo(
             APPLICATION_ID,
             BEARER_TOKEN,
@@ -366,10 +365,7 @@ class ApplicationGatewayTest {
             command))
         .thenReturn(downstreamResponse);
 
-    ResponseEntity<Void> result = applicationGateway.editApplication(APPLICATION_ID, command);
-
-    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-    assertThat(result.getHeaders().getETag()).isEqualTo("\"23\"");
+    assertThat(applicationGateway.editApplication(APPLICATION_ID, command)).isEqualTo("\"00023\"");
     verify(mockApplicationApi)
         .editApplicationWithHttpInfo(
             eq(APPLICATION_ID),
@@ -377,6 +373,48 @@ class ApplicationGatewayTest {
             eq(CORRELATION_ID),
             eq(ServiceNameConstants.SERVICE_NAME),
             eq(command));
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"W/\"23\"", "\"invalid\"", "\"9223372036854775808\""})
+  void shouldRejectMissingOrInvalidEtagFromEdit(String etag) {
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any()))
+        .thenReturn(responseWithEtag(etag));
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @Test
+  void shouldRejectNullEditResponse() {
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any()))
+        .thenReturn(null);
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
   }
 
   @ParameterizedTest
@@ -424,6 +462,14 @@ class ApplicationGatewayTest {
 
   private static EditApplicationCommand editApplicationCommand() {
     return EditApplicationCommand.builder().eTag(23L).build();
+  }
+
+  private static ResponseEntity<Void> responseWithEtag(String etag) {
+    HttpHeaders headers = new HttpHeaders();
+    if (etag != null) {
+      headers.set("ETag", etag);
+    }
+    return new ResponseEntity<>(headers, HttpStatus.NO_CONTENT);
   }
 
   private static Stream<Arguments> officeScopedErrorMappings() {
