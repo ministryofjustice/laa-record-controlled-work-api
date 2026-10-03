@@ -302,6 +302,96 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldPreserveUpdatedApplicationAfterStaleDetailsEdit() throws Exception {
+    String id = java.util.UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    String scenario = "conditional-details-" + id;
+    String originalApplication = applicationDetailsResponse(id, 31, "Before");
+    String updatedApplication = applicationDetailsResponse(id, 32, "Test");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(okJson(originalApplication))
+            .willSetStateTo("current"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs("current")
+            .willReturn(okJson(originalApplication)));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario(scenario)
+            .whenScenarioStateIs("edited")
+            .willReturn(okJson(updatedApplication)));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .inScenario(scenario)
+            .whenScenarioStateIs("current")
+            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\""))
+            .willSetStateTo("edited"));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .inScenario(scenario)
+            .whenScenarioStateIs("edited")
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(409)
+                    .withHeader("Content-Type", "application/problem+json")
+                    .withBody("{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\"}")));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"31\""))
+        .andExpect(jsonPath("$.clientDetails.firstName").value("Before"));
+
+    performValidDetailsPut(id)
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"32\""));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"32\""))
+        .andExpect(jsonPath("$.clientDetails.firstName").value("Test"));
+
+    performValidDetailsPut(id)
+        .andExpect(status().isPreconditionFailed())
+        .andExpect(jsonPath("$.status").value(412))
+        .andExpect(jsonPath("$.reason").value("APPLICATION_VERSION_CONFLICT"));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
+        .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"32\""))
+        .andExpect(jsonPath("$.clientDetails.firstName").value("Test"));
+
+    DATASTORE.verify(5, getRequestedFor(urlPathEqualTo(path)));
+    String expectedEditCommand =
+        """
+                {
+                    "eTag": 31,
+                    "reasonForReapplication": null,
+                    "ecfFlag": true,
+                    "scopingQuestions": {"priorLegalAid": "no"},
+                    "clientDetails": {
+                        "firstName": "Test",
+                        "lastName": "Client",
+                        "dateOfBirth": "1990-01-01",
+                        "niNumber": null,
+                        "noFixedAbode": true,
+                        "address": null
+                    }
+                }
+                """;
+    DATASTORE.verify(
+        2,
+        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
+            .withRequestBody(equalToJson(expectedEditCommand)));
+  }
+
+  @Test
   void shouldEditApplicationDetailsOnceWithCallerVersionAndReturnNewEtag() throws Exception {
     String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
@@ -1325,6 +1415,26 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .header("If-Match", "\"31\"")
             .contentType(MediaType.APPLICATION_JSON)
             .content(VALID_DETAILS_PUT_BODY));
+  }
+
+  private static String applicationDetailsResponse(String id, long version, String firstName) {
+    return """
+                {
+                    "id": "%s",
+                    "providerOfficeCode": "%s",
+                    "applicationState": "DRAFT",
+                    "eTag": %d,
+                    "client": {
+                        "firstName": "%s",
+                        "lastName": "Client",
+                        "dateOfBirth": "1990-01-01",
+                        "niNumber": null,
+                        "noFixedAbode": true,
+                        "address": null
+                    }
+                }
+                """
+        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version, firstName);
   }
 
   @Test
