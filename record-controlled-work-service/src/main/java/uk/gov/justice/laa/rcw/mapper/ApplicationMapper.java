@@ -1,6 +1,5 @@
 package uk.gov.justice.laa.rcw.mapper;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -9,7 +8,6 @@ import org.mapstruct.Builder;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
@@ -19,7 +17,6 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
@@ -104,8 +101,8 @@ public interface ApplicationMapper {
       qualifiedByName = "toPresentJsonNullable")
   @Mapping(
       target = "scopingQuestions",
-      source = "request.priorLegalAid",
-      qualifiedByName = "toPriorLegalAidScopingQuestions")
+      source = "request",
+      qualifiedByName = "toDatastoreScopingQuestionsFromDetails")
   @Mapping(target = "ufn", ignore = true)
   @Mapping(target = "laaReference", ignore = true)
   @Mapping(target = "meansAssessmentRequired", ignore = true)
@@ -116,12 +113,6 @@ public interface ApplicationMapper {
   @Mapping(target = "evidence", ignore = true)
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);
-
-  /** Converts the reapplication answer into datastore scoping data. */
-  @Named("toPriorLegalAidScopingQuestions")
-  default Map<String, Object> toPriorLegalAidScopingQuestions(PriorLegalAid priorLegalAid) {
-    return Map.of("priorLegalAid", priorLegalAid.getValue());
-  }
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(

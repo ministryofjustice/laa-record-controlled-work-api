@@ -6,6 +6,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 class ScopingQuestionsMapperTest {
 
@@ -20,6 +21,15 @@ class ScopingQuestionsMapperTest {
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new ScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
+  }
+
+  @Test
+  void shouldMapEditRequestAnswersToDatastoreScopingMap() {
+    UpdateApplicationDetailsRequestBody request =
+        new UpdateApplicationDetailsRequestBody().priorLegalAid(PriorLegalAid.YES_SAME_MATTER);
+
+    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(request))
+        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
   }
 
   @Test
