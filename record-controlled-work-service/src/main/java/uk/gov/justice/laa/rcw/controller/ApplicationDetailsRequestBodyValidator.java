@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestTooLargeException;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
 
 /** Validates the complete JSON details snapshot before generated models lose key presence. */
 @ControllerAdvice(assignableTypes = ApplicationController.class)
@@ -62,7 +64,7 @@ public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAda
     if (body.length > maxBodySizeBytes) {
       throw new ApplicationRequestTooLargeException();
     }
-    validate(STRICT_MAPPER.readTree(body));
+    validateSchema(STRICT_MAPPER.readTree(body));
     return new HttpInputMessage() {
       @Override
       public java.io.InputStream getBody() {
@@ -76,30 +78,42 @@ public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAda
     };
   }
 
-  private void validate(JsonNode request) {
+  @Override
+  public Object afterBodyRead(
+      Object body,
+      HttpInputMessage inputMessage,
+      MethodParameter parameter,
+      java.lang.reflect.Type targetType,
+      Class<? extends HttpMessageConverter<?>> converterType) {
+    validateBusinessRules((UpdateApplicationDetailsRequestBody) body);
+    return body;
+  }
+
+  private void validateSchema(JsonNode request) {
     JsonNode body = request == null ? NullNode.getInstance() : request;
     if (!applicationDetailsSchema.validate(body).isEmpty()) {
       invalid();
     }
+  }
 
-    String priorLegalAid = request.path("priorLegalAid").textValue();
-    boolean legalAidLast6Months = request.path("legalAidLast6Months").booleanValue();
-    JsonNode reason = request.path("reasonForReapplication");
-    boolean sameMatter = "yesSameMatter".equals(priorLegalAid);
+  private void validateBusinessRules(UpdateApplicationDetailsRequestBody request) {
+    boolean legalAidLast6Months = request.getLegalAidLast6Months();
+    boolean sameMatter = request.getPriorLegalAid() == PriorLegalAid.YES_SAME_MATTER;
+    String reason = request.getReasonForReapplication();
     if (legalAidLast6Months && !sameMatter) {
       invalid();
     }
     if (sameMatter && legalAidLast6Months) {
-      if (!reason.isTextual() || reason.textValue().isBlank()) {
+      if (reason == null || reason.isBlank()) {
         invalid();
       }
-    } else if (!reason.isNull()) {
+    } else if (reason != null) {
       invalid();
     }
 
-    JsonNode client = request.path("clientDetails");
-    boolean hasFixedAddress = client.path("hasFixedAddress").booleanValue();
-    if (hasFixedAddress == client.path("address").isNull()) {
+    UpdateClientDetailsRequestBody client = request.getClientDetails();
+    boolean hasFixedAddress = client.getHasFixedAddress();
+    if (hasFixedAddress == (client.getAddress() == null)) {
       invalid();
     }
   }
