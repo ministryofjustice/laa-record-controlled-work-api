@@ -103,14 +103,6 @@ public interface ApplicationMapper {
       target = "scopingQuestions",
       source = "request",
       qualifiedByName = "toDatastoreScopingQuestionsFromDetails")
-  @Mapping(target = "ufn", ignore = true)
-  @Mapping(target = "laaReference", ignore = true)
-  @Mapping(target = "meansAssessmentRequired", ignore = true)
-  @Mapping(target = "typeOfNonMeans", ignore = true)
-  @Mapping(target = "contribution", ignore = true)
-  @Mapping(target = "determinationId", ignore = true)
-  @Mapping(target = "declaration", ignore = true)
-  @Mapping(target = "evidence", ignore = true)
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);
 

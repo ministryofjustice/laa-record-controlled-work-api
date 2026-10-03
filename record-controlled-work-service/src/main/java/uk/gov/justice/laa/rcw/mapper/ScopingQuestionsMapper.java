@@ -1,8 +1,6 @@
 package uk.gov.justice.laa.rcw.mapper;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Map;
 import org.mapstruct.BeanMapping;
@@ -27,17 +25,6 @@ public interface ScopingQuestionsMapper {
       return new ApplicationScopingQuestions();
     }
     return jsonMapper().convertValue(value, ApplicationScopingQuestions.class);
-  }
-
-  /** Reads recognised answers without rejecting unknown datastore fields or enum values. */
-  default ScopingQuestions toScopingQuestions(Object value) {
-    if (value == null) {
-      return null;
-    }
-    if (!(value instanceof Map<?, ?>)) {
-      return new ScopingQuestions();
-    }
-    return jsonMapper().convertValue(value, ScopingQuestions.class);
   }
 
   /** Serializes the RCW model to a map without null-valued answers. */
@@ -69,11 +56,6 @@ public interface ScopingQuestionsMapper {
   }
 
   private static JsonMapper jsonMapper() {
-    return JsonMapper.builder()
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .enable(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL)
-        .defaultPropertyInclusion(
-            JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
-        .build();
+    return ScopingQuestionsJsonMapper.INSTANCE;
   }
 }
