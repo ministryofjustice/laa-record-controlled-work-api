@@ -39,11 +39,13 @@ class ApplicationMapperTest {
 
   private final ApplicationMapper applicationMapper =
       new ApplicationMapperImpl(
-          new ClientDetailsMapperImpl(new AddressMapperImpl()),
+          new ClientDetailsMapperImpl(
+              new AddressMapperImpl(new JsonNullableMapperImpl()), new JsonNullableMapperImpl()),
           new DeclarationMapperImpl(),
-          new EligibilityMapperImpl(),
+          new EligibilityMapperImpl(new JsonNullableMapperImpl()),
           new EvidenceMapperImpl(),
-          new ScopingQuestionsMapperImpl());
+          new ScopingQuestionsMapperImpl(),
+          new JsonNullableMapperImpl());
 
   @Test
   void shouldMapApplicationSummaryToApplicationOverview() {
@@ -315,6 +317,7 @@ class ApplicationMapperTest {
     assertThat(result.geteTag()).isEqualTo(19L);
     assertThat(result.getReasonForReapplication_JsonNullable().get()).isEqualTo("Reapplication");
     assertThat(result.getEcfFlag_JsonNullable().get()).isTrue();
+    assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().get())
         .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
     assertThat(result.getUfn()).isNull();
@@ -379,6 +382,9 @@ class ApplicationMapperTest {
     assertThat(result.getReasonForReapplication_JsonNullable().isPresent()).isTrue();
     assertThat(result.getReasonForReapplication_JsonNullable().get()).isNull();
     assertThat(result.getEcfFlag_JsonNullable().get()).isFalse();
+    assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
+    assertThat(result.getScopingQuestions_JsonNullable().get())
+        .isEqualTo(Map.of("priorLegalAid", "no"));
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().isPresent()).isTrue();
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().get()).isNull();
     assertThat(result.getClientDetails().getNoFixedAbode()).isTrue();

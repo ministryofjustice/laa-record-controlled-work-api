@@ -28,6 +28,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.JsonNullableMapperImpl;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +46,7 @@ class ApplicationMeansServiceTest {
   @BeforeEach
   void setUp() {
     applicationGuard = new ApplicationGuard(mockAuthorizedOfficesProvider);
-    eligibilityMapper = new EligibilityMapperImpl();
+    eligibilityMapper = new EligibilityMapperImpl(new JsonNullableMapperImpl());
     applicationMeansService =
         new ApplicationMeansService(mockApplicationGateway, applicationGuard, eligibilityMapper);
     lenient()

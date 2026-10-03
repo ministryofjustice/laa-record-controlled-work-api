@@ -12,7 +12,14 @@ import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
 class EligibilityMapperTest {
 
-  private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl();
+  private final JsonNullableMapper jsonNullableMapper = new JsonNullableMapperImpl();
+  private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl(jsonNullableMapper);
+
+  @Test
+  void shouldWrapGenericValuesAsPresentIncludingNull() {
+    assertThat(jsonNullableMapper.toJsonNullable("value")).isEqualTo(JsonNullable.of("value"));
+    assertThat(jsonNullableMapper.toJsonNullable(null)).isEqualTo(JsonNullable.of(null));
+  }
 
   @Test
   void shouldMapEligibilityResult() {

@@ -4,13 +4,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.openapitools.jackson.nullable.JsonNullable;
+import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
@@ -19,6 +19,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
@@ -29,7 +30,8 @@ import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
       DeclarationMapper.class,
       EligibilityMapper.class,
       EvidenceMapper.class,
-      ScopingQuestionsMapper.class
+      ScopingQuestionsMapper.class,
+      JsonNullableMapper.class
     },
     injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface ApplicationMapper {
@@ -85,26 +87,40 @@ public interface ApplicationMapper {
    * @param version the caller's version precondition
    * @return the sparse datastore command
    */
-  @BeanMapping(ignoreByDefault = true)
+  @BeanMapping(
+      ignoreByDefault = true,
+      builder = @Builder(disableBuilder = true),
+      unmappedSourcePolicy = ReportingPolicy.ERROR,
+      ignoreUnmappedSourceProperties = "legalAidLast6Months")
   @Mapping(target = "eTag", source = "version")
   @Mapping(target = "clientDetails", source = "request.clientDetails")
+  @Mapping(
+      target = "reasonForReapplication_JsonNullable",
+      source = "request.reasonForReapplication",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "ecfFlag_JsonNullable",
+      source = "request.ecfFlag",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "scopingQuestions",
+      source = "request.priorLegalAid",
+      qualifiedByName = "toPriorLegalAidScopingQuestions")
+  @Mapping(target = "ufn", ignore = true)
+  @Mapping(target = "laaReference", ignore = true)
+  @Mapping(target = "meansAssessmentRequired", ignore = true)
+  @Mapping(target = "typeOfNonMeans", ignore = true)
+  @Mapping(target = "contribution", ignore = true)
+  @Mapping(target = "determinationId", ignore = true)
+  @Mapping(target = "declaration", ignore = true)
+  @Mapping(target = "evidence", ignore = true)
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);
 
-  /**
-   * Sets nullable root fields as present, including explicit clears.
-   *
-   * @param request the complete validated details snapshot
-   * @param command the sparse datastore command
-   */
-  @AfterMapping
-  default void mapEditableNullableFields(
-      UpdateApplicationDetailsRequestBody request, @MappingTarget EditApplicationCommand command) {
-    command.setReasonForReapplication_JsonNullable(
-        JsonNullable.of(request.getReasonForReapplication()));
-    command.setEcfFlag_JsonNullable(JsonNullable.of(request.getEcfFlag()));
-    command.setScopingQuestions_JsonNullable(
-        JsonNullable.of(Map.of("priorLegalAid", request.getPriorLegalAid().getValue())));
+  /** Converts the reapplication answer into datastore scoping data. */
+  @Named("toPriorLegalAidScopingQuestions")
+  default Map<String, Object> toPriorLegalAidScopingQuestions(PriorLegalAid priorLegalAid) {
+    return Map.of("priorLegalAid", priorLegalAid.getValue());
   }
 
   /** Maps datastore application state back to the RCW application state. */

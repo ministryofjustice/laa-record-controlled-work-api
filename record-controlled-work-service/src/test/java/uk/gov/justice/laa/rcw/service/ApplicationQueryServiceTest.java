@@ -33,6 +33,7 @@ import uk.gov.justice.laa.rcw.mapper.DeclarationMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EvidenceMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.JsonNullableMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapperImpl;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -46,12 +47,15 @@ class ApplicationQueryServiceTest {
 
   private final ApplicationMapper applicationMapper =
       new ApplicationMapperImpl(
-          new ClientDetailsMapperImpl(new AddressMapperImpl()),
+          new ClientDetailsMapperImpl(
+              new AddressMapperImpl(new JsonNullableMapperImpl()), new JsonNullableMapperImpl()),
           new DeclarationMapperImpl(),
-          new EligibilityMapperImpl(),
+          new EligibilityMapperImpl(new JsonNullableMapperImpl()),
           new EvidenceMapperImpl(),
-          new ScopingQuestionsMapperImpl());
-  private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl();
+          new ScopingQuestionsMapperImpl(),
+          new JsonNullableMapperImpl());
+  private final EligibilityMapper eligibilityMapper =
+      new EligibilityMapperImpl(new JsonNullableMapperImpl());
   private ApplicationQueryService applicationQueryService;
 
   @BeforeEach
