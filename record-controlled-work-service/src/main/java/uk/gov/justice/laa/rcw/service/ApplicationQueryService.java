@@ -35,7 +35,7 @@ public class ApplicationQueryService {
   private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
   private final EligibilityMapper eligibilityMapper;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Gets all Applications.
@@ -72,10 +72,7 @@ public class ApplicationQueryService {
    * @param providerOfficeCode the office code on the application
    */
   void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
+    applicationGuard.checkAuthorizedForOffice(applicationId, providerOfficeCode);
   }
 
   /**
@@ -105,12 +102,8 @@ public class ApplicationQueryService {
     ApplicationResponse response;
     try {
       response = applicationGateway.fetchApplicationDetails(applicationId);
+      applicationGuard.checkVisibleForOffice(applicationId, response.getProviderOfficeCode());
     } catch (ApplicationNotFoundException exception) {
-      return Optional.empty();
-    }
-    if (!authorizedOfficesProvider
-        .currentAuthorizedOfficeCodes()
-        .contains(response.getProviderOfficeCode())) {
       return Optional.empty();
     }
     OptionalLong version = ApplicationVersionParser.parseVersion(response.geteTag());

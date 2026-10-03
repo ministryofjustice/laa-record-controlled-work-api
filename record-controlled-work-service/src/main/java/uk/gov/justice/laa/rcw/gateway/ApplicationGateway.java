@@ -148,28 +148,15 @@ public class ApplicationGateway {
    */
   public ApplicationResponse fetchApplicationDetails(UUID applicationId) {
     try {
-      ApplicationResponse response =
-          applicationApi.getApplication(
-              applicationId,
-              bearerTokenProvider.currentBearerToken(),
-              datastoreRequestContext.correlationId(),
-              datastoreRequestContext.serviceName());
+      ApplicationResponse response = fetchApplication(applicationId);
       if (response == null) {
         throw new ApplicationUpstreamErrorException(
             "Datastore returned an invalid application version",
             "DATASTORE_INVALID_APPLICATION_VERSION");
       }
       return response;
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
     } catch (HttpClientErrorException.Forbidden exception) {
       throw notFound(applicationId);
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
-    } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
-    } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
     } catch (RestClientException | IllegalArgumentException exception) {
       throw new ApplicationUpstreamErrorException(
           "Datastore returned an invalid application response", "DATASTORE_INVALID_RESPONSE");

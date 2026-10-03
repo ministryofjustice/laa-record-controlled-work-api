@@ -7,8 +7,6 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
-import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
-import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
@@ -33,11 +31,7 @@ public class ApplicationDetailsService {
   public String updateApplicationDetails(
       UUID applicationId, UpdateApplicationDetailsRequestBody request, long version) {
     ApplicationResponse application = applicationGateway.fetchApplicationDetails(applicationId);
-    try {
-      applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
-    } catch (ApplicationForbiddenException exception) {
-      throw notFound(applicationId);
-    }
+    applicationGuard.checkVisibleForOffice(applicationId, application.getProviderOfficeCode());
 
     if (application.getApplicationState() == ApplicationState.COMPLETED) {
       throw new ApplicationConflictException(
@@ -47,10 +41,5 @@ public class ApplicationDetailsService {
 
     EditApplicationCommand command = applicationMapper.toEditApplicationCommand(request, version);
     return applicationGateway.editApplication(applicationId, command);
-  }
-
-  private ApplicationNotFoundException notFound(UUID applicationId) {
-    return new ApplicationNotFoundException(
-        "No application found with id: %s".formatted(applicationId));
   }
 }

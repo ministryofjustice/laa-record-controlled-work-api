@@ -3,6 +3,7 @@ package uk.gov.justice.laa.rcw.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +44,7 @@ import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 class ApplicationQueryServiceTest {
 
   @Mock private ApplicationGateway mockApplicationGateway;
-  @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
+  @Mock private ApplicationGuard mockApplicationGuard;
 
   private final ApplicationMapper applicationMapper =
       new ApplicationMapperImpl(
@@ -62,10 +63,7 @@ class ApplicationQueryServiceTest {
   void setUp() {
     applicationQueryService =
         new ApplicationQueryService(
-            mockApplicationGateway,
-            applicationMapper,
-            eligibilityMapper,
-            mockAuthorizedOfficesProvider);
+            mockApplicationGateway, applicationMapper, eligibilityMapper, mockApplicationGuard);
   }
 
   @Test
@@ -143,8 +141,6 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldRejectMissingDatastoreVersion() {
     UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("OFFICE"));
     when(mockApplicationGateway.fetchApplicationDetails(id))
         .thenReturn(ApplicationResponse.builder().id(id).providerOfficeCode("OFFICE").build());
 
@@ -152,13 +148,12 @@ class ApplicationQueryServiceTest {
         .isInstanceOf(ApplicationUpstreamErrorException.class)
         .hasMessage("Datastore returned an invalid application version");
     verify(mockApplicationGateway).fetchApplicationDetails(id);
+    verify(mockApplicationGuard).checkVisibleForOffice(id, "OFFICE");
   }
 
   @Test
   void shouldRejectNegativeDatastoreVersion() {
     UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("OFFICE"));
     when(mockApplicationGateway.fetchApplicationDetails(id))
         .thenReturn(
             ApplicationResponse.builder().id(id).providerOfficeCode("OFFICE").eTag(-1L).build());
@@ -166,14 +161,13 @@ class ApplicationQueryServiceTest {
     assertThatThrownBy(() -> applicationQueryService.getApplication(id))
         .isInstanceOf(ApplicationUpstreamErrorException.class);
     verify(mockApplicationGateway).fetchApplicationDetails(id);
+    verify(mockApplicationGuard).checkVisibleForOffice(id, "OFFICE");
   }
 
   @ParameterizedTest
   @ValueSource(longs = {0L, 7L, Long.MAX_VALUE})
   void shouldGetApplicationById(long version) {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("22439e72-68d3-4770-b435-c352d883d21e"));
     when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
@@ -194,13 +188,13 @@ class ApplicationQueryServiceTest {
     assertThat(result.get().application().getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.get().version()).isEqualTo(version);
     verify(mockApplicationGateway).fetchApplicationDetails(applicationId);
+    verify(mockApplicationGuard)
+        .checkVisibleForOffice(applicationId, "22439e72-68d3-4770-b435-c352d883d21e");
   }
 
   @Test
   void shouldGetApplicationById_returnsEmptyWhenOfficeIsNotAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("OTHER-OFFICE"));
     when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
@@ -208,26 +202,35 @@ class ApplicationQueryServiceTest {
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .eTag(-1L)
                 .build());
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationGuard)
+        .checkVisibleForOffice(applicationId, "22439e72-68d3-4770-b435-c352d883d21e");
 
     var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isEmpty();
+    verify(mockApplicationGuard)
+        .checkVisibleForOffice(applicationId, "22439e72-68d3-4770-b435-c352d883d21e");
   }
 
   @Test
   void shouldGetApplicationById_returnsEmptyWhenNoOfficeIsAuthorized() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
     when(mockApplicationGateway.fetchApplicationDetails(applicationId))
         .thenReturn(
             ApplicationResponse.builder()
                 .id(applicationId)
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
                 .build());
+    doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
+        .when(mockApplicationGuard)
+        .checkVisibleForOffice(applicationId, "22439e72-68d3-4770-b435-c352d883d21e");
 
     var result = applicationQueryService.getApplication(applicationId);
 
     assertThat(result).isEmpty();
+    verify(mockApplicationGuard)
+        .checkVisibleForOffice(applicationId, "22439e72-68d3-4770-b435-c352d883d21e");
   }
 
   @Test
@@ -255,22 +258,24 @@ class ApplicationQueryServiceTest {
   @Test
   void shouldCheckAuthorizedForOffice_doesNotThrow_whenOfficeIsAuthorized() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("AB12CD", "XY34ZT"));
-
     applicationQueryService.checkAuthorizedForOffice(applicationId, "AB12CD");
+    verify(mockApplicationGuard).checkAuthorizedForOffice(applicationId, "AB12CD");
   }
 
   @Test
   void shouldCheckAuthorizedForOffice_throwsForbiddenException_whenOfficeNotAuthorized() {
     UUID applicationId = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
-    when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
-        .thenReturn(List.of("AB12CD"));
+    doThrow(
+            new ApplicationForbiddenException(
+                "Not authorized to update application %s".formatted(applicationId)))
+        .when(mockApplicationGuard)
+        .checkAuthorizedForOffice(applicationId, "OTHER-OFFICE");
 
     assertThatThrownBy(
             () -> applicationQueryService.checkAuthorizedForOffice(applicationId, "OTHER-OFFICE"))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
+    verify(mockApplicationGuard).checkAuthorizedForOffice(applicationId, "OTHER-OFFICE");
   }
 
   @Test

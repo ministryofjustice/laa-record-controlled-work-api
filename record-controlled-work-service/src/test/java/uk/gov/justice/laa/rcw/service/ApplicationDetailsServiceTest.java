@@ -21,7 +21,6 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
-import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
@@ -64,7 +63,7 @@ class ApplicationDetailsServiceTest {
 
     assertThat(etag).isEqualTo("\"32\"");
     verify(mockApplicationGateway, times(1)).fetchApplicationDetails(APPLICATION_ID);
-    verify(mockApplicationGuard).checkAuthorizedForOffice(APPLICATION_ID, OFFICE_CODE);
+    verify(mockApplicationGuard).checkVisibleForOffice(APPLICATION_ID, OFFICE_CODE);
     verify(mockApplicationMapper).toEditApplicationCommand(request, CALLER_VERSION);
     verify(mockApplicationGateway, times(1)).editApplication(APPLICATION_ID, command);
   }
@@ -90,9 +89,9 @@ class ApplicationDetailsServiceTest {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
     when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.DRAFT));
-    doThrow(new ApplicationForbiddenException("Not authorized"))
+    doThrow(notFound())
         .when(mockApplicationGuard)
-        .checkAuthorizedForOffice(APPLICATION_ID, OFFICE_CODE);
+        .checkVisibleForOffice(APPLICATION_ID, OFFICE_CODE);
 
     assertThatThrownBy(
             () ->
@@ -127,7 +126,7 @@ class ApplicationDetailsServiceTest {
                 assertThat(((ApplicationConflictException) exception).getReason())
                     .isEqualTo("APPLICATION_COMPLETED"));
 
-    verify(mockApplicationGuard).checkAuthorizedForOffice(APPLICATION_ID, OFFICE_CODE);
+    verify(mockApplicationGuard).checkVisibleForOffice(APPLICATION_ID, OFFICE_CODE);
     verify(mockApplicationGateway, never())
         .editApplication(eq(APPLICATION_ID), any(EditApplicationCommand.class));
     verifyNoInteractions(mockApplicationMapper);
@@ -138,15 +137,19 @@ class ApplicationDetailsServiceTest {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
     when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .thenReturn(application(ApplicationState.COMPLETED));
-    doThrow(new ApplicationForbiddenException("Not authorized"))
+    doThrow(notFound())
         .when(mockApplicationGuard)
-        .checkAuthorizedForOffice(APPLICATION_ID, OFFICE_CODE);
+        .checkVisibleForOffice(APPLICATION_ID, OFFICE_CODE);
 
     assertThatThrownBy(
             () ->
                 applicationDetailsService.updateApplicationDetails(
                     APPLICATION_ID, request, CALLER_VERSION))
-        .isInstanceOf(ApplicationNotFoundException.class);
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationNotFoundException) exception).getReason())
+                    .isEqualTo("APPLICATION_NOT_FOUND"));
 
     verify(mockApplicationGateway, never())
         .editApplication(eq(APPLICATION_ID), any(EditApplicationCommand.class));
@@ -181,5 +184,9 @@ class ApplicationDetailsServiceTest {
         .providerOfficeCode(OFFICE_CODE)
         .applicationState(state)
         .build();
+  }
+
+  private static ApplicationNotFoundException notFound() {
+    return new ApplicationNotFoundException("No application found with id: " + APPLICATION_ID);
   }
 }
