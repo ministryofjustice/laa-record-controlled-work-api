@@ -325,13 +325,13 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             .willReturn(
                 okJson(
                     """
-                                        {
-                                            "id": "%s",
-                                            "providerOfficeCode": "UNAUTHORIZED",
-                                            "applicationState": "DRAFT",
-                                            "eTag": 100
-                                        }
-                                        """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "UNAUTHORIZED",
+                        "applicationState": "DRAFT",
+                        "eTag": 100
+                    }
+                    """
                         .formatted(id))));
 
     String missingResponse =
