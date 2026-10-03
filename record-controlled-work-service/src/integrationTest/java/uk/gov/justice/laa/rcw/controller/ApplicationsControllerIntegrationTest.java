@@ -46,6 +46,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
+import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
 import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExtensions;
 
@@ -82,26 +83,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   @DynamicPropertySource
   static void datastoreProperties(DynamicPropertyRegistry registry) {
-    registry.add("laa.datastore.client.base-url", DATASTORE::baseUrl);
-    registry.add(
-        "spring.security.oauth2.client.provider.datastore.token-uri",
-        () -> DATASTORE.baseUrl() + "/default/token");
+    DatastoreTestSupport.registerProperties(registry, DATASTORE);
   }
 
   @BeforeAll
   static void stubTokenEndpoint() {
-    DATASTORE.stubFor(
-        WireMock.post(urlPathEqualTo("/default/token"))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                      "access_token": "obo-access-token",
-                      "token_type": "Bearer",
-                      "expires_in": 3600,
-                      "scope": "DataStore.Access"
-                    }
-                    """)));
+    DatastoreTestSupport.stubTokenEndpoint(DATASTORE);
   }
 
   @AfterAll
@@ -111,7 +98,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   @AfterEach
   void resetDatastoreApplicationsStub() {
-    DATASTORE.resetRequests();
+    DatastoreTestSupport.resetMappingsAndStubTokenEndpoint(DATASTORE);
   }
 
   @Test
