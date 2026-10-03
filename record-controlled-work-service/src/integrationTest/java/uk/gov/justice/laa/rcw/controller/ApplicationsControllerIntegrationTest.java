@@ -370,21 +370,21 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     DATASTORE.verify(5, getRequestedFor(urlPathEqualTo(path)));
     String expectedEditCommand =
         """
-                {
-                    "eTag": 31,
-                    "reasonForReapplication": null,
-                    "ecfFlag": true,
-                    "scopingQuestions": {"priorLegalAid": "no"},
-                    "clientDetails": {
-                        "firstName": "Test",
-                        "lastName": "Client",
-                        "dateOfBirth": "1990-01-01",
-                        "niNumber": null,
-                        "noFixedAbode": true,
-                        "address": null
-                    }
-                }
-                """;
+        {
+            "eTag": 31,
+            "reasonForReapplication": null,
+            "ecfFlag": true,
+            "scopingQuestions": {"priorLegalAid": "no"},
+            "clientDetails": {
+                "firstName": "Test",
+                "lastName": "Client",
+                "dateOfBirth": "1990-01-01",
+                "niNumber": null,
+                "noFixedAbode": true,
+                "address": null
+            }
+        }
+        """;
     DATASTORE.verify(
         2,
         patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
@@ -1419,21 +1419,21 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   private static String applicationDetailsResponse(String id, long version, String firstName) {
     return """
-                {
-                    "id": "%s",
-                    "providerOfficeCode": "%s",
-                    "applicationState": "DRAFT",
-                    "eTag": %d,
-                    "client": {
-                        "firstName": "%s",
-                        "lastName": "Client",
-                        "dateOfBirth": "1990-01-01",
-                        "niNumber": null,
-                        "noFixedAbode": true,
-                        "address": null
-                    }
-                }
-                """
+    {
+        "id": "%s",
+        "providerOfficeCode": "%s",
+        "applicationState": "DRAFT",
+        "eTag": %d,
+        "client": {
+            "firstName": "%s",
+            "lastName": "Client",
+            "dateOfBirth": "1990-01-01",
+            "niNumber": null,
+            "noFixedAbode": true,
+            "address": null
+        }
+    }
+    """
         .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version, firstName);
   }
 
