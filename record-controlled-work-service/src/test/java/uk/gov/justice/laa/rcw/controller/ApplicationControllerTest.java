@@ -3,9 +3,9 @@ package uk.gov.justice.laa.rcw.controller;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -35,11 +35,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import uk.gov.justice.laa.rcw.config.ApplicationDetailsSchemaConfiguration;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -65,6 +67,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationQueryService.VersionedApplicati
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
+@Import(ApplicationDetailsSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
       "spring.autoconfigure.exclude="
@@ -445,6 +448,15 @@ class ApplicationControllerTest {
   }
 
   @Test
+  void updateApplicationDetails_rejectsCountryWithOneSupplementaryCharacter() throws Exception {
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address"))
+        .put("country", Character.toString(0x1F310));
+
+    assertInvalidDetails(request);
+  }
+
+  @Test
   void updateApplicationDetails_rejectsAddressThatContradictsFixedAddressAnswer() throws Exception {
     ObjectNode fixedAddressRequest = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
     ((ObjectNode) fixedAddressRequest.path("clientDetails")).put("hasFixedAddress", false);
@@ -504,7 +516,33 @@ class ApplicationControllerTest {
   void updateApplicationDetails_rejectsUnknownProperties() throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
     request.put("unexpected", "value");
+    assertInvalidDetails(request);
 
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("unexpected", "value");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address")).put("unexpected", "value");
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsWrongTypesAtEachEditableLevel() throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("ecfFlag", "false");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("firstName", 123);
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("address", "malformed");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address")).put("addressLine1", false);
     assertInvalidDetails(request);
   }
 
@@ -540,6 +578,7 @@ class ApplicationControllerTest {
     performDetailsPut("\"0\"", request.toString())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Invalid request content."))
         .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
     verifyNoInteractions(
         mockApplicationQueryService,

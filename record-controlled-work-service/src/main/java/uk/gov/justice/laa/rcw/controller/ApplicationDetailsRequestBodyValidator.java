@@ -4,13 +4,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.networknt.schema.Schema;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpInputMessage;
@@ -28,38 +25,19 @@ public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAda
   private static final ObjectMapper STRICT_MAPPER =
       new ObjectMapper(
           JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
-  private static final Pattern NATIONAL_INSURANCE_NUMBER =
-      Pattern.compile(
-          "^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$");
-  private static final Set<String> REQUEST_PROPERTIES =
-      Set.of(
-          "priorLegalAid",
-          "legalAidLast6Months",
-          "reasonForReapplication",
-          "ecfFlag",
-          "clientDetails");
-  private static final Set<String> CLIENT_PROPERTIES =
-      Set.of("firstName", "lastName", "dateOfBirth", "niNumber", "hasFixedAddress", "address");
-  private static final Set<String> ADDRESS_PROPERTIES =
-      Set.of(
-          "addressLine1",
-          "addressLine2",
-          "addressLine3",
-          "addressLine4",
-          "townOrCity",
-          "postCode",
-          "county",
-          "country");
 
   private final int maxBodySizeBytes;
+  private final Schema applicationDetailsSchema;
 
   /** Creates the details request validator with a configured byte limit. */
   public ApplicationDetailsRequestBodyValidator(
-      @Value("${laa.request.body.max-size-bytes}") int maxBodySizeBytes) {
+      @Value("${laa.request.body.max-size-bytes}") int maxBodySizeBytes,
+      Schema applicationDetailsSchema) {
     if (maxBodySizeBytes < 1 || maxBodySizeBytes == Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Request body size limit must be a positive integer");
     }
     this.maxBodySizeBytes = maxBodySizeBytes;
+    this.applicationDetailsSchema = applicationDetailsSchema;
   }
 
   @Override
@@ -99,125 +77,31 @@ public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAda
   }
 
   private void validate(JsonNode request) {
-    JsonNode root = requireObject(request);
-    requireProperties(root, REQUEST_PROPERTIES);
-    rejectUnknownProperties(root, REQUEST_PROPERTIES);
-    requireText(root.get("priorLegalAid"));
-    String priorLegalAid = root.get("priorLegalAid").textValue();
-    if (!Set.of("no", "yesDifferentMatter", "yesSameMatter").contains(priorLegalAid)) {
+    JsonNode body = request == null ? NullNode.getInstance() : request;
+    if (!applicationDetailsSchema.validate(body).isEmpty()) {
       invalid();
     }
-    boolean legalAidLast6Months = requireBoolean(root.get("legalAidLast6Months"));
-    requireBoolean(root.get("ecfFlag"));
-    validateReason(root.get("reasonForReapplication"), priorLegalAid, legalAidLast6Months);
-    validateClient(root.get("clientDetails"));
-  }
 
-  private void validateReason(JsonNode reason, String priorLegalAid, boolean last6Months) {
+    String priorLegalAid = request.path("priorLegalAid").textValue();
+    boolean legalAidLast6Months = request.path("legalAidLast6Months").booleanValue();
+    JsonNode reason = request.path("reasonForReapplication");
     boolean sameMatter = "yesSameMatter".equals(priorLegalAid);
-    if (last6Months && !sameMatter) {
+    if (legalAidLast6Months && !sameMatter) {
       invalid();
     }
-    if (sameMatter && last6Months) {
+    if (sameMatter && legalAidLast6Months) {
       if (!reason.isTextual() || reason.textValue().isBlank()) {
         invalid();
       }
     } else if (!reason.isNull()) {
       invalid();
     }
-  }
 
-  private void validateClient(JsonNode clientNode) {
-    JsonNode client = requireObject(clientNode);
-    requireProperties(client, CLIENT_PROPERTIES);
-    rejectUnknownProperties(client, CLIENT_PROPERTIES);
-    requireText(client.get("firstName"));
-    requireText(client.get("lastName"));
-    validateDate(client.get("dateOfBirth"));
-    validateNationalInsuranceNumber(client.get("niNumber"));
-    boolean hasFixedAddress = requireBoolean(client.get("hasFixedAddress"));
-    JsonNode address = client.get("address");
-    if (!hasFixedAddress) {
-      if (!address.isNull()) {
-        invalid();
-      }
-      return;
-    }
-    validateAddress(address);
-  }
-
-  private void validateDate(JsonNode dateOfBirth) {
-    String value = requireText(dateOfBirth);
-    try {
-      LocalDate.parse(value);
-    } catch (DateTimeParseException exception) {
+    JsonNode client = request.path("clientDetails");
+    boolean hasFixedAddress = client.path("hasFixedAddress").booleanValue();
+    if (hasFixedAddress == client.path("address").isNull()) {
       invalid();
     }
-  }
-
-  private void validateNationalInsuranceNumber(JsonNode niNumber) {
-    if (!niNumber.isNull()
-        && (!niNumber.isTextual()
-            || !NATIONAL_INSURANCE_NUMBER.matcher(niNumber.textValue()).matches())) {
-      invalid();
-    }
-  }
-
-  private void validateAddress(JsonNode addressNode) {
-    JsonNode address = requireObject(addressNode);
-    requireProperties(address, ADDRESS_PROPERTIES);
-    rejectUnknownProperties(address, ADDRESS_PROPERTIES);
-    requireText(address.get("addressLine1"));
-    for (String property :
-        Set.of(
-            "addressLine2", "addressLine3", "addressLine4", "townOrCity", "postCode", "county")) {
-      JsonNode value = address.get(property);
-      if (!value.isNull() && !value.isTextual()) {
-        invalid();
-      }
-    }
-    String country = requireText(address.get("country"));
-    if (country.length() != 2) {
-      invalid();
-    }
-  }
-
-  private JsonNode requireObject(JsonNode value) {
-    if (value == null || !value.isObject()) {
-      invalid();
-    }
-    return value;
-  }
-
-  private void requireProperties(JsonNode object, Set<String> properties) {
-    for (String property : properties) {
-      if (!object.has(property)) {
-        invalid();
-      }
-    }
-  }
-
-  private void rejectUnknownProperties(JsonNode object, Set<String> allowedProperties) {
-    Iterator<String> names = object.fieldNames();
-    while (names.hasNext()) {
-      if (!allowedProperties.contains(names.next())) {
-        invalid();
-      }
-    }
-  }
-
-  private String requireText(JsonNode value) {
-    if (value == null || !value.isTextual()) {
-      invalid();
-    }
-    return value.textValue();
-  }
-
-  private boolean requireBoolean(JsonNode value) {
-    if (value == null || !value.isBoolean()) {
-      invalid();
-    }
-    return value.booleanValue();
   }
 
   private void invalid() {

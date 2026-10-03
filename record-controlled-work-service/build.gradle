@@ -17,6 +17,7 @@ repositories {
 
 // Replaces application.yml @version@  with version from gradle.properties
 processResources {
+    from "$rootDir/record-controlled-work-api/open-api-specification.yml"
     filesMatching('application.yml') {
         filter {
             it.replace('@version@', version)
@@ -67,6 +68,7 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
     implementation 'org.openapitools:jackson-databind-nullable:0.2.11'
+    implementation 'com.networknt:json-schema-validator:2.0.4'
     implementation 'org.apache.commons:commons-lang3:3.20.0'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.6.4'
 
