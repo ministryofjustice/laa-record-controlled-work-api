@@ -27,6 +27,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Controller for handling application requests. */
 @RestController
@@ -88,14 +89,8 @@ public class ApplicationController implements ApplicationsApi {
     if (ifMatch == null) {
       throw new ApplicationPreconditionRequiredException();
     }
-    if (!ifMatch.matches("\\\"[0-9]+\\\"")) {
-      throw new ApplicationRequestValidationException("INVALID_IF_MATCH");
-    }
-    try {
-      return Long.parseLong(ifMatch.substring(1, ifMatch.length() - 1));
-    } catch (NumberFormatException exception) {
-      throw new ApplicationRequestValidationException("INVALID_IF_MATCH");
-    }
+    return ApplicationVersionParser.parseIfMatch(ifMatch)
+        .orElseThrow(() -> new ApplicationRequestValidationException("INVALID_IF_MATCH"));
   }
 
   @Override

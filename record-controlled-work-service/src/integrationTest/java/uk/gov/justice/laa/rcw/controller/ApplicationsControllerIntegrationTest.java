@@ -472,8 +472,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         ",\"eTag\":null",
         ",\"eTag\":-1",
         ",\"eTag\":\"invalid\"",
+        ",\"eTag\":\"17\"",
         ",\"eTag\":9223372036854775808",
         ",\"eTag\":1.5",
+        ",\"eTag\":1.0",
+        ",\"eTag\":1e2",
         ",\"eTag\":-0.5",
         ",\"eTag\":\"0\"",
         ",\"eTag\":true",
@@ -675,7 +678,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                     {
                       "id": "%s",
-                      "providerOfficeCode": "%s"
+                                            "providerOfficeCode": "%s",
+                                            "eTag": -1
                     }
                     """
                         .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
@@ -1095,8 +1099,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
   }
 
-  @Test
-  void shouldReturnBadGatewayWhenEditResponseHasNoEtag() throws Exception {
+  @ParameterizedTest
+  @MethodSource("invalidEditResponseEtags")
+  void shouldReturnBadGatewayWhenEditResponseEtagIsInvalid(String editEtag) throws Exception {
     String id = "e2c3d4e5-f6a7-8901-bcde-f12345678904";
     String path = "/api/v0/applications/" + id;
     DATASTORE.stubFor(
@@ -1112,9 +1117,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     }
                     """
                         .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    var editResponse = WireMock.aResponse().withStatus(204);
+    if (editEtag != null) {
+      editResponse.withHeader("ETag", editEtag);
+    }
     DATASTORE.stubFor(
-        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
-            .willReturn(WireMock.aResponse().withStatus(204)));
+        WireMock.patch(urlPathEqualTo(path + ":edit-application")).willReturn(editResponse));
 
     performValidDetailsPut(id)
         .andExpect(status().isBadGateway())
@@ -1124,6 +1132,14 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
     DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+  }
+
+  private static Stream<Arguments> invalidEditResponseEtags() {
+    return Stream.of(
+        Arguments.of((Object) null),
+        Arguments.of("W/\"32\""),
+        Arguments.of("\"invalid\""),
+        Arguments.of("\"9223372036854775808\""));
   }
 
   @ParameterizedTest

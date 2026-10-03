@@ -206,6 +206,7 @@ class ApplicationQueryServiceTest {
             ApplicationResponse.builder()
                 .id(applicationId)
                 .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
+                .eTag(-1L)
                 .build());
 
     var result = applicationQueryService.getApplication(applicationId);

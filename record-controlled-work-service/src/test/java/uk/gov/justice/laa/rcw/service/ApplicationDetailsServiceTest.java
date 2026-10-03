@@ -78,6 +78,23 @@ class ApplicationDetailsServiceTest {
   }
 
   @Test
+  void shouldPreserveLeadingZerosInDatastoreEtag() {
+    UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
+    EditApplicationCommand command = EditApplicationCommand.builder().eTag(CALLER_VERSION).build();
+    when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))
+        .thenReturn(application(ApplicationState.DRAFT));
+    when(mockApplicationMapper.toEditApplicationCommand(request, CALLER_VERSION))
+        .thenReturn(command);
+    when(mockApplicationGateway.editApplication(APPLICATION_ID, command))
+        .thenReturn(ResponseEntity.noContent().eTag("\"00032\"").build());
+
+    String etag =
+        applicationDetailsService.updateApplicationDetails(APPLICATION_ID, request, CALLER_VERSION);
+
+    assertThat(etag).isEqualTo("\"00032\"");
+  }
+
+  @Test
   void shouldReturnNotFoundWithoutEditingWhenOfficeIsUnauthorized() {
     UpdateApplicationDetailsRequestBody request = new UpdateApplicationDetailsRequestBody();
     when(mockApplicationGateway.fetchApplicationDetails(APPLICATION_ID))

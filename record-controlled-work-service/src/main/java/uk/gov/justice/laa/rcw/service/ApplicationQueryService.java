@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Service class for querying Applications. */
 @Service
@@ -111,8 +113,8 @@ public class ApplicationQueryService {
         .contains(response.getProviderOfficeCode())) {
       return Optional.empty();
     }
-    Long version = response.geteTag();
-    if (version == null || version < 0) {
+    OptionalLong version = ApplicationVersionParser.parseVersion(response.geteTag());
+    if (version.isEmpty()) {
       throw new ApplicationUpstreamErrorException(
           "Datastore returned an invalid application version",
           "DATASTORE_INVALID_APPLICATION_VERSION");
@@ -123,7 +125,7 @@ public class ApplicationQueryService {
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
     return Optional.of(
-        new VersionedApplication(applicationMapper.toApplication(response), version));
+        new VersionedApplication(applicationMapper.toApplication(response), version.getAsLong()));
   }
 
   /** A mapped application with its original datastore version, outside the public body. */

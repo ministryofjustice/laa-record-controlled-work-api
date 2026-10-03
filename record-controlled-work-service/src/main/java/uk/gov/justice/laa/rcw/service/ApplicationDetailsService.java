@@ -14,6 +14,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Service for atomically updating an application's editable details. */
 @Service
@@ -55,12 +56,7 @@ public class ApplicationDetailsService {
   private String requireValidEtag(ResponseEntity<Void> response) {
     if (response != null) {
       String etag = response.getHeaders().getETag();
-      if (etag != null && etag.matches("\\\"[0-9]+\\\"")) {
-        try {
-          Long.parseLong(etag.substring(1, etag.length() - 1));
-        } catch (NumberFormatException exception) {
-          throw invalidVersion();
-        }
+      if (ApplicationVersionParser.parseIfMatch(etag).isPresent()) {
         return etag;
       }
     }

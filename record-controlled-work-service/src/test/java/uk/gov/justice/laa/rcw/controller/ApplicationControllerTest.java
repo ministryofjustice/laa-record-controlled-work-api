@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -310,8 +312,7 @@ class ApplicationControllerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"", "0", "W/\"0\"", "*", "\"-1\"", "\"9223372036854775808\"", "\"1\", \"2\""})
+  @MethodSource("invalidIfMatchValues")
   void updateApplicationDetails_returnsConsistentBadRequest_whenIfMatchIsInvalid(String ifMatch)
       throws Exception {
     performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
@@ -326,6 +327,20 @@ class ApplicationControllerTest {
         mockApplicationUpdateService,
         mockApplicationEvidenceService,
         mockApplicationCreationService);
+  }
+
+  private static Stream<String> invalidIfMatchValues() {
+    return Stream.of(
+        "",
+        "0",
+        "W/\"0\"",
+        "*",
+        "\"-1\"",
+        "\"+1\"",
+        "\" 1\"",
+        "\"1 \"",
+        "\"9223372036854775808\"",
+        "\"1\", \"2\"");
   }
 
   @ParameterizedTest
