@@ -29,6 +29,7 @@ import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class ApplicationMapperTest {
 
@@ -37,15 +38,7 @@ class ApplicationMapperTest {
   private static final String REFERENCE_NUMBER = "CW-111111";
   private static final OffsetDateTime MODIFIED_AT = OffsetDateTime.parse("2024-01-02T10:00:00Z");
 
-  private final ApplicationMapper applicationMapper =
-      new ApplicationMapperImpl(
-          new ClientDetailsMapperImpl(
-              new AddressMapperImpl(new JsonNullableMapperImpl()), new JsonNullableMapperImpl()),
-          new DeclarationMapperImpl(),
-          new EligibilityMapperImpl(new JsonNullableMapperImpl()),
-          new EvidenceMapperImpl(),
-          new ScopingQuestionsMapperImpl(),
-          new JsonNullableMapperImpl());
+  private final ApplicationMapper applicationMapper = MapperFixtures.applicationMapper();
 
   @Test
   void shouldMapApplicationSummaryToApplicationOverview() {

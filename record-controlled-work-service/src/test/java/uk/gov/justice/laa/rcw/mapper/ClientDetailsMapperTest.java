@@ -9,12 +9,11 @@ import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class ClientDetailsMapperTest {
 
-  private final ClientDetailsMapper clientDetailsMapper =
-      new ClientDetailsMapperImpl(
-          new AddressMapperImpl(new JsonNullableMapperImpl()), new JsonNullableMapperImpl());
+  private final ClientDetailsMapper clientDetailsMapper = MapperFixtures.clientDetailsMapper();
 
   @Test
   void shouldMapDatastoreClientDetailsAndNestedAddress() {

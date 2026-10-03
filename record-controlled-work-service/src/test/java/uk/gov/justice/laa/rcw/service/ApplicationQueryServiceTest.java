@@ -26,19 +26,12 @@ import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
-import uk.gov.justice.laa.rcw.mapper.AddressMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.mapper.ApplicationMapperImpl;
-import uk.gov.justice.laa.rcw.mapper.ClientDetailsMapperImpl;
-import uk.gov.justice.laa.rcw.mapper.DeclarationMapperImpl;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
-import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
-import uk.gov.justice.laa.rcw.mapper.EvidenceMapperImpl;
-import uk.gov.justice.laa.rcw.mapper.JsonNullableMapperImpl;
-import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapperImpl;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationQueryServiceTest {
@@ -46,17 +39,8 @@ class ApplicationQueryServiceTest {
   @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private ApplicationGuard mockApplicationGuard;
 
-  private final ApplicationMapper applicationMapper =
-      new ApplicationMapperImpl(
-          new ClientDetailsMapperImpl(
-              new AddressMapperImpl(new JsonNullableMapperImpl()), new JsonNullableMapperImpl()),
-          new DeclarationMapperImpl(),
-          new EligibilityMapperImpl(new JsonNullableMapperImpl()),
-          new EvidenceMapperImpl(),
-          new ScopingQuestionsMapperImpl(),
-          new JsonNullableMapperImpl());
-  private final EligibilityMapper eligibilityMapper =
-      new EligibilityMapperImpl(new JsonNullableMapperImpl());
+  private final ApplicationMapper applicationMapper = MapperFixtures.applicationMapper();
+  private final EligibilityMapper eligibilityMapper = MapperFixtures.eligibilityMapper();
   private ApplicationQueryService applicationQueryService;
 
   @BeforeEach

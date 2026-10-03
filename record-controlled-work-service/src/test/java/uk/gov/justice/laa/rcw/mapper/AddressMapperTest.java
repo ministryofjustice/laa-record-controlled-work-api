@@ -8,10 +8,11 @@ import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class AddressMapperTest {
 
-  private final AddressMapper addressMapper = new AddressMapperImpl(new JsonNullableMapperImpl());
+  private final AddressMapper addressMapper = MapperFixtures.addressMapper();
 
   @Test
   void shouldMapDatastoreAddressToAddress() {
