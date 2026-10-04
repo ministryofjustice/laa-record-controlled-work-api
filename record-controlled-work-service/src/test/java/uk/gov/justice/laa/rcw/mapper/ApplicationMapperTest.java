@@ -174,7 +174,8 @@ class ApplicationMapperTest {
             .meansAssessmentRequired(true)
             .typeOfNonMeans(false)
             .contribution("100.00")
-            .scopingQuestions(Map.of("priorLegalAid", "yesSameMatter"))
+            .scopingQuestions(
+                Map.of("priorLegalAid", "yesSameMatter", "familyLawClassification", "public"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
