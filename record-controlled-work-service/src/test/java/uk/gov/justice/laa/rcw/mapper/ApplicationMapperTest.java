@@ -25,6 +25,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
@@ -201,7 +202,10 @@ class ApplicationMapperTest {
     assertThat(result.getTypeOfNonMeans()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
     assertThat(result.getScopingQuestions())
-        .isEqualTo(new ApplicationScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+        .isEqualTo(
+            new ApplicationScopingQuestions()
+                .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
+                .familyLawClassification(FamilyLawClassification.PUBLIC));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");
@@ -225,6 +229,7 @@ class ApplicationMapperTest {
 
     assertThat(result.getScopingQuestions()).isNotNull();
     assertThat(result.getScopingQuestions().getPriorLegalAid()).isNull();
+    assertThat(result.getScopingQuestions().getFamilyLawClassification()).isNull();
   }
 
   @ParameterizedTest

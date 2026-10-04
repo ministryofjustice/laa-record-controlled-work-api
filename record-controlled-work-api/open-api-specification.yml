@@ -407,6 +407,8 @@ components:
       properties:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"
+        familyLawClassification:
+          $ref: "#/components/schemas/familyLawClassification"
 
     CreateClientDetailsRequestBody:
       required:
