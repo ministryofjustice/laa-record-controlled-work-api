@@ -1,17 +1,22 @@
 package uk.gov.justice.laa.rcw.mapper;
 
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.PatchClientDetailsData;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
 
 /** Maps client details between the datastore and RCW API. */
 @Mapper(
     componentModel = "spring",
-    uses = AddressMapper.class,
+    uses = {AddressMapper.class, JsonNullableMapper.class},
     injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface ClientDetailsMapper {
 
@@ -29,6 +34,30 @@ public interface ClientDetailsMapper {
   @Mapping(target = "noFixedAbode", source = "hasFixedAddress", qualifiedByName = "toNoFixedAbode")
   @Mapping(target = "createAddressCommand", source = "address")
   CreateClientCommand toCreateClientCommand(CreateClientDetailsRequestBody clientDetails);
+
+  /**
+   * Maps client fields for a sparse edit, explicitly including nullable clears.
+   *
+   * @param clientDetails the validated client details
+   * @return the datastore patch client details
+   */
+  @BeanMapping(
+      ignoreByDefault = true,
+      builder = @Builder(disableBuilder = true),
+      unmappedSourcePolicy = ReportingPolicy.ERROR)
+  @Mapping(target = "firstName", source = "firstName")
+  @Mapping(target = "lastName", source = "lastName")
+  @Mapping(target = "dateOfBirth", source = "dateOfBirth")
+  @Mapping(
+      target = "niNumber_JsonNullable",
+      source = "niNumber",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(target = "noFixedAbode", source = "hasFixedAddress", qualifiedByName = "toNoFixedAbode")
+  @Mapping(
+      target = "address_JsonNullable",
+      source = "address",
+      qualifiedByName = "toPresentJsonNullable")
+  PatchClientDetailsData toPatchClientDetailsData(UpdateClientDetailsRequestBody clientDetails);
 
   /** Inverts {@code noFixedAbode} to {@code hasFixedAddress}, preserving unknown values. */
   @Named("toHasFixedAddress")

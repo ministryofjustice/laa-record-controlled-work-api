@@ -3,16 +3,19 @@ package uk.gov.justice.laa.rcw.controller;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,16 +29,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import uk.gov.justice.laa.rcw.config.ApplicationDetailsSchemaConfiguration;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -51,13 +59,17 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
+import uk.gov.justice.laa.rcw.service.ApplicationQueryService.VersionedApplication;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
+@Import(ApplicationDetailsSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
       "spring.autoconfigure.exclude="
@@ -70,9 +82,55 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
     })
 class ApplicationControllerTest {
 
+  private static final String DETAILS_APPLICATION_ID = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
+  private static final String VALID_DETAILS_REQUEST =
+      """
+      {
+          "priorLegalAid": "no",
+          "legalAidLast6Months": false,
+          "reasonForReapplication": null,
+          "ecfFlag": false,
+          "clientDetails": {
+              "firstName": "Test",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "niNumber": null,
+              "hasFixedAddress": false,
+              "address": null
+          }
+      }
+      """;
+  private static final String VALID_FIXED_ADDRESS_DETAILS_REQUEST =
+      """
+      {
+          "priorLegalAid": "no",
+          "legalAidLast6Months": false,
+          "reasonForReapplication": null,
+          "ecfFlag": false,
+          "clientDetails": {
+              "firstName": "Test",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "niNumber": null,
+              "hasFixedAddress": true,
+              "address": {
+                  "addressLine1": "1 Example Street",
+                  "addressLine2": null,
+                  "addressLine3": null,
+                  "addressLine4": null,
+                  "townOrCity": null,
+                  "postCode": null,
+                  "county": null,
+                  "country": "GB"
+              }
+          }
+      }
+      """;
+
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
+  @MockitoBean private ApplicationDetailsService mockApplicationDetailsService;
   @MockitoBean private ApplicationMeansService mockApplicationMeansService;
   @MockitoBean private ApplicationEvidenceService mockApplicationEvidenceService;
   @MockitoBean private ApplicationUpdateService mockApplicationUpdateService;
@@ -136,18 +194,21 @@ class ApplicationControllerTest {
         .getApplications(0, 25, null, ApplicationState.COMPLETED, EligibilityIndication.INELIGIBLE);
   }
 
-  @Test
-  void getApplicationWithId_returnsOkStatusAndApplicationResponse() throws Exception {
+  @ParameterizedTest
+  @ValueSource(longs = {0L, 7L, Long.MAX_VALUE})
+  void getApplicationWithId_returnsOkStatusAndApplicationResponse(long version) throws Exception {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     Application applicationResponse =
         ApplicationGenerator.create(b -> b.id(applicationId).ufn("123456/123"));
 
     when(mockApplicationQueryService.getApplication(applicationId))
-        .thenReturn(Optional.of(applicationResponse));
+        .thenReturn(Optional.of(new VersionedApplication(applicationResponse, version)));
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
         .andExpect(status().isOk())
+        .andExpect(header().string("ETag", "\"" + version + "\""))
+        .andExpect(jsonPath("$.eTag").doesNotExist())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.id").value("b2c3d4e5-f6a7-8901-bcde-f12345678901"))
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
@@ -168,7 +229,7 @@ class ApplicationControllerTest {
     Application applicationResponse = ApplicationGenerator.create(b -> b.id(applicationId));
 
     when(mockApplicationQueryService.getApplication(applicationId))
-        .thenReturn(Optional.of(applicationResponse));
+        .thenReturn(Optional.of(new VersionedApplication(applicationResponse, 0L)));
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
@@ -185,7 +246,378 @@ class ApplicationControllerTest {
 
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)))
-        .andExpect(status().isNotFound());
+        .andExpect(status().isNotFound())
+        .andExpect(header().doesNotExist("ETag"));
+  }
+
+  @Test
+  void getApplicationWithId_returnsBadGatewayWithoutEtagForInvalidVersion() throws Exception {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationQueryService.getApplication(id))
+        .thenThrow(
+            new ApplicationUpstreamErrorException(
+                "Datastore returned an invalid application version",
+                "DATASTORE_INVALID_APPLICATION_VERSION"));
+
+    mockMvc
+        .perform(get("/api/v1/applications/{id}", id))
+        .andExpect(status().isBadGateway())
+        .andExpect(header().doesNotExist("ETag"))
+        .andExpect(jsonPath("$.status").value(502))
+        .andExpect(jsonPath("$.reason").value("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @Test
+  void updateApplicationDetails_returnsNoContentAndNewEtag() {
+    UUID id = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
+    when(mockApplicationDetailsService.updateApplicationDetails(eq(id), any(), eq(0L)))
+        .thenReturn("\"1\"");
+    ApplicationController controller =
+        new ApplicationController(
+            mockApplicationQueryService,
+            mockApplicationDetailsService,
+            mockApplicationMeansService,
+            mockApplicationUpdateService,
+            mockApplicationEvidenceService,
+            mockApplicationCreationService);
+
+    var response =
+        controller.updateApplicationDetails(id, new UpdateApplicationDetailsRequestBody(), "\"0\"");
+
+    assertEquals(204, response.getStatusCode().value());
+    assertEquals("\"1\"", response.getHeaders().getETag());
+    verify(mockApplicationDetailsService).updateApplicationDetails(eq(id), any(), eq(0L));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  @Test
+  void updateApplicationDetails_returnsPreconditionRequired_whenIfMatchIsMissing()
+      throws Exception {
+    performDetailsPut(null, VALID_DETAILS_REQUEST)
+        .andExpect(status().isPreconditionRequired())
+        .andExpect(jsonPath("$.status").value(428))
+        .andExpect(jsonPath("$.reason").value("IF_MATCH_REQUIRED"));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationDetailsService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidIfMatchValues")
+  void updateApplicationDetails_returnsConsistentBadRequest_whenIfMatchIsInvalid(String ifMatch)
+      throws Exception {
+    performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Invalid request content."))
+        .andExpect(jsonPath("$.reason").value("INVALID_IF_MATCH"));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationDetailsService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  private static Stream<String> invalidIfMatchValues() {
+    return Stream.of(
+        "",
+        "0",
+        "W/\"0\"",
+        "*",
+        "\"-1\"",
+        "\"+1\"",
+        "\" 1\"",
+        "\"1 \"",
+        "\"9223372036854775808\"",
+        "\"1\", \"2\"");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"\"0\"", "\"000\"", "\"9223372036854775807\""})
+  void updateApplicationDetails_acceptsValidIfMatchVersions(String ifMatch) throws Exception {
+    stubSuccessfulDetailsEdit();
+    performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
+    verify(mockApplicationDetailsService)
+        .updateApplicationDetails(
+            eq(UUID.fromString(DETAILS_APPLICATION_ID)),
+            any(),
+            eq(Long.parseLong(ifMatch.substring(1, ifMatch.length() - 1))));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {"reasonForReapplication", "clientDetails.niNumber", "clientDetails.address"})
+  void updateApplicationDetails_rejectsMissingNullableProperties(String propertyPath)
+      throws Exception {
+    ObjectNode request = (ObjectNode) new ObjectMapper().readTree(VALID_DETAILS_REQUEST);
+    if (propertyPath.startsWith("clientDetails.")) {
+      ((ObjectNode) request.get("clientDetails")).remove(propertyPath.substring(14));
+    } else {
+      request.remove(propertyPath);
+    }
+
+    performDetailsPut("\"0\"", request.toString())
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationDetailsService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  @Test
+  void updateApplicationDetails_allowsExplicitNullForNullableProperties() throws Exception {
+    stubSuccessfulDetailsEdit();
+    performDetailsPut("\"0\"", VALID_DETAILS_REQUEST)
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "priorLegalAid",
+        "legalAidLast6Months",
+        "ecfFlag",
+        "clientDetails",
+        "clientDetails.firstName",
+        "clientDetails.lastName",
+        "clientDetails.dateOfBirth",
+        "clientDetails.hasFixedAddress"
+      })
+  void updateApplicationDetails_rejectsMissingRequiredProperties(String propertyPath)
+      throws Exception {
+    assertInvalidDetails(
+        removeDetailsProperty(detailsRequest(VALID_DETAILS_REQUEST), propertyPath));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "addressLine1",
+        "addressLine2",
+        "addressLine3",
+        "addressLine4",
+        "townOrCity",
+        "postCode",
+        "county",
+        "country"
+      })
+  void updateApplicationDetails_rejectsMissingAddressProperties(String property) throws Exception {
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ObjectNode address = (ObjectNode) request.path("clientDetails").path("address");
+    address.remove(property);
+
+    assertInvalidDetails(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"AB12345A", "BG123456A", "ab123456a", ""})
+  void updateApplicationDetails_rejectsInvalidNationalInsuranceNumber(String niNumber)
+      throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails")).put("niNumber", niNumber);
+
+    assertInvalidDetails(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"1990-02-30", "01/01/1990", "1990-1-1"})
+  void updateApplicationDetails_rejectsInvalidDateOfBirth(String dateOfBirth) throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails")).put("dateOfBirth", dateOfBirth);
+
+    assertInvalidDetails(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"G", "GBR"})
+  void updateApplicationDetails_rejectsInvalidCountryLength(String country) throws Exception {
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address")).put("country", country);
+
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsCountryWithOneSupplementaryCharacter() throws Exception {
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address"))
+        .put("country", Character.toString(0x1F310));
+
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsAddressThatContradictsFixedAddressAnswer() throws Exception {
+    ObjectNode fixedAddressRequest = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) fixedAddressRequest.path("clientDetails")).put("hasFixedAddress", false);
+    assertInvalidDetails(fixedAddressRequest);
+
+    ObjectNode missingAddressRequest = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) missingAddressRequest.path("clientDetails")).put("hasFixedAddress", true);
+    assertInvalidDetails(missingAddressRequest);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsContradictoryLegalAidAnswers() throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("priorLegalAid", "yesSameMatter");
+    request.put("legalAidLast6Months", true);
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("priorLegalAid", "yesDifferentMatter");
+    request.put("legalAidLast6Months", true);
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("priorLegalAid", "yesSameMatter");
+    request.put("reasonForReapplication", "reason");
+    assertInvalidDetails(request);
+
+    request.put("reasonForReapplication", "");
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_requiresNonblankReasonOnApplicableBranch() throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("priorLegalAid", "yesSameMatter");
+    request.put("legalAidLast6Months", true);
+    request.put("reasonForReapplication", "  ");
+
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_allowsValidReasonAndEmptyOptionalAddressValues() throws Exception {
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    request.put("priorLegalAid", "yesSameMatter");
+    request.put("legalAidLast6Months", true);
+    request.put("reasonForReapplication", "Same matter reason");
+    ((ObjectNode) request.path("clientDetails").path("address")).put("addressLine2", "");
+
+    stubSuccessfulDetailsEdit();
+    performDetailsPut("\"0\"", request.toString())
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"42\""));
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsUnknownProperties() throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("unexpected", "value");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("unexpected", "value");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address")).put("unexpected", "value");
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsWrongTypesAtEachEditableLevel() throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.put("ecfFlag", "false");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("firstName", 123);
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("clientDetails")).put("address", "malformed");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ((ObjectNode) request.path("clientDetails").path("address")).put("addressLine1", false);
+    assertInvalidDetails(request);
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsDuplicateJsonProperties() throws Exception {
+    String request =
+        VALID_DETAILS_REQUEST.replace(
+            "\"ecfFlag\": false", "\"ecfFlag\": false, \"ecfFlag\": true");
+
+    performDetailsPut("\"0\"", request)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.reason").value("MALFORMED_REQUEST_BODY"));
+  }
+
+  private ObjectNode detailsRequest(String requestBody) throws Exception {
+    return (ObjectNode) new ObjectMapper().readTree(requestBody);
+  }
+
+  private ObjectNode removeDetailsProperty(ObjectNode request, String propertyPath) {
+    String[] properties = propertyPath.split("\\.");
+    ObjectNode parent = request;
+    for (int index = 0; index < properties.length - 1; index++) {
+      if (!(parent.get(properties[index]) instanceof ObjectNode nested)) {
+        throw new IllegalArgumentException("Test property path is not an object");
+      }
+      parent = nested;
+    }
+    parent.remove(properties[properties.length - 1]);
+    return request;
+  }
+
+  private void assertInvalidDetails(ObjectNode request) throws Exception {
+    performDetailsPut("\"0\"", request.toString())
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value(400))
+        .andExpect(jsonPath("$.detail").value("Invalid request content."))
+        .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
+    verifyNoInteractions(
+        mockApplicationQueryService,
+        mockApplicationDetailsService,
+        mockApplicationMeansService,
+        mockApplicationUpdateService,
+        mockApplicationEvidenceService,
+        mockApplicationCreationService);
+  }
+
+  private ResultActions performDetailsPut(String ifMatch, String requestBody) throws Exception {
+    var request =
+        put("/api/v1/applications/{id}/details", DETAILS_APPLICATION_ID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+    if (ifMatch != null) {
+      request.header("If-Match", ifMatch);
+    }
+    return mockMvc.perform(request);
+  }
+
+  private void stubSuccessfulDetailsEdit() {
+    when(mockApplicationDetailsService.updateApplicationDetails(any(), any(), anyLong()))
+        .thenReturn("\"42\"");
   }
 
   @Test

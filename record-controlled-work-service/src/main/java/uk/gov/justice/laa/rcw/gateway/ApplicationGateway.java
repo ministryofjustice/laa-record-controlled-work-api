@@ -1,16 +1,25 @@
 package uk.gov.justice.laa.rcw.gateway;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.openapitools.jackson.nullable.JsonNullableModule;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
@@ -24,11 +33,19 @@ import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.service.BearerTokenProvider;
 import uk.gov.justice.laa.rcw.service.DatastoreRequestContext;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Gateway for datastore application fetch operations. */
 @Service
 @RequiredArgsConstructor
 public class ApplicationGateway {
+
+  private static final JsonMapper RESPONSE_MAPPER =
+      JsonMapper.builder()
+          .addModule(new JavaTimeModule())
+          .addModule(new JsonNullableModule())
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .build();
 
   private final ApplicationApi applicationApi;
   private final BearerTokenProvider bearerTokenProvider;
@@ -120,6 +137,29 @@ public class ApplicationGateway {
       throw upstreamErrorForApplication(applicationId);
     } catch (ResourceAccessException exception) {
       throw unavailableErrorForApplication(applicationId);
+    }
+  }
+
+  /**
+   * Fetches GET details without allowing numeric coercion to invent a datastore version.
+   *
+   * @param applicationId the application id
+   * @return the application response with an unknown version if the body version is invalid
+   */
+  public ApplicationResponse fetchApplicationDetails(UUID applicationId) {
+    try {
+      ApplicationResponse response = fetchApplication(applicationId);
+      if (response == null) {
+        throw new ApplicationUpstreamErrorException(
+            "Datastore returned an invalid application version",
+            "DATASTORE_INVALID_APPLICATION_VERSION");
+      }
+      return response;
+    } catch (HttpClientErrorException.Forbidden exception) {
+      throw notFound(applicationId);
+    } catch (RestClientException | IllegalArgumentException exception) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an invalid application response", "DATASTORE_INVALID_RESPONSE");
     }
   }
 
@@ -260,6 +300,50 @@ public class ApplicationGateway {
     }
   }
 
+  /**
+   * Edits application details and returns the validated downstream ETag.
+   *
+   * @param applicationId the application id
+   * @param command complete editable details and caller version
+   * @return the validated datastore ETag
+   */
+  public String editApplication(UUID applicationId, EditApplicationCommand command) {
+    try {
+      ResponseEntity<Void> response =
+          applicationApi.editApplicationWithHttpInfo(
+              applicationId,
+              bearerTokenProvider.currentBearerToken(),
+              datastoreRequestContext.correlationId(),
+              datastoreRequestContext.serviceName(),
+              command);
+      return requireValidEtag(response);
+    } catch (HttpClientErrorException.NotFound exception) {
+      throw notFound(applicationId);
+    } catch (HttpClientErrorException.Forbidden exception) {
+      throw notFound(applicationId);
+    } catch (HttpClientErrorException.Conflict exception) {
+      throw detailsConflict(applicationId, exception);
+    } catch (HttpClientErrorException.BadRequest exception) {
+      throw badRequestForApplication(applicationId);
+    } catch (HttpServerErrorException exception) {
+      throw upstreamErrorForApplication(applicationId);
+    } catch (ResourceAccessException exception) {
+      throw unavailableErrorForApplication(applicationId);
+    }
+  }
+
+  private String requireValidEtag(ResponseEntity<Void> response) {
+    if (response != null) {
+      String etag = response.getHeaders().getETag();
+      if (ApplicationVersionParser.parseIfMatch(etag).isPresent()) {
+        return etag;
+      }
+    }
+    throw new ApplicationUpstreamErrorException(
+        "Datastore returned an invalid application version",
+        "DATASTORE_INVALID_APPLICATION_VERSION");
+  }
+
   private ApplicationNotFoundException notFound(UUID applicationId) {
     return new ApplicationNotFoundException(
         "No application found with id: %s".formatted(applicationId));
@@ -268,6 +352,30 @@ public class ApplicationGateway {
   private ApplicationConflictException conflict(UUID applicationId) {
     return new ApplicationConflictException(
         "Application %s was modified concurrently".formatted(applicationId));
+  }
+
+  private ApplicationConflictException detailsConflict(
+      UUID applicationId, HttpClientErrorException.Conflict exception) {
+    String reason = downstreamConflictReason(exception);
+    if ("APPLICATION_VERSION_CONFLICT".equals(reason)) {
+      return new ApplicationConflictException(
+          "Application %s was modified concurrently".formatted(applicationId), reason);
+    }
+    if ("APPLICATION_COMPLETED".equals(reason)) {
+      return new ApplicationConflictException(
+          "Application %s has already been completed".formatted(applicationId), reason);
+    }
+    return conflict(applicationId);
+  }
+
+  private String downstreamConflictReason(HttpClientErrorException.Conflict exception) {
+    try {
+      JsonNode body = RESPONSE_MAPPER.readTree(exception.getResponseBodyAsString());
+      JsonNode reason = body == null ? null : body.get("reason");
+      return reason != null && reason.isTextual() ? reason.textValue() : null;
+    } catch (JsonProcessingException | IllegalArgumentException ignored) {
+      return null;
+    }
   }
 
   private ApplicationBadRequestException badRequestForApplication(UUID applicationId) {

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -17,18 +18,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
@@ -179,6 +185,75 @@ class ApplicationGatewayTest {
     assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
         .isExactlyInstanceOf(expectedExceptionType)
         .hasMessage(expectedMessage);
+  }
+
+  @Test
+  void shouldFetchApplication_preserveForbiddenFailure() {
+    HttpClientErrorException.Forbidden failure = forbidden();
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenThrow(failure);
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID)).isSameAs(failure);
+  }
+
+  @Test
+  void shouldFetchApplicationDetails() {
+    ApplicationResponse response =
+        ApplicationResponse.builder().id(APPLICATION_ID).providerOfficeCode("AB12CD").build();
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenReturn(response);
+
+    assertThat(applicationGateway.fetchApplicationDetails(APPLICATION_ID)).isSameAs(response);
+  }
+
+  @ParameterizedTest
+  @MethodSource("applicationDetailsNotFoundErrors")
+  void shouldFetchApplicationDetails_hideMissingAndForbiddenApplications(
+      RuntimeException datastoreFailure) {
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenThrow(datastoreFailure);
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplicationDetails(APPLICATION_ID))
+        .isExactlyInstanceOf(ApplicationNotFoundException.class)
+        .hasMessage(notFoundMessage())
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationNotFoundException) exception).getReason())
+                    .isEqualTo("APPLICATION_NOT_FOUND"));
+  }
+
+  @Test
+  void shouldRejectNullDetailsResponseAsInvalidVersion() {
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenReturn(null);
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplicationDetails(APPLICATION_ID))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("malformedApplicationResponses")
+  void shouldRejectMalformedDetailsResponse(RuntimeException malformedResponse) {
+    when(mockApplicationApi.getApplication(
+            APPLICATION_ID, BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME))
+        .thenThrow(malformedResponse);
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplicationDetails(APPLICATION_ID))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application response")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_RESPONSE"));
   }
 
   @Test
@@ -348,6 +423,125 @@ class ApplicationGatewayTest {
         .hasMessage(expectedMessage);
   }
 
+  @Test
+  void shouldReturnValidatedEtagFromEdit() {
+    EditApplicationCommand command = editApplicationCommand();
+    ResponseEntity<Void> downstreamResponse = responseWithEtag("\"00023\"");
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            APPLICATION_ID,
+            BEARER_TOKEN,
+            CORRELATION_ID,
+            ServiceNameConstants.SERVICE_NAME,
+            command))
+        .thenReturn(downstreamResponse);
+
+    assertThat(applicationGateway.editApplication(APPLICATION_ID, command)).isEqualTo("\"00023\"");
+    verify(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            eq(command));
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(strings = {"W/\"23\"", "\"invalid\"", "\"9223372036854775808\""})
+  void shouldRejectMissingOrInvalidEtagFromEdit(String etag) {
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any()))
+        .thenReturn(responseWithEtag(etag));
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @Test
+  void shouldRejectNullEditResponse() {
+    when(mockApplicationApi.editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any()))
+        .thenReturn(null);
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
+        .hasMessage("Datastore returned an invalid application version")
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationUpstreamErrorException) exception).getReason())
+                    .isEqualTo("DATASTORE_INVALID_APPLICATION_VERSION"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldEditApplication_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
+        .when(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage);
+  }
+
+  @ParameterizedTest
+  @MethodSource("detailsConflictReasons")
+  void shouldEditApplication_classifyConflictByStructuredReason(
+      String responseBody, String expectedReason) {
+    doThrow(conflict(responseBody))
+        .when(mockApplicationApi)
+        .editApplicationWithHttpInfo(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
+
+    assertThatThrownBy(
+            () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
+        .isInstanceOf(ApplicationConflictException.class)
+        .satisfies(
+            exception ->
+                assertThat(((ApplicationConflictException) exception).getReason())
+                    .isEqualTo(expectedReason));
+  }
+
+  private static EditApplicationCommand editApplicationCommand() {
+    return EditApplicationCommand.builder().eTag(23L).build();
+  }
+
+  private static ResponseEntity<Void> responseWithEtag(String etag) {
+    HttpHeaders headers = new HttpHeaders();
+    if (etag != null) {
+      headers.set("ETag", etag);
+    }
+    return new ResponseEntity<>(headers, HttpStatus.NO_CONTENT);
+  }
+
   private static Stream<Arguments> officeScopedErrorMappings() {
     return Stream.of(
         Arguments.of(
@@ -385,6 +579,16 @@ class ApplicationGatewayTest {
             unavailableError(), ApplicationUnavailableException.class, unavailableMessage()));
   }
 
+  private static Stream<RuntimeException> applicationDetailsNotFoundErrors() {
+    return Stream.of(notFound(), forbidden());
+  }
+
+  private static Stream<RuntimeException> malformedApplicationResponses() {
+    return Stream.of(
+        new RestClientException("Malformed response"),
+        new IllegalArgumentException("Malformed response"));
+  }
+
   private static HttpClientErrorException.NotFound notFound() {
     return (HttpClientErrorException.NotFound)
         HttpClientErrorException.create(
@@ -397,10 +601,39 @@ class ApplicationGatewayTest {
             HttpStatus.BAD_REQUEST, "Bad Request", HttpHeaders.EMPTY, new byte[0], null);
   }
 
+  private static HttpClientErrorException.Forbidden forbidden() {
+    return (HttpClientErrorException.Forbidden)
+        HttpClientErrorException.create(
+            HttpStatus.FORBIDDEN, "Forbidden", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
   private static HttpClientErrorException.Conflict conflict() {
     return (HttpClientErrorException.Conflict)
         HttpClientErrorException.create(
             HttpStatus.CONFLICT, "Conflict", HttpHeaders.EMPTY, new byte[0], null);
+  }
+
+  private static HttpClientErrorException.Conflict conflict(String responseBody) {
+    return (HttpClientErrorException.Conflict)
+        HttpClientErrorException.create(
+            HttpStatus.CONFLICT,
+            "Conflict",
+            HttpHeaders.EMPTY,
+            responseBody.getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+  }
+
+  private static Stream<Arguments> detailsConflictReasons() {
+    return Stream.of(
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\","
+                + "\"detail\":\"untrusted downstream detail\"}",
+            "APPLICATION_VERSION_CONFLICT"),
+        Arguments.of(
+            "{\"status\":409,\"reason\":\"APPLICATION_COMPLETED\"}", "APPLICATION_COMPLETED"),
+        Arguments.of("{\"status\":409,\"reason\":\"OTHER_CONFLICT\"}", "CONCURRENT_MODIFICATION"),
+        Arguments.of("{\"status\":409}", "CONCURRENT_MODIFICATION"),
+        Arguments.of("not-json", "CONCURRENT_MODIFICATION"));
   }
 
   private static HttpServerErrorException serverError() {

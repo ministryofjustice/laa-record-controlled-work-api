@@ -3,16 +3,21 @@ package uk.gov.justice.laa.rcw.mapper;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
 @Mapper(
@@ -22,7 +27,8 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
       DeclarationMapper.class,
       EligibilityMapper.class,
       EvidenceMapper.class,
-      ScopingQuestionsMapper.class
+      ScopingQuestionsMapper.class,
+      JsonNullableMapper.class
     },
     injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface ApplicationMapper {
@@ -70,6 +76,35 @@ public interface ApplicationMapper {
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
   StartApplicationCommand toStartApplicationCommand(
       CreateApplicationRequestBody createApplicationRequestBody);
+
+  /**
+   * Maps the validated details snapshot to a sparse datastore edit command.
+   *
+   * @param request the complete validated details snapshot
+   * @param version the caller's version precondition
+   * @return the sparse datastore command
+   */
+  @BeanMapping(
+      ignoreByDefault = true,
+      builder = @Builder(disableBuilder = true),
+      unmappedSourcePolicy = ReportingPolicy.ERROR,
+      ignoreUnmappedSourceProperties = "legalAidLast6Months")
+  @Mapping(target = "eTag", source = "version")
+  @Mapping(target = "clientDetails", source = "request.clientDetails")
+  @Mapping(
+      target = "reasonForReapplication_JsonNullable",
+      source = "request.reasonForReapplication",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "ecfFlag_JsonNullable",
+      source = "request.ecfFlag",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "scopingQuestions",
+      source = "request",
+      qualifiedByName = "toDatastoreScopingQuestionsFromDetails")
+  EditApplicationCommand toEditApplicationCommand(
+      UpdateApplicationDetailsRequestBody request, long version);
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(
