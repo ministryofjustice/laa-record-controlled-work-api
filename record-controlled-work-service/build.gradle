@@ -9,8 +9,8 @@ repositories {
     maven {
         url = "https://maven.pkg.github.com/ministryofjustice/laa-info-and-advice-datastore"
         credentials {
-            username = project.hasProperty('gitHubPackagesUsername') ? project.gitHubPackagesUsername : System.getenv('GITHUB_ACTOR')
-            password = project.hasProperty('gitHubPackagesPassword') ? project.gitHubPackagesPassword : System.getenv('GITHUB_TOKEN')
+            // needs username as well, must be set using GITHUB_ACTOR
+            password = project.ext.gitHubPackagesPassword
         }
     }
 }
