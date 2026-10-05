@@ -308,14 +308,15 @@ components:
     ScopingQuestions:
       type: object
       additionalProperties: false
-      required:
-        - priorLegalAid
-        - familyLawClassification
       properties:
         priorLegalAid:
-          $ref: "#/components/schemas/PriorLegalAid"
+          nullable: true
+          allOf:
+          - $ref: "#/components/schemas/PriorLegalAid"
         familyLawClassification:
-          $ref: "#/components/schemas/familyLawClassification"
+          nullable: true
+          allOf:
+          - $ref: "#/components/schemas/FamilyLawClassification"
 
     CreateClientDetailsRequestBody:
       required:
@@ -690,7 +691,7 @@ components:
         - yesDifferentMatter
         - yesSameMatter
 
-    familyLawClassification:
+    FamilyLawClassification:
       type: string
       enum:
         - public
