@@ -1,7 +1,7 @@
 // Transitive dependency overrides for temporary CVE fixes
 
 dependencies {
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.25'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.26'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302842
