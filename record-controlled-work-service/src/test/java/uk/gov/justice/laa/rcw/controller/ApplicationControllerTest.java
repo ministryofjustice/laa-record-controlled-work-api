@@ -25,14 +25,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -42,6 +45,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -785,23 +790,30 @@ class ApplicationControllerTest {
   }
 
   private static Stream<Arguments> createApplicationContractCases() throws Exception {
-    try (var input =
-        ApplicationControllerTest.class.getResourceAsStream(
-            "/validation/create-application.cases.json")) {
-      if (input == null) {
-        throw new IllegalStateException("Create application contract cases were not found");
-      }
-      JsonNode cases = new ObjectMapper().readTree(input).path("cases");
-      return StreamSupport.stream(cases.spliterator(), false)
-          .map(
-              testCase ->
-                  Arguments.of(
-                      testCase.path("id").asText(),
-                      testCase.path("operation").asText(),
-                      testCase.path("accepted").asBoolean(),
-                      testCase.path("request"),
-                      testCase.path("preserves")));
+    Resource[] resources =
+        new PathMatchingResourcePatternResolver()
+            .getResources("classpath*:/validation/create-application/*.json");
+    if (resources.length == 0) {
+      throw new IllegalStateException("Create application contract cases were not found");
     }
+
+    ObjectMapper mapper = new ObjectMapper();
+    return Arrays.stream(resources)
+        .sorted(Comparator.comparing(Resource::getFilename))
+        .map(
+            resource -> {
+              try (var input = resource.getInputStream()) {
+                JsonNode testCase = mapper.readTree(input);
+                return Arguments.of(
+                    testCase.path("id").asText(),
+                    testCase.path("operation").asText(),
+                    testCase.path("accepted").asBoolean(),
+                    testCase.path("request"),
+                    testCase.path("preserves"));
+              } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+              }
+            });
   }
 
   @Test
