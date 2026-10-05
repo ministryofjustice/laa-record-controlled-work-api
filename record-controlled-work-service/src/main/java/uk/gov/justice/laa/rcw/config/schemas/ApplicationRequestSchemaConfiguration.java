@@ -40,8 +40,8 @@ public class ApplicationRequestSchemaConfiguration {
                               SPECIFICATION_LOCATION.equals(location.toString())
                                   || ("classpath".equals(location.getScheme())
                                       && location
-                              .toString()
-                              .startsWith(VALIDATION_SCHEMA_DIRECTORY))));
+                                          .toString()
+                                          .startsWith(VALIDATION_SCHEMA_DIRECTORY))));
               builder.schemaRegistryConfig(
                   SchemaRegistryConfig.builder()
                       .formatAssertionsEnabled(true)
