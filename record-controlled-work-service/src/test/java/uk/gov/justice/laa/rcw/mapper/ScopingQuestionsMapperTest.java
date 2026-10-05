@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 class ScopingQuestionsMapperTest {
 
@@ -26,29 +30,50 @@ class ScopingQuestionsMapperTest {
   }
 
   @Test
-  void shouldReadRecognisedAnswersAndIgnoreOtherKeys() {
+  void shouldMapEditRequestAnswersToDatastoreScopingMap() {
+    UpdateApplicationDetailsRequestBody request =
+        new UpdateApplicationDetailsRequestBody().priorLegalAid(PriorLegalAid.YES_SAME_MATTER);
+
+    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(request))
+        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"public, PUBLIC", "private, PRIVATE"})
+  void shouldReadApplicationAnswersAndIgnoreOtherKeys(
+      String value, FamilyLawClassification classification) {
     assertThat(
-            scopingQuestionsMapper.toScopingQuestions(
-                Map.of("priorLegalAid", "yesSameMatter", "futureQuestion", "value")))
-        .isEqualTo(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+            scopingQuestionsMapper.toApplicationScopingQuestions(
+                Map.of(
+                    "priorLegalAid", "yesSameMatter",
+                    "familyLawClassification", value,
+                    "futureQuestion", "value")))
+        .isEqualTo(
+            new ApplicationScopingQuestions()
+                .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
+                .familyLawClassification(classification));
+  }
+
+  @Test
+  void shouldDiscardLegacyApplicationAnswersOnRead() {
+    assertThat(
+            scopingQuestionsMapper.toApplicationScopingQuestions(
+                Map.of("priorLegalAid", "same_matter", "familyLawClassification", "legacy")))
+        .isEqualTo(new ApplicationScopingQuestions());
+    assertThat(scopingQuestionsMapper.toApplicationScopingQuestions(Map.of("unknown", true)))
+        .isEqualTo(new ApplicationScopingQuestions());
+    assertThat(scopingQuestionsMapper.toApplicationScopingQuestions("legacy value"))
+        .isEqualTo(new ApplicationScopingQuestions());
+    assertThat(scopingQuestionsMapper.toApplicationScopingQuestions(null)).isNull();
   }
 
   @Test
   void shouldReadUnknownOptionalAnswerAsNull() {
     assertThat(
-            scopingQuestionsMapper.toScopingQuestions(
+            scopingQuestionsMapper.toApplicationScopingQuestions(
                 Map.of(
                     "priorLegalAid", "yesSameMatter",
                     "familyLawClassification", "legacy")))
-        .isEqualTo(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
-  }
-
-  @Test
-  void shouldDiscardLegacyScopingAnswersOnRead() {
-    assertThat(scopingQuestionsMapper.toScopingQuestions(Map.of("priorLegalAid", "same_matter")))
-        .isNull();
-    assertThat(scopingQuestionsMapper.toScopingQuestions(Map.of("unknown", true))).isNull();
-    assertThat(scopingQuestionsMapper.toScopingQuestions("legacy value")).isNull();
-    assertThat(scopingQuestionsMapper.toScopingQuestions(null)).isNull();
+        .isEqualTo(new ApplicationScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
   }
 }

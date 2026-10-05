@@ -9,10 +9,19 @@ import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class EligibilityMapperTest {
 
-  private final EligibilityMapper eligibilityMapper = new EligibilityMapperImpl();
+  private final JsonNullableMapper jsonNullableMapper = MapperFixtures.jsonNullableMapper();
+  private final EligibilityMapper eligibilityMapper =
+      MapperFixtures.eligibilityMapper(jsonNullableMapper);
+
+  @Test
+  void shouldWrapGenericValuesAsPresentIncludingNull() {
+    assertThat(jsonNullableMapper.toJsonNullable("value")).isEqualTo(JsonNullable.of("value"));
+    assertThat(jsonNullableMapper.toJsonNullable(null)).isEqualTo(JsonNullable.of(null));
+  }
 
   @Test
   void shouldMapEligibilityResult() {

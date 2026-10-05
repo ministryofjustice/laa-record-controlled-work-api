@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.mapper;
 
 import java.util.List;
+import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.openapitools.jackson.nullable.JsonNullable;
@@ -10,7 +11,10 @@ import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
 /** Maps eligibility and means-data models between the datastore and RCW API. */
-@Mapper(componentModel = "spring")
+@Mapper(
+    componentModel = "spring",
+    uses = JsonNullableMapper.class,
+    injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface EligibilityMapper {
 
   /** Maps the datastore eligibility result onto the RCW API model. */
@@ -21,11 +25,6 @@ public interface EligibilityMapper {
   @Mapping(target = "_apiResponse", ignore = true)
   uk.gov.justice.laa.ia.datastore.client.model.EligibilityData toDatastoreMeansData(
       EligibilityData data);
-
-  /** Wraps a mapped value for the datastore's {@link JsonNullable}-typed properties. */
-  default <T> JsonNullable<T> toJsonNullable(T value) {
-    return JsonNullable.of(value);
-  }
 
   /** Maps one RCW eligibility property onto the datastore equivalent. */
   uk.gov.justice.laa.ia.datastore.client.model.EligibilityDataProperty toDatastoreProperty(
