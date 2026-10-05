@@ -754,6 +754,14 @@ components:
       allOf:
         - $ref: "#/components/schemas/ProblemDetail"
 
+    BadGatewayResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    ServiceUnavailableResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
   responses:
     BadRequest:
       description: 'Bad request'
@@ -796,10 +804,10 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/InternalServerErrorResponse"
+            $ref: "#/components/schemas/BadGatewayResponse"
     ServiceUnavailable:
       description: 'Service unavailable'
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/InternalServerErrorResponse"
+            $ref: "#/components/schemas/ServiceUnavailableResponse"
