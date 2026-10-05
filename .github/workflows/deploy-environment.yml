@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: ECR auth
         id: ecr
-        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@583a60502327d7b9b7701fdb11be9f7d096cf9f5 # main
+        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@3b61534ec28baab6171267eb56187bb597e89d45 # main
         with:
           ecr_region: ${{ vars.ECR_REGION }}
           ecr_role: ${{ secrets.ECR_ROLE_TO_ASSUME }}
