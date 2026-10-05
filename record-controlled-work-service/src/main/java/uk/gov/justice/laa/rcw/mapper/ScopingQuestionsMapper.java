@@ -18,9 +18,10 @@ public interface ScopingQuestionsMapper {
       return null;
     }
     if (!(value instanceof Map<?, ?>)) {
-      return new ScopingQuestions();
+      return null;
     }
-    return jsonMapper().convertValue(value, ScopingQuestions.class);
+    ScopingQuestions questions = jsonMapper().convertValue(value, ScopingQuestions.class);
+    return questions.getPriorLegalAid() == null ? null : questions;
   }
 
   /** Serializes the RCW model to a map without null-valued answers. */

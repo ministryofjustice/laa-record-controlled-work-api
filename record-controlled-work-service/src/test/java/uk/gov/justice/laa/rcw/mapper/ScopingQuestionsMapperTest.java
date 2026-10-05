@@ -34,13 +34,21 @@ class ScopingQuestionsMapperTest {
   }
 
   @Test
+  void shouldReadUnknownOptionalAnswerAsNull() {
+    assertThat(
+            scopingQuestionsMapper.toScopingQuestions(
+                Map.of(
+                    "priorLegalAid", "yesSameMatter",
+                    "familyLawClassification", "legacy")))
+        .isEqualTo(new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+  }
+
+  @Test
   void shouldDiscardLegacyScopingAnswersOnRead() {
     assertThat(scopingQuestionsMapper.toScopingQuestions(Map.of("priorLegalAid", "same_matter")))
-        .isEqualTo(new ScopingQuestions());
-    assertThat(scopingQuestionsMapper.toScopingQuestions(Map.of("unknown", true)))
-        .isEqualTo(new ScopingQuestions());
-    assertThat(scopingQuestionsMapper.toScopingQuestions("legacy value"))
-        .isEqualTo(new ScopingQuestions());
+        .isNull();
+    assertThat(scopingQuestionsMapper.toScopingQuestions(Map.of("unknown", true))).isNull();
+    assertThat(scopingQuestionsMapper.toScopingQuestions("legacy value")).isNull();
     assertThat(scopingQuestionsMapper.toScopingQuestions(null)).isNull();
   }
 }
