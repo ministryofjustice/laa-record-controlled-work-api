@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationRequestSchemaConfiguration {
 
   private static final String SPECIFICATION_LOCATION = "classpath:open-api-specification.yml";
+  private static final String VALIDATION_SCHEMA_DIRECTORY =
+      "classpath:open-api-specifications/validation/";
 
   @Bean
   @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.UPDATE_APPLICATION_DETAILS)
@@ -33,7 +35,13 @@ public class ApplicationRequestSchemaConfiguration {
             builder -> {
               builder.schemaLoader(
                   loader ->
-                      loader.allow(location -> SPECIFICATION_LOCATION.equals(location.toString())));
+                      loader.allow(
+                          location ->
+                              SPECIFICATION_LOCATION.equals(location.toString())
+                                  || ("classpath".equals(location.getScheme())
+                                      && location
+                                          .toString()
+                                          .startsWith(VALIDATION_SCHEMA_DIRECTORY))));
               builder.schemaRegistryConfig(
                   SchemaRegistryConfig.builder()
                       .formatAssertionsEnabled(true)
