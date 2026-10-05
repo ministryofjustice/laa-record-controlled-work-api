@@ -1,0 +1,33 @@
+{
+  "id": "overseas-address-preserves-empty-hidden-values",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "1 Rue Example",
+        "addressLine2": "",
+        "townOrCity": "",
+        "postCode": "",
+        "county": "",
+        "country": "FR"
+      }
+    }
+  },
+  "preserves": {
+    "/clientDetails/address/addressLine2": "",
+    "/clientDetails/address/townOrCity": "",
+    "/clientDetails/address/postCode": "",
+    "/clientDetails/address/county": "",
+    "/clientDetails/address/country": "FR"
+  }
+}

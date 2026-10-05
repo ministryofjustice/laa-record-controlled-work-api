@@ -1,0 +1,22 @@
+{
+  "id": "multilingual-name-values-are-preserved",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Zo\u00eb \u674e",
+      "lastName": "O'Connor 42",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {
+    "/clientDetails/firstName": "Zo\u00eb \u674e",
+    "/clientDetails/lastName": "O'Connor 42"
+  }
+}
