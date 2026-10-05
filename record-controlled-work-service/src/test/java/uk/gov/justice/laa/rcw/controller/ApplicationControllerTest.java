@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -31,8 +32,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -397,6 +400,25 @@ class ApplicationControllerTest {
         mockApplicationCreationService);
   }
 
+  @Test
+  void updateApplicationDetails_normalizesNiNumberAndPostcode() throws Exception {
+    stubSuccessfulDetailsEdit();
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ObjectNode clientDetails = (ObjectNode) request.path("clientDetails");
+    clientDetails.put("niNumber", "a.b123456c");
+    ((ObjectNode) clientDetails.path("address")).put("postCode", " s.w.1a - 2aa ");
+
+    performDetailsPut("\"0\"", request.toString()).andExpect(status().isNoContent());
+
+    ArgumentCaptor<UpdateApplicationDetailsRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(UpdateApplicationDetailsRequestBody.class);
+    verify(mockApplicationDetailsService)
+        .updateApplicationDetails(
+            eq(UUID.fromString(DETAILS_APPLICATION_ID)), requestCaptor.capture(), eq(0L));
+    assertEquals("AB123456C", requestCaptor.getValue().getClientDetails().getNiNumber());
+    assertEquals("SW1A2AA", requestCaptor.getValue().getClientDetails().getAddress().getPostCode());
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -436,7 +458,7 @@ class ApplicationControllerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"AB12345A", "BG123456A", "ab123456a", ""})
+  @ValueSource(strings = {"AB12345A", "BG123456A", "a.b123456s", ""})
   void updateApplicationDetails_rejectsInvalidNationalInsuranceNumber(String niNumber)
       throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
@@ -683,6 +705,106 @@ class ApplicationControllerTest {
   }
 
   @Test
+  void createApplication_rejectsPostcodeThatRemainsInvalidAfterNormalization() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    ((ObjectNode) request.path("clientDetails").path("address")).put("postCode", "INVALID");
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsMismatchedLegalAidAnswersBeforeCreation() throws Exception {
+    String request =
+        """
+        {
+            "legalAidBefore": "no",
+            "providerOfficeCode": "office",
+            "scopingQuestions": {"priorLegalAid": "yesSameMatter"},
+            "clientDetails": {
+                "firstName": "",
+                "lastName": "",
+                "dateOfBirth": "1990-01-01",
+                "hasFixedAddress": false
+            }
+        }
+        """;
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications").contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("createApplicationContractCases")
+  void createApplication_matchesContractCases(
+      String caseId, String operation, boolean accepted, JsonNode request, JsonNode preserves)
+      throws Exception {
+    assertEquals("createApplication", operation);
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    ResultActions result =
+        mockMvc.perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+    if (!accepted) {
+      result.andExpect(status().isBadRequest());
+      verifyNoInteractions(mockApplicationCreationService);
+      return;
+    }
+
+    result.andExpect(status().isCreated());
+    ArgumentCaptor<CreateApplicationRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
+    verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
+    JsonNode actual = createRequestMapper().valueToTree(requestCaptor.getValue());
+    assertEquals(request, actual, caseId + " should preserve the complete request");
+    preserves
+        .fields()
+        .forEachRemaining(
+            expected ->
+                assertEquals(
+                    expected.getValue(),
+                    actual.at(expected.getKey()),
+                    caseId + " should preserve " + expected.getKey()));
+  }
+
+  private static Stream<Arguments> createApplicationContractCases() throws Exception {
+    try (var input =
+        ApplicationControllerTest.class.getResourceAsStream(
+            "/validation/create-application.cases.json")) {
+      if (input == null) {
+        throw new IllegalStateException("Create application contract cases were not found");
+      }
+      JsonNode cases = new ObjectMapper().readTree(input).path("cases");
+      return StreamSupport.stream(cases.spliterator(), false)
+          .map(
+              testCase ->
+                  Arguments.of(
+                      testCase.path("id").asText(),
+                      testCase.path("operation").asText(),
+                      testCase.path("accepted").asBoolean(),
+                      testCase.path("request"),
+                      testCase.path("preserves")));
+    }
+  }
+
+  @Test
   void createApplication_acceptsNamesWithoutFormatRestrictions_andPreservesThem() throws Exception {
     ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
@@ -716,8 +838,8 @@ class ApplicationControllerTest {
         mapper.writeValueAsString(CreateApplicationRequestGenerator.createWithName(null));
     String duplicateRequest =
         request.replace(
-            "\"legalAidBefore\":\"false\"",
-            "\"legalAidBefore\":\"false\",\"legalAidBefore\":\"false\"");
+            "\"legalAidLast6Months\":false",
+            "\"legalAidLast6Months\":false,\"legalAidLast6Months\":false");
     when(mockApplicationCreationService.createApplication(any()))
         .thenReturn(ApplicationGenerator.create(null));
 
