@@ -14,6 +14,8 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAdapter;
+import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchema;
+import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaQualifier;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestTooLargeException;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
@@ -22,24 +24,25 @@ import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
 
 /** Validates the complete JSON details snapshot before generated models lose key presence. */
 @ControllerAdvice(assignableTypes = ApplicationController.class)
-public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAdapter {
+public class UpdateApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAdapter {
 
   private static final ObjectMapper STRICT_MAPPER =
       new ObjectMapper(
           JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
 
   private final int maxBodySizeBytes;
-  private final Schema applicationDetailsSchema;
+  private final Schema updateApplicationDetailsSchema;
 
   /** Creates the details request validator with a configured byte limit. */
-  public ApplicationDetailsRequestBodyValidator(
+  public UpdateApplicationDetailsRequestBodyValidator(
       @Value("${laa.request.body.max-size-bytes}") int maxBodySizeBytes,
-      Schema applicationDetailsSchema) {
+      @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.UPDATE_APPLICATION_DETAILS)
+          Schema updateApplicationDetailsSchema) {
     if (maxBodySizeBytes < 1 || maxBodySizeBytes == Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Request body size limit must be a positive integer");
     }
     this.maxBodySizeBytes = maxBodySizeBytes;
-    this.applicationDetailsSchema = applicationDetailsSchema;
+    this.updateApplicationDetailsSchema = updateApplicationDetailsSchema;
   }
 
   @Override
@@ -91,7 +94,7 @@ public class ApplicationDetailsRequestBodyValidator extends RequestBodyAdviceAda
 
   private void validateSchema(JsonNode request) {
     JsonNode body = request == null ? NullNode.getInstance() : request;
-    if (!applicationDetailsSchema.validate(body).isEmpty()) {
+    if (!updateApplicationDetailsSchema.validate(body).isEmpty()) {
       invalid();
     }
   }

@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -43,7 +44,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import uk.gov.justice.laa.rcw.config.ApplicationDetailsSchemaConfiguration;
+import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaConfiguration;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -69,7 +70,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationQueryService.VersionedApplicati
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
-@Import(ApplicationDetailsSchemaConfiguration.class)
+@Import(ApplicationRequestSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
       "spring.autoconfigure.exclude="
@@ -620,16 +621,20 @@ class ApplicationControllerTest {
         .thenReturn("\"42\"");
   }
 
+  private ObjectMapper createRequestMapper() {
+    return new ObjectMapper()
+        .registerModule(new JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  }
+
   @Test
   void createApplication_returnsCreatedStatus_andApplication() throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     Application response = ApplicationGenerator.create(null);
     when(mockApplicationCreationService.createApplication(any())).thenReturn(response);
 
-    ObjectMapper mapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    ObjectMapper mapper = createRequestMapper();
 
     var mappedRequest = mapper.writeValueAsString(request);
 
@@ -655,10 +660,7 @@ class ApplicationControllerTest {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithoutName(null);
 
-    ObjectMapper mapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    ObjectMapper mapper = createRequestMapper();
 
     var mappedRequest = mapper.writeValueAsString(request);
 
@@ -680,10 +682,59 @@ class ApplicationControllerTest {
                         + "\"instance\":\"/api/v1/applications\"}"));
   }
 
+  @Test
+  void createApplication_acceptsNamesWithoutFormatRestrictions_andPreservesThem() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    String firstName = Character.toString(0x2003);
+    String lastName = "O'Connor 42 " + Character.toString(0x674E);
+    ((ObjectNode) request.get("clientDetails"))
+        .put("firstName", firstName)
+        .put("lastName", lastName);
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isCreated());
+
+    verify(mockApplicationCreationService)
+        .createApplication(
+            argThat(
+                actual ->
+                    firstName.equals(actual.getClientDetails().getFirstName())
+                        && lastName.equals(actual.getClientDetails().getLastName())));
+  }
+
+  @Test
+  void createApplication_rejectsDuplicateJsonProperties_beforeCreation() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    String request =
+        mapper.writeValueAsString(CreateApplicationRequestGenerator.createWithName(null));
+    String duplicateRequest =
+        request.replace(
+            "\"legalAidBefore\":\"false\"",
+            "\"legalAidBefore\":\"false\",\"legalAidBefore\":\"false\"");
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(duplicateRequest))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"null", "{\"priorLegalAid\":\"same_matter\"}"})
   void createApplication_rejectsInvalidScopingQuestions(String scopingQuestions) throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.set("scopingQuestions", mapper.readTree(scopingQuestions));
 
@@ -698,7 +749,7 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_rejectsScopingQuestionsWithoutPriorLegalAid() throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.set("scopingQuestions", mapper.createObjectNode());
     mockMvc
@@ -712,7 +763,7 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_rejectsMissingScopingQuestions() throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.remove("scopingQuestions");
 
