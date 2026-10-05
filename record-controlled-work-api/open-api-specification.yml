@@ -400,6 +400,9 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/familyLawClassification"
+        needsAdviceOnEUOrInternationalMaintenance:
+          nullable: true
+          type: boolean
 
     ApplicationScopingQuestions:
       type: object
