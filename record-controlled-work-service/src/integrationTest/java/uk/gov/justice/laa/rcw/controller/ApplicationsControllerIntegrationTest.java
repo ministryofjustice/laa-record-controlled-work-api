@@ -26,6 +26,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import java.util.Locale;
 import java.util.stream.Stream;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
@@ -852,10 +853,15 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"BG123456C", "AO123456C", "js101010D", "AB123456s"})
+  @ValueSource(strings = {"BG123456C", "AO123456C", "AB123456s"})
   void shouldReturnBadRequest_whenNiNumberDoesNotMatchUkFormat(String niNumber) throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     request.setProviderOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE);
+    request.setReasonForReapplication("");
+    request.getClientDetails().getAddress().setAddressLine3("");
+    request.getClientDetails().getAddress().setAddressLine4("");
+    request.getClientDetails().getAddress().setCounty("");
+    request.getClientDetails().getAddress().setPostCode("SW1A 2AA");
     request.getClientDetails().setNiNumber(niNumber);
 
     mockMvc
@@ -878,7 +884,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         "JP123456A",
         "PR123456B",
         "TW123456C",
-        "WZ123456D"
+        "WZ123456D",
+        "a.b123456c"
       })
   void shouldCreateApplication(String niNumber) throws Exception {
 
@@ -894,6 +901,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             .needsAdviceOnEUOrInternationalMaintenance(false)
                             .needsProtectiveInjunction(false)));
     request.getClientDetails().setNiNumber(niNumber);
+    request.getClientDetails().getAddress().setAddressLine3("");
+    request.getClientDetails().getAddress().setAddressLine4("");
+    request.getClientDetails().getAddress().setCounty("");
+    request.getClientDetails().getAddress().setPostCode(" s.w.1a - 2aa ");
+    request.setReasonForReapplication("");
+    String normalizedNiNumber = niNumber.replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
@@ -941,7 +954,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             applicationId,
                             TestJwtConfig.AUTHORIZED_OFFICE_CODE,
                             applicationId,
-                            niNumber))));
+                            normalizedNiNumber))));
 
     mockMvc
         .perform(
@@ -978,10 +991,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "createAddressCommand": {
                                 "addressLine1": "10 Downing Street",
                                 "addressLine2": "Prime ministers address",
-                                "addressLine3": null,
-                                "addressLine4": null,
-                                "postCode": "SW1A 2AA",
-                                "county": null,
+                                "addressLine3": "",
+                                "addressLine4": "",
+                                "postCode": "SW1A2AA",
+                                "county": "",
                                 "townOrCity": "London",
                                 "country": "GB"
                             }
@@ -991,7 +1004,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s"
                     }
                     """
-                        .formatted(niNumber, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+                        .formatted(normalizedNiNumber, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
 
     DATASTORE.verify(
         patchRequestedFor(

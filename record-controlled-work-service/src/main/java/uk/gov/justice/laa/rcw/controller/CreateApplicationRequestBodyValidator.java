@@ -8,6 +8,7 @@ import com.networknt.schema.Schema;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -51,8 +52,10 @@ public class CreateApplicationRequestBodyValidator extends RequestBodyAdviceAdap
       java.lang.reflect.Type targetType,
       Class<? extends HttpMessageConverter<?>> converterType)
       throws IOException {
-    byte[] body = inputMessage.getBody().readAllBytes();
-    validateSchema(body);
+    byte[] body = normalizeAndValidate(inputMessage.getBody().readAllBytes());
+    HttpHeaders headers = new HttpHeaders();
+    headers.putAll(inputMessage.getHeaders());
+    headers.setContentLength(body.length);
     return new HttpInputMessage() {
       @Override
       public java.io.InputStream getBody() {
@@ -61,23 +64,25 @@ public class CreateApplicationRequestBodyValidator extends RequestBodyAdviceAdap
 
       @Override
       public org.springframework.http.HttpHeaders getHeaders() {
-        return inputMessage.getHeaders();
+        return headers;
       }
     };
   }
 
-  private void validateSchema(byte[] body) {
+  private byte[] normalizeAndValidate(byte[] body) {
     try {
       JsonNode request = STRICT_MAPPER.readTree(body);
+      ApplicationRequestBodyNormalizer.normalize(request);
       if (request == null || !createApplicationSchema.validate(request).isEmpty()) {
-        invalid();
+        throw invalid();
       }
+      return STRICT_MAPPER.writeValueAsBytes(request);
     } catch (IOException exception) {
-      invalid();
+      throw invalid();
     }
   }
 
-  private void invalid() {
-    throw new ApplicationRequestValidationException("INVALID_APPLICATION");
+  private ApplicationRequestValidationException invalid() {
+    return new ApplicationRequestValidationException("INVALID_APPLICATION");
   }
 }

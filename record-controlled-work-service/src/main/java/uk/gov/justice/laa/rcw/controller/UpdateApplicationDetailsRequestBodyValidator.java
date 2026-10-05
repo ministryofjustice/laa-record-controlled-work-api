@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -67,16 +68,22 @@ public class UpdateApplicationDetailsRequestBodyValidator extends RequestBodyAdv
     if (body.length > maxBodySizeBytes) {
       throw new ApplicationRequestTooLargeException();
     }
-    validateSchema(STRICT_MAPPER.readTree(body));
+    JsonNode request = STRICT_MAPPER.readTree(body);
+    ApplicationRequestBodyNormalizer.normalize(request);
+    validateSchema(request);
+    byte[] normalizedBody = STRICT_MAPPER.writeValueAsBytes(request);
+    HttpHeaders headers = new HttpHeaders();
+    headers.putAll(inputMessage.getHeaders());
+    headers.setContentLength(normalizedBody.length);
     return new HttpInputMessage() {
       @Override
       public java.io.InputStream getBody() {
-        return new ByteArrayInputStream(body);
+        return new ByteArrayInputStream(normalizedBody);
       }
 
       @Override
       public org.springframework.http.HttpHeaders getHeaders() {
-        return inputMessage.getHeaders();
+        return headers;
       }
     };
   }
