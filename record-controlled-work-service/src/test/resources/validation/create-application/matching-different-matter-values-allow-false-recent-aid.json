@@ -1,0 +1,26 @@
+{
+  "id": "matching-different-matter-values-allow-false-recent-aid",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "yesDifferentMatter",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesDifferentMatter"
+    },
+    "legalAidLast6Months": false,
+    "reasonForReapplication": "",
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {
+    "/legalAidBefore": "yesDifferentMatter",
+    "/scopingQuestions/priorLegalAid": "yesDifferentMatter",
+    "/legalAidLast6Months": false,
+    "/reasonForReapplication": ""
+  }
+}

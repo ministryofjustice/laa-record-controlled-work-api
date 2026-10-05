@@ -1,0 +1,20 @@
+{
+  "id": "unknown-root-property-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "extra": "not allowed",
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

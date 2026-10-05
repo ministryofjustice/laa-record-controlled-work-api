@@ -1,0 +1,30 @@
+{
+  "id": "uk-address-accepts-canonical-postcode",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "10 Downing Street",
+        "addressLine2": "",
+        "townOrCity": "London",
+        "postCode": "SW1A2AA",
+        "country": "GB"
+      }
+    }
+  },
+  "preserves": {
+    "/clientDetails/address/addressLine2": "",
+    "/clientDetails/address/townOrCity": "London",
+    "/clientDetails/address/postCode": "SW1A2AA"
+  }
+}

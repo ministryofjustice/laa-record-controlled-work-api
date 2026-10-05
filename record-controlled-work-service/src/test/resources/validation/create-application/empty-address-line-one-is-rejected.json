@@ -1,0 +1,23 @@
+{
+  "id": "empty-address-line-one-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "",
+        "country": "FR"
+      }
+    }
+  },
+  "preserves": {}
+}

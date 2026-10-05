@@ -1,0 +1,19 @@
+{
+  "id": "same-matter-requires-recent-aid-answer",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "yesSameMatter",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesSameMatter"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

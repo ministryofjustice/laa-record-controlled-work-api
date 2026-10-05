@@ -1,0 +1,21 @@
+{
+  "id": "whitespace-only-active-reason-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "yesSameMatter",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesSameMatter"
+    },
+    "legalAidLast6Months": true,
+    "reasonForReapplication": "\u2003",
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

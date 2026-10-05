@@ -1,0 +1,19 @@
+{
+  "id": "unknown-legal-aid-value-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "unknown",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "unknown"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

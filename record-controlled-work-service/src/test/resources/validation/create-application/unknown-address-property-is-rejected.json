@@ -1,0 +1,24 @@
+{
+  "id": "unknown-address-property-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "Street",
+        "country": "FR",
+        "extra": "not allowed"
+      }
+    }
+  },
+  "preserves": {}
+}

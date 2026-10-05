@@ -1,0 +1,25 @@
+{
+  "id": "no-fixed-address-rejects-address-object",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false,
+      "address": {
+        "addressLine1": "Street",
+        "country": "GB",
+        "townOrCity": "London",
+        "postCode": "SW1A 2AA"
+      }
+    }
+  },
+  "preserves": {}
+}
