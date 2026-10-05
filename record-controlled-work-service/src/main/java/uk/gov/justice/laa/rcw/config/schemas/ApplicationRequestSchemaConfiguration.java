@@ -1,4 +1,4 @@
-package uk.gov.justice.laa.rcw.config;
+package uk.gov.justice.laa.rcw.config.schemas;
 
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaLocation;
@@ -8,16 +8,25 @@ import com.networknt.schema.dialect.Dialects;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Configures schema validation for editable application details. */
+/** Configures schema validation for application write requests. */
 @Configuration(proxyBeanMethods = false)
-public class ApplicationDetailsSchemaConfiguration {
+public class ApplicationRequestSchemaConfiguration {
 
   private static final String SPECIFICATION_LOCATION = "classpath:open-api-specification.yml";
-  private static final String REQUEST_SCHEMA_LOCATION =
-      SPECIFICATION_LOCATION + "#/components/schemas/UpdateApplicationDetailsRequestBody";
 
   @Bean
-  Schema applicationDetailsSchema() {
+  @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.UPDATE_APPLICATION_DETAILS)
+  Schema updateApplicationDetailsSchema() {
+    return schemaFor(ApplicationRequestSchema.UPDATE_APPLICATION_DETAILS);
+  }
+
+  @Bean
+  @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.CREATE_APPLICATION)
+  Schema createApplicationSchema() {
+    return schemaFor(ApplicationRequestSchema.CREATE_APPLICATION);
+  }
+
+  private Schema schemaFor(ApplicationRequestSchema requestSchema) {
     SchemaRegistry registry =
         SchemaRegistry.withDialect(
             Dialects.getOpenApi30(),
@@ -32,7 +41,9 @@ public class ApplicationDetailsSchemaConfiguration {
                       .failFast(true)
                       .build());
             });
-    Schema schema = registry.getSchema(SchemaLocation.of(REQUEST_SCHEMA_LOCATION));
+    String schemaLocation =
+        SPECIFICATION_LOCATION + "#/components/schemas/" + requestSchema.componentName();
+    Schema schema = registry.getSchema(SchemaLocation.of(schemaLocation));
     schema.initializeValidators();
     return schema;
   }
