@@ -66,4 +66,14 @@ class ScopingQuestionsMapperTest {
         .isEqualTo(new ApplicationScopingQuestions());
     assertThat(scopingQuestionsMapper.toApplicationScopingQuestions(null)).isNull();
   }
+
+  @Test
+  void shouldReadUnknownOptionalAnswerAsNull() {
+    assertThat(
+            scopingQuestionsMapper.toApplicationScopingQuestions(
+                Map.of(
+                    "priorLegalAid", "yesSameMatter",
+                    "familyLawClassification", "legacy")))
+        .isEqualTo(new ApplicationScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER));
+  }
 }
