@@ -902,6 +902,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             builder ->
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
+                    .ufn("123456/123")
                     .scopingQuestions(
                         ScopingQuestionsGenerator.valid(PriorLegalAid.YES_SAME_MATTER)));
     request.getClientDetails().setNiNumber(niNumber);
@@ -1003,7 +1004,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                 "country": "GB"
                             }
                         },
-                        "ufn": null,
+                        "ufn": "123456/123",
                         "applicationType": "RCW",
                         "providerOfficeCode": "%s"
                     }
