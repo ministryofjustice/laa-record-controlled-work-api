@@ -20,12 +20,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
+import uk.gov.justice.laa.rcw.model.EligibilityData;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationMeansServiceTest {
@@ -37,11 +41,14 @@ class ApplicationMeansServiceTest {
 
   private ApplicationGuard applicationGuard;
   private ApplicationMeansService applicationMeansService;
+  private EligibilityMapper eligibilityMapper;
 
   @BeforeEach
   void setUp() {
     applicationGuard = new ApplicationGuard(mockAuthorizedOfficesProvider);
-    applicationMeansService = new ApplicationMeansService(mockApplicationGateway, applicationGuard);
+    eligibilityMapper = MapperFixtures.eligibilityMapper();
+    applicationMeansService =
+        new ApplicationMeansService(mockApplicationGateway, applicationGuard, eligibilityMapper);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
@@ -50,7 +57,7 @@ class ApplicationMeansServiceTest {
   @Test
   void shouldUpdateMeans_fetchesETagAndForwardsDataAndResultToDatastore() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Map<String, Object> data = Map.of("level_of_help", "controlled");
+    EligibilityData eligibilityData = EligibilityData.builder().levelOfHelp("controlled").build();
     Map<String, Object> result = Map.of("indication", true);
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
@@ -59,21 +66,23 @@ class ApplicationMeansServiceTest {
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
                 .build());
 
-    applicationMeansService.updateMeans(applicationId, data, result);
+    applicationMeansService.updateMeans(applicationId, eligibilityData, result);
 
     verify(mockApplicationGateway).fetchApplication(eq(applicationId));
 
     ArgumentCaptor<UpdateMeansDataCommand> commandCaptor =
         ArgumentCaptor.forClass(UpdateMeansDataCommand.class);
     verify(mockApplicationGateway).updateMeansData(eq(applicationId), commandCaptor.capture());
-    assertThat(commandCaptor.getValue())
-        .isEqualTo(UpdateMeansDataCommand.builder().eTag(7L).data(data).result(result).build());
+    assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
+    assertThat(commandCaptor.getValue().getData().getLevelOfHelp_JsonNullable())
+        .isEqualTo(JsonNullable.of("controlled"));
+    assertThat(commandCaptor.getValue().getResult()).isEqualTo(result);
   }
 
   @Test
   void shouldUpdateMeans_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
-    Map<String, Object> data = Map.of("level_of_help", "controlled");
+    EligibilityData data = EligibilityData.builder().levelOfHelp("controlled").build();
     Map<String, Object> result = Map.of("indication", true);
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
@@ -120,7 +129,10 @@ class ApplicationMeansServiceTest {
         .when(mockApplicationGateway)
         .updateMeansData(eq(applicationId), any());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () ->
+                applicationMeansService.updateMeans(
+                    applicationId, EligibilityData.builder().build(), Map.of()))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -139,7 +151,10 @@ class ApplicationMeansServiceTest {
                 .applicationState(ApplicationState.COMPLETED)
                 .build());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () ->
+                applicationMeansService.updateMeans(
+                    applicationId, EligibilityData.builder().build(), Map.of()))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -153,7 +168,10 @@ class ApplicationMeansServiceTest {
         .thenReturn(
             ApplicationResponse.builder().eTag(1L).providerOfficeCode("OTHER-OFFICE").build());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () ->
+                applicationMeansService.updateMeans(
+                    applicationId, EligibilityData.builder().build(), Map.of()))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -171,7 +189,10 @@ class ApplicationMeansServiceTest {
                 .build());
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
 
-    assertThatThrownBy(() -> applicationMeansService.updateMeans(applicationId, Map.of(), Map.of()))
+    assertThatThrownBy(
+            () ->
+                applicationMeansService.updateMeans(
+                    applicationId, EligibilityData.builder().build(), Map.of()))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 

@@ -52,6 +52,10 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     post:
       tags:
         - applications
@@ -106,6 +110,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Application"
+          headers:
+            ETag:
+              description: Strong application version validator, quoted as an integer
+              schema:
+                type: string
+                pattern: '^"[0-9]+"$'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -114,6 +124,84 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/v1/applications/{id}/details:
+    put:
+      tags:
+        - applications
+      summary: Update an application's client and case details
+      description: >
+        Replaces the complete editable details snapshot. The If-Match value
+        must be a strong quoted integer validator returned by GET. A missing
+        If-Match returns 428; a malformed, weak, or wildcard value returns
+        400; a stale version returns 412 with reason
+        APPLICATION_VERSION_CONFLICT. A completed application returns 409
+        with reason APPLICATION_COMPLETED; an unclassified downstream 409
+        remains 409. For the applicable priorLegalAid
+        branch, legalAidLast6Months true requires a nonblank
+        reasonForReapplication. When legalAidLast6Months is false, or another
+        priorLegalAid branch applies, reasonForReapplication must be null.
+        hasFixedAddress true requires an address object; false requires
+        address null. Explicit null clears nullable values; omitted properties
+        are invalid. Empty strings remain values and are not clear operations.
+        Request bodies are limited to 65,536 bytes by default; oversized
+        bodies return 413.
+      operationId: updateApplicationDetails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: If-Match
+          in: header
+          required: false
+          description: >
+            Strong quoted integer validator from GET. If omitted, the server
+            returns 428 Precondition Required.
+          schema:
+            type: string
+            pattern: '^"[0-9]+"$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApplicationDetailsRequestBody"
+      responses:
+        '204':
+          description: Application details updated successfully
+          headers:
+            ETag:
+              description: New strong application version validator, quoted as an integer
+              schema:
+                type: string
+                pattern: '^"[0-9]+"$'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '428':
+          $ref: '#/components/responses/PreconditionRequired'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /api/v1/applications/{id}/evidence:
     put:
@@ -297,10 +385,31 @@ components:
         providerOfficeCode:
           type: string
         scopingQuestions:
-          type: object
-          additionalProperties: true
+          $ref: '#/components/schemas/ScopingQuestions'
         clientDetails:
           $ref: "#/components/schemas/CreateClientDetailsRequestBody"
+
+    ScopingQuestions:
+      type: object
+      additionalProperties: false
+      required:
+        - priorLegalAid
+      properties:
+        priorLegalAid:
+          $ref: "#/components/schemas/PriorLegalAid"
+        familyLawClassification:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/familyLawClassification"
+
+    ApplicationScopingQuestions:
+      type: object
+      additionalProperties: false
+      properties:
+        priorLegalAid:
+          $ref: "#/components/schemas/PriorLegalAid"
+        familyLawClassification:
+          $ref: "#/components/schemas/familyLawClassification"
 
     CreateClientDetailsRequestBody:
       required:
@@ -351,6 +460,106 @@ components:
           type: string
           maxLength: 2
 
+    UpdateApplicationDetailsRequestBody:
+      type: object
+      additionalProperties: false
+      required:
+        - priorLegalAid
+        - legalAidLast6Months
+        - reasonForReapplication
+        - ecfFlag
+        - clientDetails
+      properties:
+        priorLegalAid:
+          $ref: "#/components/schemas/PriorLegalAid"
+        legalAidLast6Months:
+          type: boolean
+          description: Journey answer; not persisted as a separate field.
+        reasonForReapplication:
+          type: string
+          nullable: true
+          description: >
+            Required but nullable. Must be nonblank when legalAidLast6Months
+            is true on the applicable priorLegalAid branch; otherwise it must
+            be null. An empty string is a value, not a clear operation.
+        ecfFlag:
+          type: boolean
+        clientDetails:
+          $ref: "#/components/schemas/UpdateClientDetailsRequestBody"
+
+    UpdateClientDetailsRequestBody:
+      type: object
+      additionalProperties: false
+      required:
+        - firstName
+        - lastName
+        - dateOfBirth
+        - niNumber
+        - hasFixedAddress
+        - address
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        niNumber:
+          type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
+          nullable: true
+          description: Required but nullable; null clears the NI number.
+        hasFixedAddress:
+          type: boolean
+          description: False requires address to be null.
+        address:
+          nullable: true
+          description: Required but nullable; true hasFixedAddress requires an object.
+          allOf:
+            - $ref: "#/components/schemas/UpdateAddressRequestBody"
+
+    UpdateAddressRequestBody:
+      type: object
+      nullable: true
+      additionalProperties: false
+      required:
+        - addressLine1
+        - addressLine2
+        - addressLine3
+        - addressLine4
+        - townOrCity
+        - postCode
+        - county
+        - country
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+          nullable: true
+        addressLine3:
+          type: string
+          nullable: true
+        addressLine4:
+          type: string
+          nullable: true
+        townOrCity:
+          type: string
+          nullable: true
+        postCode:
+          type: string
+          nullable: true
+        county:
+          type: string
+          nullable: true
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+
     CreateApplicationResponseBody:
       type: object
       required:
@@ -381,12 +590,17 @@ components:
         - declaration
         - evidence
         - eligibility
+        - scopingQuestions
         - applicationType
+        - ecfFlag
       properties:
         id:
           type: string
           format: uuid
         applicationRefNumber:
+          type: string
+          nullable: true
+        ufn:
           type: string
           nullable: true
         individualLegalAidNumber:
@@ -419,6 +633,9 @@ components:
         reasonForReapplication:
           type: string
           nullable: true
+        ecfFlag:
+          type: boolean
+          nullable: true
         meansAssessmentRequired:
           type: boolean
           nullable: true
@@ -429,8 +646,9 @@ components:
           type: string
           nullable: true
         scopingQuestions:
-          type: object
           nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ApplicationScopingQuestions'
         applicationType:
           type: string
         createdAt:
@@ -463,7 +681,7 @@ components:
         - result
       properties:
         data:
-          type: object
+          $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
           type: object
 
@@ -499,8 +717,9 @@ components:
       type: object
       properties:
         data:
-          type: object
           nullable: true
+          allOf:
+            - $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
           type: object
           nullable: true
@@ -662,6 +881,19 @@ components:
         - eligible
         - ineligible
 
+    PriorLegalAid:
+      type: string
+      enum:
+        - 'no'
+        - yesDifferentMatter
+        - yesSameMatter
+
+    familyLawClassification:
+      type: string
+      enum:
+        - public
+        - private
+
     ProblemDetail:
       type: object
       required:
@@ -717,7 +949,27 @@ components:
       allOf:
         - $ref: "#/components/schemas/ProblemDetail"
 
+    PreconditionFailedResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    PreconditionRequiredResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    PayloadTooLargeResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
     InternalServerErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    BadGatewayResponse:
+      allOf:
+        - $ref: "#/components/schemas/ProblemDetail"
+
+    ServiceUnavailableResponse:
       allOf:
         - $ref: "#/components/schemas/ProblemDetail"
 
@@ -752,9 +1004,39 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ConflictResponse"
+    PreconditionFailed:
+      description: 'Precondition failed because the supplied application version is stale'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PreconditionFailedResponse"
+    PreconditionRequired:
+      description: 'A strong If-Match application version is required'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PreconditionRequiredResponse"
+    PayloadTooLarge:
+      description: 'Request body exceeds the configured size limit'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PayloadTooLargeResponse"
     InternalServerError:
       description: 'Internal server error'
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/InternalServerErrorResponse"
+    BadGateway:
+      description: 'Bad gateway'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BadGatewayResponse"
+    ServiceUnavailable:
+      description: 'Service unavailable'
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ServiceUnavailableResponse"

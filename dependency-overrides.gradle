@@ -24,18 +24,20 @@ dependencies {
     // internal bootstrap status log to the console, breaking up the normal log output
     implementation 'ch.qos.logback:logback-classic:1.5.37'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.25'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.25'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.25'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.26'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.26'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.26'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302842
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302886
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302889
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20304748
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.26'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.7'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-20059179
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-19778370
-    implementation 'tools.jackson.core:jackson-databind:3.1.6'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-19778371
-    implementation 'org.apache.httpcomponents.core5:httpcore5-h2:5.4.3'
-    // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEHTTPCOMPONENTSCORE5-17817217
     implementation 'com.fasterxml.jackson.core:jackson-core:2.21.7'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-20059179
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.7'
@@ -45,6 +47,7 @@ dependencies {
     implementation 'tools.jackson.core:jackson-core:3.1.7'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-20059180
     implementation 'tools.jackson.core:jackson-databind:3.1.7'
+    // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-19778371
     // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-20059180
     // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-20059682
 

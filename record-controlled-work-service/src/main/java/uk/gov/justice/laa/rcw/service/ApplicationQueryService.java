@@ -5,30 +5,25 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
-import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
-import uk.gov.justice.laa.rcw.constants.ServiceNameConstants;
-import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
-import uk.gov.justice.laa.rcw.exception.ApplicationUnavailableException;
 import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
+import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Service class for querying Applications. */
 @Service
@@ -37,10 +32,10 @@ public class ApplicationQueryService {
 
   private static final StructuredLogger log = StructuredLogger.of(ApplicationQueryService.class);
 
-  private final ApplicationApi applicationApi;
+  private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
-  private final BearerTokenProvider bearerTokenProvider;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final EligibilityMapper eligibilityMapper;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Gets all Applications.
@@ -54,15 +49,12 @@ public class ApplicationQueryService {
       ApplicationState status,
       EligibilityIndication eligibilityIndication) {
     ApplicationResponses responses =
-        applicationApi.getApplications(
-            bearerTokenProvider.currentBearerToken(),
-            MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-            ServiceNameConstants.SERVICE_NAME,
+        applicationGateway.getApplications(
             page,
             size,
             officeId,
             applicationMapper.toDatastoreApplicationState(status),
-            applicationMapper.toDatastoreEligibilityIndication(eligibilityIndication));
+            eligibilityMapper.toDatastoreEligibilityIndication(eligibilityIndication));
     List<ApplicationOverview> applications =
         responses.getContent().stream().map(applicationMapper::toApplicationOverview).toList();
     log.info()
@@ -73,36 +65,6 @@ public class ApplicationQueryService {
   }
 
   /**
-   * Fetches the raw datastore {@link ApplicationResponse} for an application, throwing typed
-   * exceptions for all datastore error conditions. Package-private for use by update services that
-   * need the eTag and raw fields before mapping.
-   *
-   * @param applicationId the application id
-   * @return the raw {@link ApplicationResponse}
-   */
-  ApplicationResponse fetchApplicationResponse(UUID applicationId) {
-    try {
-      return applicationApi.getApplication(
-          applicationId,
-          bearerTokenProvider.currentBearerToken(),
-          MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-          ServiceNameConstants.SERVICE_NAME);
-    } catch (HttpClientErrorException.NotFound exception) {
-      throw new ApplicationNotFoundException(
-          "No application found with id: %s".formatted(applicationId));
-    } catch (HttpClientErrorException.BadRequest exception) {
-      throw new ApplicationBadRequestException(
-          "Datastore rejected the request for application %s".formatted(applicationId));
-    } catch (HttpServerErrorException exception) {
-      throw new ApplicationUpstreamErrorException(
-          "Datastore returned an error for application %s".formatted(applicationId));
-    } catch (ResourceAccessException exception) {
-      throw new ApplicationUnavailableException(
-          "Datastore is unavailable for application %s".formatted(applicationId));
-    }
-  }
-
-  /**
    * Checks that the current user is authorised to access the given application office, throwing
    * {@link ApplicationForbiddenException} if not. Package-private for use by update services.
    *
@@ -110,10 +72,7 @@ public class ApplicationQueryService {
    * @param providerOfficeCode the office code on the application
    */
   void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
+    applicationGuard.checkAuthorizedForOffice(applicationId, providerOfficeCode);
   }
 
   /**
@@ -137,32 +96,31 @@ public class ApplicationQueryService {
   /**
    * Gets an Application or empty optional if not found.
    *
-   * @return {@link Optional} of {@link Application}
+   * @return the application and its original datastore version, when visible
    */
-  public Optional<Application> getApplication(UUID applicationId) {
-    Optional<Application> application;
+  public Optional<VersionedApplication> getApplication(UUID applicationId) {
+    ApplicationResponse response;
     try {
-      application =
-          Optional.of(
-              applicationMapper.toApplication(
-                  applicationApi.getApplication(
-                      applicationId,
-                      bearerTokenProvider.currentBearerToken(),
-                      MDC.get(CorrelationConstants.CORRELATION_ID_LOG_KEY),
-                      ServiceNameConstants.SERVICE_NAME)));
-    } catch (HttpClientErrorException.NotFound exception) {
+      response = applicationGateway.fetchApplicationDetails(applicationId);
+      applicationGuard.checkVisibleForOffice(applicationId, response.getProviderOfficeCode());
+    } catch (ApplicationNotFoundException exception) {
       return Optional.empty();
     }
-    if (!authorizedOfficesProvider
-        .currentAuthorizedOfficeCodes()
-        .contains(application.orElseThrow().getProviderOfficeCode())) {
-      return Optional.empty();
+    OptionalLong version = ApplicationVersionParser.parseVersion(response.geteTag());
+    if (version.isEmpty()) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an invalid application version",
+          "DATASTORE_INVALID_APPLICATION_VERSION");
     }
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
-    return application;
+    return Optional.of(
+        new VersionedApplication(applicationMapper.toApplication(response), version.getAsLong()));
   }
+
+  /** A mapped application with its original datastore version, outside the public body. */
+  public record VersionedApplication(Application application, long version) {}
 }

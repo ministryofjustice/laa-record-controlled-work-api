@@ -1,5 +1,5 @@
 # Build stage
-FROM amazoncorretto:25.0.4-alpine@sha256:4955796538972099d9c7de6e31c6a259b1de65393a58b7e0996b7cc50d7d20a7 AS builder
+FROM amazoncorretto:25.0.4-alpine@sha256:19f1e2198abaaf201f5b9faa39222412da3fad66415e9dfe253bd6763415097e AS builder
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     chmod +x gradlew && ./gradlew -PgitHubPackagesUsername=$GITHUB_ACTOR -PgitHubPackagesPassword=$GITHUB_TOKEN :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
-FROM amazoncorretto:25.0.4-alpine@sha256:4955796538972099d9c7de6e31c6a259b1de65393a58b7e0996b7cc50d7d20a7
+FROM amazoncorretto:25.0.4-alpine@sha256:19f1e2198abaaf201f5b9faa39222412da3fad66415e9dfe253bd6763415097e
 
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/

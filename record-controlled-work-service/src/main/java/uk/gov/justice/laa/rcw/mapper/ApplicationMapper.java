@@ -3,32 +3,34 @@ package uk.gov.justice.laa.rcw.mapper;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
+import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
-import uk.gov.justice.laa.ia.datastore.client.model.CreateAddressCommand;
-import uk.gov.justice.laa.ia.datastore.client.model.CreateClientCommand;
-import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
-import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
-import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
-import uk.gov.justice.laa.rcw.model.ClientDetails;
-import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
-import uk.gov.justice.laa.rcw.model.Declaration;
-import uk.gov.justice.laa.rcw.model.Eligibility;
-import uk.gov.justice.laa.rcw.model.EligibilityIndication;
-import uk.gov.justice.laa.rcw.model.Evidence;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** The mapper between the datastore's application models and the RCW API's own models. */
-@Mapper(componentModel = "spring")
+@Mapper(
+    componentModel = "spring",
+    uses = {
+      ClientDetailsMapper.class,
+      DeclarationMapper.class,
+      EligibilityMapper.class,
+      EvidenceMapper.class,
+      ScopingQuestionsMapper.class,
+      JsonNullableMapper.class
+    },
+    injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface ApplicationMapper {
 
   /**
@@ -54,34 +56,6 @@ public interface ApplicationMapper {
   @Mapping(target = "applicationRefNumber", source = "referenceNumber")
   Application toApplication(ApplicationResponse applicationResponse);
 
-  /** Maps the datastore's client details onto the RCW API's, inverting `noFixedAbode`. */
-  @Mapping(target = "id", ignore = true)
-  @Mapping(
-      target = "hasFixedAddress",
-      source = "noFixedAbode",
-      qualifiedByName = "toHasFixedAddress")
-  ClientDetails toClientDetails(
-      uk.gov.justice.laa.ia.datastore.client.model.ClientDetails clientDetails);
-
-  /** Maps the datastore's address onto the RCW API's. */
-  @Mapping(target = "id", ignore = true)
-  Address toAddress(uk.gov.justice.laa.ia.datastore.client.model.Address address);
-
-  /** Maps the datastore's declaration response onto the RCW API's declaration. */
-  Declaration toDeclaration(DeclarationResponse declarationResponse);
-
-  /** Maps the datastore's eligibility result onto the RCW API's eligibility. */
-  Eligibility toEligibility(EligibilityResult eligibilityResult);
-
-  /** Maps the datastore's evidence response onto the RCW API's evidence. */
-  Evidence toEvidence(EvidenceResponse evidenceResponse);
-
-  /** Inverts `noFixedAbode` to `hasFixedAddress`, preserving null (unknown). */
-  @Named("toHasFixedAddress")
-  default Boolean toHasFixedAddress(Boolean noFixedAbode) {
-    return noFixedAbode == null ? null : !noFixedAbode;
-  }
-
   /** Joins the client's first and last name, skipping any that are null. */
   default String toName(ApplicationSummary applicationSummary) {
     return Stream.of(
@@ -94,32 +68,43 @@ public interface ApplicationMapper {
   uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
       ApplicationState status);
 
-  /** Maps the RCW eligibility indication to the datastore's equivalent enum. */
-  uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication
-      toDatastoreEligibilityIndication(EligibilityIndication eligibilityIndication);
-
-  /** Maps datastore eligibility indication back to the RCW eligibility indication. */
-  EligibilityIndication toEligibilityIndication(
-      uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication eligibilityIndication);
-
   /** Maps the RCW create request to the datastore start-application command. */
   @Mapping(target = "client", source = "clientDetails")
+  @Mapping(target = "ufn", ignore = true)
   @Mapping(
       target = "applicationType",
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
   StartApplicationCommand toStartApplicationCommand(
       CreateApplicationRequestBody createApplicationRequestBody);
 
-  /** Maps the RCW client details to the datastore create client command. */
-  @Mapping(target = "nationalInsuranceNumber", source = "niNumber")
+  /**
+   * Maps the validated details snapshot to a sparse datastore edit command.
+   *
+   * @param request the complete validated details snapshot
+   * @param version the caller's version precondition
+   * @return the sparse datastore command
+   */
+  @BeanMapping(
+      ignoreByDefault = true,
+      builder = @Builder(disableBuilder = true),
+      unmappedSourcePolicy = ReportingPolicy.ERROR,
+      ignoreUnmappedSourceProperties = "legalAidLast6Months")
+  @Mapping(target = "eTag", source = "version")
+  @Mapping(target = "clientDetails", source = "request.clientDetails")
   @Mapping(
-      target = "noFixedAbode",
-      expression = "java(!Boolean.TRUE.equals(clientDetails.getHasFixedAddress()))")
-  @Mapping(target = "createAddressCommand", source = "address")
-  CreateClientCommand toCreateClientCommand(CreateClientDetailsRequestBody clientDetails);
-
-  /** Maps the RCW address to the datastore create address command. */
-  CreateAddressCommand toCreateAddressCommand(CreateAddressRequestBody address);
+      target = "reasonForReapplication_JsonNullable",
+      source = "request.reasonForReapplication",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "ecfFlag_JsonNullable",
+      source = "request.ecfFlag",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "scopingQuestions",
+      source = "request",
+      qualifiedByName = "toDatastoreScopingQuestionsFromDetails")
+  EditApplicationCommand toEditApplicationCommand(
+      UpdateApplicationDetailsRequestBody request, long version);
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(
