@@ -1,0 +1,6 @@
+{
+  "id": "future-date-rejected-before-london-midnight",
+  "dateOfBirth": "2026-10-07",
+  "fixedInstant": "2026-10-06T22:59:59Z",
+  "accepted": false
+}

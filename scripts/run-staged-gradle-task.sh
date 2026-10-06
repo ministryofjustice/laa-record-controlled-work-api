@@ -20,5 +20,27 @@ if [ ${#java_files[@]} -eq 0 ]; then
   exit 0
 fi
 
+if [[ "$task" == "spotlessApply" ]]; then
+  service_module="record-controlled-work-service"
+  service_files=()
+  service_file_count=0
+  for file in "${java_files[@]}"; do
+    if [[ "$file" == "$service_module/"* ]]; then
+      service_files+=("$file")
+      service_file_count=$((service_file_count + 1))
+    fi
+  done
+  if [ "$service_file_count" -gt 0 ]; then
+    java_files=("${service_files[@]}")
+  else
+    java_files=()
+  fi
+  task=":${service_module}:${task}"
+fi
+
+if [ ${#java_files[@]} -eq 0 ]; then
+  exit 0
+fi
+
 joined_files=$(IFS=,; echo "${java_files[*]}")
 ./gradlew "$task" --quiet "-P${property}=${joined_files}"
