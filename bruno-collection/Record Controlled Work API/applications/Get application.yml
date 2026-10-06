@@ -68,6 +68,7 @@ examples:
             {
               "id": "",
               "applicationRefNumber": "",
+              "ufn": "",
               "individualLegalAidNumber": "",
               "providerFirmCode": "",
               "providerOfficeCode": "",
