@@ -437,6 +437,10 @@ components:
         dateOfBirth:
           type: string
           format: date
+          x-rcw-date:
+            exclusiveMinimum: "1900-01-01"
+            inclusiveToday: true
+            timezone: Europe/London
         niNumber:
           type: string
           description: Formatting characters are removed and letters uppercased before validation.

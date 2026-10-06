@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.Schema;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.Clock;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
@@ -17,6 +18,7 @@ import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchema;
 import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaQualifier;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.validation.CreateApplicationDatePolicy;
 
 /** Validates create request JSON against the OpenAPI contract before model binding. */
 @ControllerAdvice(assignableTypes = ApplicationController.class)
@@ -27,12 +29,15 @@ public class CreateApplicationRequestBodyValidator extends RequestBodyAdviceAdap
           JsonFactory.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION).build());
 
   private final Schema createApplicationSchema;
+  private final Clock clock;
 
   /** Creates the validator using the create request schema. */
   public CreateApplicationRequestBodyValidator(
       @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.CREATE_APPLICATION)
-          Schema createApplicationSchema) {
+          Schema createApplicationSchema,
+      Clock clock) {
     this.createApplicationSchema = createApplicationSchema;
+    this.clock = clock;
   }
 
   @Override
@@ -74,6 +79,10 @@ public class CreateApplicationRequestBodyValidator extends RequestBodyAdviceAdap
       JsonNode request = STRICT_MAPPER.readTree(body);
       ApplicationRequestBodyNormalizer.normalize(request);
       if (request == null || !createApplicationSchema.validate(request).isEmpty()) {
+        throw invalid();
+      }
+      if (!CreateApplicationDatePolicy.isValid(
+          request.path("clientDetails").path("dateOfBirth").asText(null), clock)) {
         throw invalid();
       }
       return STRICT_MAPPER.writeValueAsBytes(request);

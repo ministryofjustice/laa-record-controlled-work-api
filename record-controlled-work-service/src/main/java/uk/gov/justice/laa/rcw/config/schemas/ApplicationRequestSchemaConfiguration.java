@@ -5,6 +5,7 @@ import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SchemaRegistryConfig;
 import com.networknt.schema.dialect.Dialects;
+import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +16,11 @@ public class ApplicationRequestSchemaConfiguration {
   private static final String SPECIFICATION_LOCATION = "classpath:open-api-specification.yml";
   private static final String VALIDATION_SCHEMA_DIRECTORY =
       "classpath:open-api-specifications/validation/";
+
+  @Bean
+  Clock applicationRequestValidationClock() {
+    return Clock.systemUTC();
+  }
 
   @Bean
   @ApplicationRequestSchemaQualifier(ApplicationRequestSchema.UPDATE_APPLICATION_DETAILS)
