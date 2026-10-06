@@ -371,7 +371,6 @@ components:
     CreateApplicationRequestBody:
       type: object
       required:
-        - legalAidBefore
         - providerOfficeCode
         - scopingQuestions
         - clientDetails
