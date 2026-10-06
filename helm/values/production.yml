@@ -51,6 +51,9 @@ podAnnotations:
 podLabels:
   environment: production
 
+sentry:
+  cspReportEndpoint: https://o345774.ingest.us.sentry.io/api/4512061903863808/security/?sentry_key=b50c6c6ceece1c29daa3fa2f99e62ade
+  dsn: https://b50c6c6ceece1c29daa3fa2f99e62ade@o345774.ingest.us.sentry.io/4512061903863808
 
 tolerations:
   - key: "monitoring-node"
@@ -75,6 +78,8 @@ containerEnvironment:
   variables:
     LOG_LEVEL: info
     DATASTORE_URL: "http://laa-info-and-advice-datastore.laa-info-and-advice-datastore-prod.svc.cluster.local"
+    SENTRY_DSN: "https://b50c6c6ceece1c29daa3fa2f99e62ade@o345774.ingest.us.sentry.io/4512061903863808"
+    SENTRY_ENVIRONMENT: production
   secrets:
     - name: ISSUER
       secretName: rcw-api-env-secrets

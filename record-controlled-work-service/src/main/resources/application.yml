@@ -44,8 +44,8 @@ management:
         include: health, prometheus
 
 sentry:
-  dsn: # configure dsn url here
-  environment: # configure environment name here
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:${ENVIRONMENT:local}}
 
 # ECS structured logging
 logging:

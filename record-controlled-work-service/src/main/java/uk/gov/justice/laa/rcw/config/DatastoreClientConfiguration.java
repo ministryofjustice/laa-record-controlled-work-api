@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.sentry.Sentry;
+import io.sentry.metrics.MetricsUnit;
+import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Map;
 import org.apache.hc.client5.http.HttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -210,7 +214,7 @@ public class DatastoreClientConfiguration {
    * token is forwarded separately as an explicit {@code X-Authorization} parameter on each {@link
    * ApplicationApi} call, since the datastore API models it as a required request parameter.
    */
-  private record DatastoreOboInterceptor(
+  record DatastoreOboInterceptor(
       OAuth2AuthorizedClientManager clientManager, String clientRegistrationId)
       implements ClientHttpRequestInterceptor {
 
@@ -224,7 +228,18 @@ public class DatastoreClientConfiguration {
               .build();
       OAuth2AccessToken accessToken = clientManager.authorize(authorizeRequest).getAccessToken();
       request.getHeaders().setBearerAuth(accessToken.getTokenValue());
-      return execution.execute(request, body);
+      long startTimeNanos = System.nanoTime();
+      try {
+        return execution.execute(request, body);
+      } finally {
+        double durationMillis = (System.nanoTime() - startTimeNanos) / 1_000_000.0;
+        Sentry.metrics()
+            .distribution(
+                "datastore_api_request_duration",
+                durationMillis,
+                MetricsUnit.Duration.MILLISECOND,
+                SentryMetricsParameters.create(Map.of("http.method", request.getMethod().name())));
+      }
     }
   }
 }
