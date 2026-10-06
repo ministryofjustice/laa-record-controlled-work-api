@@ -24,7 +24,9 @@ dependencies {
     // internal bootstrap status log to the console, breaking up the normal log output
     implementation 'ch.qos.logback:logback-classic:1.5.37'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
-    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.24'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.25'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.25'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.25'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.7'
