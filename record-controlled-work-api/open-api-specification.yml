@@ -375,8 +375,6 @@ components:
         - scopingQuestions
         - clientDetails
       properties:
-        legalAidBefore:
-          type: string
         legalAidLast6Months:
           type: boolean
         reasonForReapplication:
