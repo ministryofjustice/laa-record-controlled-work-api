@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uk.gov.justice.laa.rcw.logging.SafeFailureDiagnostics;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /** The global exception handler for all exceptions. */
@@ -90,10 +91,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationBadRequestException.class)
   public ResponseEntity<Object> handleApplicationBadRequest(
       ApplicationBadRequestException exception, WebRequest request) {
-    log.error(exception)
-        .action(APPLICATION_ERROR)
-        .outcome("failure")
-        .with("http.response.status_code", BAD_REQUEST.value())
+    withFailureDiagnostics(
+            log.error()
+                .action(APPLICATION_ERROR)
+                .outcome("failure")
+                .with("http.response.status_code", BAD_REQUEST.value()),
+            exception)
         .log("Datastore rejected the request as invalid");
     return handleKnownException(exception, BAD_REQUEST, request);
   }
@@ -107,10 +110,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationUpstreamErrorException.class)
   public ResponseEntity<Object> handleApplicationUpstreamError(
       ApplicationUpstreamErrorException exception, WebRequest request) {
-    log.warn()
-        .action(APPLICATION_DOWNSTREAM_ERROR)
-        .outcome("failure")
-        .with("http.response.status_code", BAD_GATEWAY.value())
+    withFailureDiagnostics(
+            log.warn()
+                .action(APPLICATION_DOWNSTREAM_ERROR)
+                .outcome("failure")
+                .with("http.response.status_code", BAD_GATEWAY.value()),
+            exception)
         .log("Datastore returned an error");
     return handleKnownException(exception, BAD_GATEWAY, request);
   }
@@ -124,10 +129,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ApplicationUnavailableException.class)
   public ResponseEntity<Object> handleApplicationUnavailable(
       ApplicationUnavailableException exception, WebRequest request) {
-    log.warn()
-        .action(APPLICATION_DOWNSTREAM_ERROR)
-        .outcome("failure")
-        .with("http.response.status_code", SERVICE_UNAVAILABLE.value())
+    withFailureDiagnostics(
+            log.warn()
+                .action(APPLICATION_DOWNSTREAM_ERROR)
+                .outcome("failure")
+                .with("http.response.status_code", SERVICE_UNAVAILABLE.value()),
+            exception)
         .log("Datastore is unavailable");
     return handleKnownException(exception, SERVICE_UNAVAILABLE, request);
   }
@@ -239,10 +246,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Object> handleGenericException(Exception exception, WebRequest request) {
-    log.error(exception)
-        .action(APPLICATION_ERROR)
-        .outcome("failure")
-        .with("http.response.status_code", INTERNAL_SERVER_ERROR.value())
+    withFailureDiagnostics(
+            log.error()
+                .action(APPLICATION_ERROR)
+                .outcome("failure")
+                .with("http.response.status_code", INTERNAL_SERVER_ERROR.value()),
+            exception)
         .log("An unexpected application error has occurred");
     ProblemDetail problemDetail =
         buildProblemDetail(
@@ -265,6 +274,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail problemDetail =
         buildProblemDetail(status, exception.getMessage(), exception.getReason(), request);
     return handleExceptionInternal(exception, problemDetail, new HttpHeaders(), status, request);
+  }
+
+  private StructuredLogger.BuildStage withFailureDiagnostics(
+      StructuredLogger.BuildStage builder, Throwable exception) {
+    return builder
+        .with("failure.category", SafeFailureDiagnostics.category(exception))
+        .with("failure.cause_classes", SafeFailureDiagnostics.causeClasses(exception));
   }
 
   private ProblemDetail buildProblemDetail(

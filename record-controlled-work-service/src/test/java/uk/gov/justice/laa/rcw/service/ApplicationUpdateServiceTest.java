@@ -189,9 +189,10 @@ class ApplicationUpdateServiceTest {
                 .applicationState(
                     uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
-    doThrow(
-            new ApplicationConflictException(
-                "Application %s was modified concurrently".formatted(applicationId)))
+    ApplicationConflictException datastoreFailure =
+        new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
+    doThrow(datastoreFailure)
         .when(mockApplicationGateway)
         .updateDeclarationData(eq(applicationId), any());
 
@@ -200,7 +201,9 @@ class ApplicationUpdateServiceTest {
                 applicationUpdateService.updateDeclaration(
                     applicationId, true, LocalDate.of(2026, 8, 14)))
         .isInstanceOf(ApplicationConflictException.class)
-        .hasMessageContaining(applicationId.toString());
+        .hasMessageContaining(applicationId.toString())
+        .cause()
+        .isSameAs(datastoreFailure);
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
     verify(mockApplicationGateway, times(2)).updateDeclarationData(eq(applicationId), any());
@@ -217,16 +220,19 @@ class ApplicationUpdateServiceTest {
                 .applicationState(
                     uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
-    doThrow(
-            new ApplicationConflictException(
-                "Application %s was modified concurrently".formatted(applicationId)))
+    ApplicationConflictException datastoreFailure =
+        new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
+    doThrow(datastoreFailure)
         .when(mockApplicationGateway)
         .updateApplication(eq(applicationId), any());
 
     assertThatThrownBy(
             () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
-        .hasMessageContaining(applicationId.toString());
+        .hasMessageContaining(applicationId.toString())
+        .cause()
+        .isSameAs(datastoreFailure);
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
     verify(mockApplicationGateway, times(2)).updateApplication(eq(applicationId), any());
