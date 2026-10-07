@@ -30,7 +30,7 @@ public class CreateApplicationRequestGenerator {
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
     var builder =
         CreateApplicationRequestBody.builder()
-        .legalAidLast6Months(false)
+            .legalAidLast6Months(false)
             .scopingQuestions(
                 new ScopingQuestions()
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
