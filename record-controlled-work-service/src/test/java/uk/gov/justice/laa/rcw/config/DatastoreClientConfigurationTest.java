@@ -4,15 +4,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import io.sentry.Sentry;
 import io.sentry.metrics.IMetricsApi;
 import io.sentry.metrics.MetricsUnit;
 import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +28,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRequest;
@@ -50,16 +58,25 @@ class DatastoreClientConfigurationTest {
   private final HttpHeaders requestHeaders = new HttpHeaders();
   private MockedStatic<Sentry> mockSentry;
   private DatastoreClientConfiguration.DatastoreOboInterceptor interceptor;
+  private Logger logger;
+  private Level previousLogLevel;
+  private ListAppender<ILoggingEvent> appender;
 
   @BeforeEach
   void setUp() {
-    when(mockClientManager.authorize(any())).thenReturn(mockAuthorizedClient);
-    when(mockAuthorizedClient.getAccessToken()).thenReturn(mockAccessToken);
-    when(mockAccessToken.getTokenValue()).thenReturn("test-access-token");
-    when(mockRequest.getHeaders()).thenReturn(requestHeaders);
-    when(mockRequest.getMethod()).thenReturn(HttpMethod.GET);
+    lenient().when(mockClientManager.authorize(any())).thenReturn(mockAuthorizedClient);
+    lenient().when(mockAuthorizedClient.getAccessToken()).thenReturn(mockAccessToken);
+    lenient().when(mockAccessToken.getTokenValue()).thenReturn("test-access-token");
+    lenient().when(mockRequest.getHeaders()).thenReturn(requestHeaders);
+    lenient().when(mockRequest.getMethod()).thenReturn(HttpMethod.GET);
 
     SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
+    logger = (Logger) LoggerFactory.getLogger(DatastoreClientConfiguration.class);
+    previousLogLevel = logger.getLevel();
+    logger.setLevel(Level.INFO);
+    appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
     mockSentry = mockStatic(Sentry.class);
     mockSentry.when(Sentry::metrics).thenReturn(mockMetricsApi);
     interceptor =
@@ -69,6 +86,8 @@ class DatastoreClientConfigurationTest {
   @AfterEach
   void tearDown() {
     SecurityContextHolder.clearContext();
+    logger.detachAppender(appender);
+    logger.setLevel(previousLogLevel);
     mockSentry.close();
   }
 
@@ -81,7 +100,52 @@ class DatastoreClientConfigurationTest {
     assertThat(response).isSameAs(mockResponse);
     assertThat(requestHeaders.getFirst(HttpHeaders.AUTHORIZATION))
         .isEqualTo("Bearer test-access-token");
+    assertThat(events("datastore.authorization"))
+        .extracting(event -> keyValue(event, "event.phase"))
+        .containsExactly("start", "finish");
+    assertThat(events("datastore.authorization"))
+        .extracting(event -> keyValue(event, "event.outcome"))
+        .containsExactly("in_progress", "success");
+    assertThat(appender.list)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .noneMatch(message -> message.contains("test-access-token"));
     verifyRequestDurationMetric();
+  }
+
+  @Test
+  void shouldLogAuthorizationFailure_whenManagerThrowsWithoutExposingExceptionMessage()
+      throws IOException {
+    IllegalStateException authorizationFailure =
+        new IllegalStateException("assertion-secret-sentinel");
+    when(mockClientManager.authorize(any())).thenThrow(authorizationFailure);
+
+    assertThatThrownBy(() -> interceptor.intercept(mockRequest, REQUEST_BODY, mockExecution))
+        .isSameAs(authorizationFailure);
+
+    assertAuthorizationFailedWithoutRawMessage();
+    verify(mockExecution, never()).execute(mockRequest, REQUEST_BODY);
+  }
+
+  @Test
+  void shouldLogAuthorizationFailure_whenPrincipalIsAbsent() {
+    SecurityContextHolder.clearContext();
+
+    assertThatThrownBy(() -> interceptor.intercept(mockRequest, REQUEST_BODY, mockExecution))
+        .isInstanceOf(IllegalArgumentException.class);
+
+    assertAuthorizationFailedWithoutRawMessage();
+    verify(mockClientManager, never()).authorize(any());
+  }
+
+  @Test
+  void shouldLogAuthorizationFailure_whenManagerReturnsNoAuthorizedClient() throws IOException {
+    when(mockClientManager.authorize(any())).thenReturn(null);
+
+    assertThatThrownBy(() -> interceptor.intercept(mockRequest, REQUEST_BODY, mockExecution))
+        .isInstanceOf(NullPointerException.class);
+
+    assertAuthorizationFailedWithoutRawMessage();
+    verify(mockExecution, never()).execute(mockRequest, REQUEST_BODY);
   }
 
   @Test
@@ -116,5 +180,30 @@ class DatastoreClientConfigurationTest {
                 .get("http.method")
                 .getValue())
         .isEqualTo("GET");
+  }
+
+  private void assertAuthorizationFailedWithoutRawMessage() {
+    List<ILoggingEvent> events = events("datastore.authorization");
+    assertThat(events).hasSize(2);
+    assertThat(keyValue(events.getLast(), "event.phase")).isEqualTo("finish");
+    assertThat(keyValue(events.getLast(), "event.outcome")).isEqualTo("failure");
+    assertThat(events)
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .noneMatch(message -> message.contains("assertion-secret-sentinel"));
+    assertThat(events).allSatisfy(event -> assertThat(event.getThrowableProxy()).isNull());
+  }
+
+  private List<ILoggingEvent> events(String action) {
+    return appender.list.stream()
+        .filter(event -> action.equals(keyValue(event, "event.action")))
+        .toList();
+  }
+
+  private Object keyValue(ILoggingEvent event, String key) {
+    return event.getKeyValuePairs().stream()
+        .filter(pair -> pair.key.equals(key))
+        .map(pair -> pair.value)
+        .findFirst()
+        .orElse(null);
   }
 }
