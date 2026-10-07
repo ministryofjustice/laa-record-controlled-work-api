@@ -1,9 +1,10 @@
-package uk.gov.justice.laa.rcw.config;
+package uk.gov.justice.laa.rcw.datastore.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -19,6 +20,7 @@ import io.sentry.metrics.IMetricsApi;
 import io.sentry.metrics.MetricsUnit;
 import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +34,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.observation.ClientRequestObservationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -51,13 +55,14 @@ class DatastoreClientConfigurationTest {
   @Mock private OAuth2AccessToken mockAccessToken;
   @Mock private Authentication mockAuthentication;
   @Mock private HttpRequest mockRequest;
+  @Mock private ClientHttpRequest mockObservationRequest;
   @Mock private ClientHttpRequestExecution mockExecution;
   @Mock private ClientHttpResponse mockResponse;
   @Mock private IMetricsApi mockMetricsApi;
 
   private final HttpHeaders requestHeaders = new HttpHeaders();
   private MockedStatic<Sentry> mockSentry;
-  private DatastoreClientConfiguration.DatastoreOboInterceptor interceptor;
+  private DatastoreOboInterceptor interceptor;
   private Logger logger;
   private Level previousLogLevel;
   private ListAppender<ILoggingEvent> appender;
@@ -69,6 +74,9 @@ class DatastoreClientConfigurationTest {
     lenient().when(mockAccessToken.getTokenValue()).thenReturn("test-access-token");
     lenient().when(mockRequest.getHeaders()).thenReturn(requestHeaders);
     lenient().when(mockRequest.getMethod()).thenReturn(HttpMethod.GET);
+    lenient()
+        .when(mockRequest.getURI())
+        .thenReturn(URI.create("http://datastore.test/api/v0/applications/1"));
 
     SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
     logger = (Logger) LoggerFactory.getLogger(DatastoreClientConfiguration.class);
@@ -79,8 +87,7 @@ class DatastoreClientConfigurationTest {
     logger.addAppender(appender);
     mockSentry = mockStatic(Sentry.class);
     mockSentry.when(Sentry::metrics).thenReturn(mockMetricsApi);
-    interceptor =
-        new DatastoreClientConfiguration.DatastoreOboInterceptor(mockClientManager, "datastore");
+    interceptor = new DatastoreOboInterceptor(mockClientManager, "datastore");
   }
 
   @AfterEach
@@ -157,6 +164,37 @@ class DatastoreClientConfigurationTest {
         .isSameAs(requestFailure);
 
     verifyRequestDurationMetric();
+  }
+
+  @Test
+  void shouldPreserveDatastoreResponse_whenDurationMetricFails() throws IOException {
+    when(mockExecution.execute(mockRequest, REQUEST_BODY)).thenReturn(mockResponse);
+    doThrow(new IllegalStateException("metrics failure"))
+        .when(mockMetricsApi)
+        .distribution(eq(METRIC_NAME), any(), eq(MetricsUnit.Duration.MILLISECOND), any());
+
+    ClientHttpResponse response = interceptor.intercept(mockRequest, REQUEST_BODY, mockExecution);
+
+    assertThat(response).isSameAs(mockResponse);
+  }
+
+  @Test
+  void shouldExcludeRequestUrlValuesFromNativeObservationAttributes() {
+    String requestUrl =
+        "https://datastore.example/api/v0/applications/record-id-secret?token=query-secret";
+    when(mockObservationRequest.getURI()).thenReturn(URI.create(requestUrl));
+    when(mockObservationRequest.getMethod()).thenReturn(HttpMethod.GET);
+    ClientRequestObservationContext context =
+        new ClientRequestObservationContext(mockObservationRequest);
+    context.setUriTemplate(requestUrl);
+    DatastoreClientObservationConvention convention = new DatastoreClientObservationConvention();
+
+    String lowCardinalityValues = convention.getLowCardinalityKeyValues(context).toString();
+
+    assertThat(lowCardinalityValues)
+        .contains("operation=fetch_application")
+        .doesNotContain("datastore.example", "record-id-secret", "query-secret");
+    assertThat(convention.getHighCardinalityKeyValues(context).toString()).isEqualTo("[]");
   }
 
   private void verifyRequestDurationMetric() {
