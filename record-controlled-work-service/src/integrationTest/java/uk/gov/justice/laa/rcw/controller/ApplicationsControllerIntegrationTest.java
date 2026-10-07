@@ -888,7 +888,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         CreateApplicationRequestGenerator.createWithName(
             builder ->
                 builder
-                    .legalAidBefore(PriorLegalAid.YES_SAME_MATTER)
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(
                         new ScopingQuestions()

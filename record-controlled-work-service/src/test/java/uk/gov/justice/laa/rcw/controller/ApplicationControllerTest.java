@@ -730,7 +730,6 @@ class ApplicationControllerTest {
     String request =
         """
         {
-            "legalAidBefore": "no",
             "providerOfficeCode": "office",
             "scopingQuestions": {"priorLegalAid": "yesSameMatter"},
             "clientDetails": {
