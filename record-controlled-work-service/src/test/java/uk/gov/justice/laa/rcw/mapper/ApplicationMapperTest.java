@@ -298,12 +298,23 @@ class ApplicationMapperTest {
     assertThat(result.getApplicationType())
         .isEqualTo(StartApplicationCommand.ApplicationTypeEnum.RCW);
     assertThat(result.getProviderOfficeCode()).isEqualTo(request.getProviderOfficeCode());
+    assertThat(result.getUfn()).isNull();
     assertThat(result.getClient()).isNotNull();
     assertThat(result.getClient().getFirstName())
         .isEqualTo(request.getClientDetails().getFirstName());
     assertThat(result.getClient().getNoFixedAbode()).isFalse();
     assertThat(result.getClient().getCreateAddressCommand().getAddressLine1())
         .isEqualTo(request.getClientDetails().getAddress().getAddressLine1());
+  }
+
+  @Test
+  void shouldMapUfnToStartApplicationCommand() {
+    var request =
+        CreateApplicationRequestGenerator.createWithName(builder -> builder.ufn("123456/123"));
+
+    StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
+
+    assertThat(result.getUfn()).isEqualTo("123456/123");
   }
 
   @Test
