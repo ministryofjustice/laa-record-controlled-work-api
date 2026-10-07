@@ -1363,7 +1363,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void shouldPreserveDatastore503RetryForMeansUpdates() throws Exception {
+  void shouldNotRetryDatastore503ForMeansUpdates() throws Exception {
     String id = java.util.UUID.randomUUID().toString();
     String applicationPath = "/api/v0/applications/" + id;
     String meansPath = applicationPath + ":update-means-data";
@@ -1381,16 +1381,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                         .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
-        WireMock.put(urlPathEqualTo(meansPath))
-            .inScenario("means update retries on 503")
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(WireMock.aResponse().withStatus(503))
-            .willSetStateTo("retry succeeds"));
-    DATASTORE.stubFor(
-        WireMock.put(urlPathEqualTo(meansPath))
-            .inScenario("means update retries on 503")
-            .whenScenarioStateIs("retry succeeds")
-            .willReturn(WireMock.noContent()));
+        WireMock.put(urlPathEqualTo(meansPath)).willReturn(WireMock.aResponse().withStatus(503)));
 
     mockMvc
         .perform(
@@ -1398,10 +1389,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .withBearerWriteToken()
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"data\":{},\"result\":{}}"))
-        .andExpect(status().isNoContent());
+        .andExpect(status().is(502))
+        .andExpect(jsonPath("$.reason").value("DATASTORE_SERVER_ERROR"));
 
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
-    DATASTORE.verify(2, putRequestedFor(urlPathEqualTo(meansPath)));
+    DATASTORE.verify(1, putRequestedFor(urlPathEqualTo(meansPath)));
   }
 
   private org.springframework.test.web.servlet.ResultActions performValidDetailsPut(String id)

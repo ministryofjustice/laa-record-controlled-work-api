@@ -18,6 +18,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
 import java.util.List;
@@ -124,6 +125,36 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
         .extracting(event -> keyValue(event, "event.phase"))
         .containsExactly("start", "finish", "start", "finish");
     assertNoSensitiveTokenInEvents();
+  }
+
+  @Test
+  void shouldRetryDatastore503ForReadRequests() {
+    authenticateRequest();
+    String path = "/api/v0/applications/" + APPLICATION_ID;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario("application read retries on 503")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.aResponse().withStatus(503))
+            .willSetStateTo("retry succeeds"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario("application read retries on 503")
+            .whenScenarioStateIs("retry succeeds")
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "123456"
+                    }
+                    """
+                        .formatted(APPLICATION_ID))));
+
+    ApplicationResponse response = applicationGateway.fetchApplication(APPLICATION_ID);
+
+    assertThat(response.getProviderOfficeCode()).isEqualTo("123456");
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
   }
 
   @Test

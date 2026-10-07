@@ -2,10 +2,18 @@ package uk.gov.justice.laa.rcw.datastore.client;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
+import java.io.IOException;
+import org.apache.hc.client5.http.HttpRequestRetryStrategy;
+import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.util.TimeValue;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -80,7 +88,10 @@ public class DatastoreClientConfiguration {
     PoolingHttpClientConnectionManager connectionManager =
         PoolingHttpClientConnectionManagerBuilder.create().build();
     CloseableHttpClient httpClient =
-        HttpClients.custom().setConnectionManager(connectionManager).build();
+        HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setRetryStrategy(datastoreRetryStrategy())
+            .build();
     RestTemplate restTemplate =
         new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
     restTemplate.getMessageConverters().add(0, new ApplicationResponseHttpMessageConverter());
@@ -98,5 +109,32 @@ public class DatastoreClientConfiguration {
 
     ApiClient apiClient = new ApiClient(restTemplate).setBasePath(props.baseUrl());
     return new ApplicationApi(apiClient);
+  }
+
+  private HttpRequestRetryStrategy datastoreRetryStrategy() {
+    HttpRequestRetryStrategy defaultStrategy = DefaultHttpRequestRetryStrategy.INSTANCE;
+    return new HttpRequestRetryStrategy() {
+      @Override
+      public boolean retryRequest(
+          HttpRequest request, IOException exception, int execCount, HttpContext context) {
+        return isReadRequest(request)
+            && defaultStrategy.retryRequest(request, exception, execCount, context);
+      }
+
+      @Override
+      public boolean retryRequest(HttpResponse response, int execCount, HttpContext context) {
+        HttpRequest request = HttpClientContext.cast(context).getRequest();
+        return isReadRequest(request) && defaultStrategy.retryRequest(response, execCount, context);
+      }
+
+      @Override
+      public TimeValue getRetryInterval(HttpResponse response, int execCount, HttpContext context) {
+        return defaultStrategy.getRetryInterval(response, execCount, context);
+      }
+    };
+  }
+
+  private boolean isReadRequest(HttpRequest request) {
+    return request != null && "GET".equalsIgnoreCase(request.getMethod());
   }
 }
