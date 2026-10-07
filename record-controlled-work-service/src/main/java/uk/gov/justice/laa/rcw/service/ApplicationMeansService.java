@@ -54,7 +54,7 @@ public class ApplicationMeansService {
     } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
         throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
+            "Application %s was modified concurrently".formatted(applicationId), exception);
       }
       updateMeans(applicationId, data, result, false);
       return;

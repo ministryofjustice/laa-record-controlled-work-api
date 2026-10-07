@@ -23,4 +23,14 @@ public class ApplicationUpstreamErrorException extends ApiRuntimeException {
   public ApplicationUpstreamErrorException(String message, String reason) {
     super(message, reason);
   }
+
+  /** Constructor for ApplicationUpstreamErrorException with its downstream cause. */
+  public ApplicationUpstreamErrorException(String message, Throwable cause) {
+    this(message, DEFAULT_REASON, cause);
+  }
+
+  /** Constructor for ApplicationUpstreamErrorException with a reason and downstream cause. */
+  public ApplicationUpstreamErrorException(String message, String reason, Throwable cause) {
+    super(message, reason, cause);
+  }
 }

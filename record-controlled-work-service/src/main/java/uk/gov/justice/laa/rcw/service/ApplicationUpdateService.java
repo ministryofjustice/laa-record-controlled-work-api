@@ -54,7 +54,7 @@ public class ApplicationUpdateService {
     } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
         throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
+            "Application %s was modified concurrently".formatted(applicationId), exception);
       }
       updateStatus(applicationId, status, false);
       return;
@@ -102,7 +102,7 @@ public class ApplicationUpdateService {
     } catch (ApplicationConflictException exception) {
       if (!retryOnConflict) {
         throw new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
+            "Application %s was modified concurrently".formatted(applicationId), exception);
       }
       updateDeclaration(applicationId, declarationConfirmation, dateSigned, false);
       return;

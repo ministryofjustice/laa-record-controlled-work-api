@@ -23,4 +23,14 @@ public class ApplicationBadRequestException extends ApiRuntimeException {
   public ApplicationBadRequestException(String message, String reason) {
     super(message, reason);
   }
+
+  /** Constructor for ApplicationBadRequestException with its downstream cause. */
+  public ApplicationBadRequestException(String message, Throwable cause) {
+    this(message, DEFAULT_REASON, cause);
+  }
+
+  /** Constructor for ApplicationBadRequestException with a reason and downstream cause. */
+  public ApplicationBadRequestException(String message, String reason, Throwable cause) {
+    super(message, reason, cause);
+  }
 }

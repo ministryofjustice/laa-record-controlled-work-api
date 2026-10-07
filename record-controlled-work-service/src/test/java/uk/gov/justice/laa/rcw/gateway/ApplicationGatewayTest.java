@@ -34,6 +34,7 @@ import uk.gov.justice.laa.ia.datastore.client.api.ApplicationApi;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
+import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
@@ -114,7 +115,9 @@ class ApplicationGatewayTest {
                     officeCode,
                     StartApplicationCommand.builder().providerOfficeCode(officeCode).build()))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -150,7 +153,9 @@ class ApplicationGatewayTest {
     assertThatThrownBy(
             () -> applicationGateway.updateScopingData(APPLICATION_ID, scopingDataCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -184,7 +189,9 @@ class ApplicationGatewayTest {
 
     assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -219,6 +226,7 @@ class ApplicationGatewayTest {
     assertThatThrownBy(() -> applicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .isExactlyInstanceOf(ApplicationNotFoundException.class)
         .hasMessage(notFoundMessage())
+        .satisfies(exception -> assertThat(exception).cause().isSameAs(datastoreFailure))
         .satisfies(
             exception ->
                 assertThat(((ApplicationNotFoundException) exception).getReason())
@@ -250,6 +258,7 @@ class ApplicationGatewayTest {
     assertThatThrownBy(() -> applicationGateway.fetchApplicationDetails(APPLICATION_ID))
         .isExactlyInstanceOf(ApplicationUpstreamErrorException.class)
         .hasMessage("Datastore returned an invalid application response")
+        .satisfies(exception -> assertThat(exception).cause().isSameAs(malformedResponse))
         .satisfies(
             exception ->
                 assertThat(((ApplicationUpstreamErrorException) exception).getReason())
@@ -313,7 +322,9 @@ class ApplicationGatewayTest {
 
     assertThatThrownBy(() -> applicationGateway.getApplications(0, 25, "AB12CD", null, null))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -348,7 +359,9 @@ class ApplicationGatewayTest {
 
     assertThatThrownBy(() -> applicationGateway.updateMeansData(APPLICATION_ID, meansDataCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -384,7 +397,34 @@ class ApplicationGatewayTest {
 
     assertThatThrownBy(() -> applicationGateway.updateEvidence(APPLICATION_ID, command))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
+  }
+
+  @ParameterizedTest
+  @MethodSource("applicationScopedErrorMappingsWithConflict")
+  void shouldUpdateDeclarationData_shouldMapDatastoreErrors(
+      RuntimeException datastoreException,
+      Class<? extends RuntimeException> expectedExceptionType,
+      String expectedMessage) {
+    doThrow(datastoreException)
+        .when(mockApplicationApi)
+        .updateDeclarationData(
+            eq(APPLICATION_ID),
+            eq(BEARER_TOKEN),
+            eq(CORRELATION_ID),
+            eq(ServiceNameConstants.SERVICE_NAME),
+            any());
+
+    assertThatThrownBy(
+            () ->
+                applicationGateway.updateDeclarationData(
+                    APPLICATION_ID, DeclarationCommand.builder().build()))
+        .isExactlyInstanceOf(expectedExceptionType)
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -420,7 +460,9 @@ class ApplicationGatewayTest {
     assertThatThrownBy(
             () -> applicationGateway.updateApplication(APPLICATION_ID, updateApplicationCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @Test
@@ -505,14 +547,17 @@ class ApplicationGatewayTest {
     assertThatThrownBy(
             () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
         .isExactlyInstanceOf(expectedExceptionType)
-        .hasMessage(expectedMessage);
+        .hasMessage(expectedMessage)
+        .cause()
+        .isSameAs(datastoreException);
   }
 
   @ParameterizedTest
   @MethodSource("detailsConflictReasons")
   void shouldEditApplication_classifyConflictByStructuredReason(
       String responseBody, String expectedReason) {
-    doThrow(conflict(responseBody))
+    HttpClientErrorException.Conflict datastoreFailure = conflict(responseBody);
+    doThrow(datastoreFailure)
         .when(mockApplicationApi)
         .editApplicationWithHttpInfo(
             eq(APPLICATION_ID),
@@ -524,6 +569,7 @@ class ApplicationGatewayTest {
     assertThatThrownBy(
             () -> applicationGateway.editApplication(APPLICATION_ID, editApplicationCommand()))
         .isInstanceOf(ApplicationConflictException.class)
+        .satisfies(exception -> assertThat(exception).cause().isSameAs(datastoreFailure))
         .satisfies(
             exception ->
                 assertThat(((ApplicationConflictException) exception).getReason())
