@@ -18,6 +18,8 @@ RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
 # Runtime stage
 FROM amazoncorretto:25.0.4-alpine@sha256:19f1e2198abaaf201f5b9faa39222412da3fad66415e9dfe253bd6763415097e
 
+RUN apk upgrade --no-cache zlib
+
 # Set up working directory in the container
 RUN mkdir -p /opt/laa-record-controlled-work/
 WORKDIR /opt/laa-record-controlled-work/
