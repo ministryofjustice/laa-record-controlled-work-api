@@ -384,11 +384,11 @@ components:
         providerOfficeCode:
           type: string
         scopingQuestions:
-          $ref: '#/components/schemas/ScopingQuestions'
+          $ref: '#/components/schemas/CreateScopingQuestions'
         clientDetails:
           $ref: "#/components/schemas/CreateClientDetailsRequestBody"
 
-    ScopingQuestions:
+    CreateScopingQuestions:
       type: object
       additionalProperties: false
       required:
@@ -400,6 +400,9 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/familyLawClassification"
+        needsAdviceOnEUOrInternationalMaintenance:
+          nullable: true
+          type: boolean
 
     ApplicationScopingQuestions:
       type: object
@@ -409,6 +412,8 @@ components:
           $ref: "#/components/schemas/PriorLegalAid"
         familyLawClassification:
           $ref: "#/components/schemas/familyLawClassification"
+        needsAdviceOnEUOrInternationalMaintenance:
+          type: boolean
 
     CreateClientDetailsRequestBody:
       required:
