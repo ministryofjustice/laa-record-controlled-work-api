@@ -12,4 +12,9 @@ public abstract class ApiRuntimeException extends RuntimeException {
     super(message);
     this.reason = reason;
   }
+
+  protected ApiRuntimeException(String message, String reason, Throwable cause) {
+    super(message, cause);
+    this.reason = reason;
+  }
 }

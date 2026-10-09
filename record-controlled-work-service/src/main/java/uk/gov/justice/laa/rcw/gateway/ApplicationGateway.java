@@ -68,11 +68,11 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForOffice(providerOfficeCode);
+      throw badRequestForOffice(providerOfficeCode, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForOffice(providerOfficeCode);
+      throw upstreamErrorForOffice(providerOfficeCode, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForOffice(providerOfficeCode);
+      throw unavailableErrorForOffice(providerOfficeCode, exception);
     }
   }
 
@@ -104,11 +104,11 @@ public class ApplicationGateway {
           status,
           eligibilityIndication);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForOffice(providerOfficeCode);
+      throw badRequestForOffice(providerOfficeCode, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForOffice(providerOfficeCode);
+      throw upstreamErrorForOffice(providerOfficeCode, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForOffice(providerOfficeCode);
+      throw unavailableErrorForOffice(providerOfficeCode, exception);
     }
   }
 
@@ -128,15 +128,15 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw conflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -156,10 +156,12 @@ public class ApplicationGateway {
       }
       return response;
     } catch (HttpClientErrorException.Forbidden exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (RestClientException | IllegalArgumentException exception) {
       throw new ApplicationUpstreamErrorException(
-          "Datastore returned an invalid application response", "DATASTORE_INVALID_RESPONSE");
+          "Datastore returned an invalid application response",
+          "DATASTORE_INVALID_RESPONSE",
+          exception);
     }
   }
 
@@ -178,13 +180,13 @@ public class ApplicationGateway {
           datastoreRequestContext.correlationId(),
           datastoreRequestContext.serviceName());
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -204,15 +206,15 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw conflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -232,15 +234,15 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw conflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -260,15 +262,15 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw conflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -288,15 +290,15 @@ public class ApplicationGateway {
           datastoreRequestContext.serviceName(),
           command);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
-      throw conflict(applicationId);
+      throw conflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -318,17 +320,17 @@ public class ApplicationGateway {
               command);
       return requireValidEtag(response);
     } catch (HttpClientErrorException.NotFound exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Forbidden exception) {
-      throw notFound(applicationId);
+      throw notFound(applicationId, exception);
     } catch (HttpClientErrorException.Conflict exception) {
       throw detailsConflict(applicationId, exception);
     } catch (HttpClientErrorException.BadRequest exception) {
-      throw badRequestForApplication(applicationId);
+      throw badRequestForApplication(applicationId, exception);
     } catch (HttpServerErrorException exception) {
-      throw upstreamErrorForApplication(applicationId);
+      throw upstreamErrorForApplication(applicationId, exception);
     } catch (ResourceAccessException exception) {
-      throw unavailableErrorForApplication(applicationId);
+      throw unavailableErrorForApplication(applicationId, exception);
     }
   }
 
@@ -344,14 +346,14 @@ public class ApplicationGateway {
         "DATASTORE_INVALID_APPLICATION_VERSION");
   }
 
-  private ApplicationNotFoundException notFound(UUID applicationId) {
+  private ApplicationNotFoundException notFound(UUID applicationId, Throwable cause) {
     return new ApplicationNotFoundException(
-        "No application found with id: %s".formatted(applicationId));
+        "No application found with id: %s".formatted(applicationId), cause);
   }
 
-  private ApplicationConflictException conflict(UUID applicationId) {
+  private ApplicationConflictException conflict(UUID applicationId, Throwable cause) {
     return new ApplicationConflictException(
-        "Application %s was modified concurrently".formatted(applicationId));
+        "Application %s was modified concurrently".formatted(applicationId), cause);
   }
 
   private ApplicationConflictException detailsConflict(
@@ -359,13 +361,13 @@ public class ApplicationGateway {
     String reason = downstreamConflictReason(exception);
     if ("APPLICATION_VERSION_CONFLICT".equals(reason)) {
       return new ApplicationConflictException(
-          "Application %s was modified concurrently".formatted(applicationId), reason);
+          "Application %s was modified concurrently".formatted(applicationId), reason, exception);
     }
     if ("APPLICATION_COMPLETED".equals(reason)) {
       return new ApplicationConflictException(
-          "Application %s has already been completed".formatted(applicationId), reason);
+          "Application %s has already been completed".formatted(applicationId), reason, exception);
     }
-    return conflict(applicationId);
+    return conflict(applicationId, exception);
   }
 
   private String downstreamConflictReason(HttpClientErrorException.Conflict exception) {
@@ -378,33 +380,39 @@ public class ApplicationGateway {
     }
   }
 
-  private ApplicationBadRequestException badRequestForApplication(UUID applicationId) {
+  private ApplicationBadRequestException badRequestForApplication(
+      UUID applicationId, Throwable cause) {
     return new ApplicationBadRequestException(
-        "Datastore rejected the request for application %s".formatted(applicationId));
+        "Datastore rejected the request for application %s".formatted(applicationId), cause);
   }
 
-  private ApplicationUpstreamErrorException upstreamErrorForApplication(UUID applicationId) {
+  private ApplicationUpstreamErrorException upstreamErrorForApplication(
+      UUID applicationId, Throwable cause) {
     return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for application %s".formatted(applicationId));
+        "Datastore returned an error for application %s".formatted(applicationId), cause);
   }
 
-  private ApplicationUnavailableException unavailableErrorForApplication(UUID applicationId) {
+  private ApplicationUnavailableException unavailableErrorForApplication(
+      UUID applicationId, Throwable cause) {
     return new ApplicationUnavailableException(
-        "Datastore is unavailable for application %s".formatted(applicationId));
+        "Datastore is unavailable for application %s".formatted(applicationId), cause);
   }
 
-  private ApplicationBadRequestException badRequestForOffice(String providerOfficeCode) {
+  private ApplicationBadRequestException badRequestForOffice(
+      String providerOfficeCode, Throwable cause) {
     return new ApplicationBadRequestException(
-        "Datastore rejected the request for office %s".formatted(providerOfficeCode));
+        "Datastore rejected the request for office %s".formatted(providerOfficeCode), cause);
   }
 
-  private ApplicationUpstreamErrorException upstreamErrorForOffice(String providerOfficeCode) {
+  private ApplicationUpstreamErrorException upstreamErrorForOffice(
+      String providerOfficeCode, Throwable cause) {
     return new ApplicationUpstreamErrorException(
-        "Datastore returned an error for office %s".formatted(providerOfficeCode));
+        "Datastore returned an error for office %s".formatted(providerOfficeCode), cause);
   }
 
-  private ApplicationUnavailableException unavailableErrorForOffice(String providerOfficeCode) {
+  private ApplicationUnavailableException unavailableErrorForOffice(
+      String providerOfficeCode, Throwable cause) {
     return new ApplicationUnavailableException(
-        "Datastore is unavailable for office %s".formatted(providerOfficeCode));
+        "Datastore is unavailable for office %s".formatted(providerOfficeCode), cause);
   }
 }

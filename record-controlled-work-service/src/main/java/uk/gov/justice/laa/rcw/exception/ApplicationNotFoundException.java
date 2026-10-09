@@ -23,4 +23,14 @@ public class ApplicationNotFoundException extends ApiRuntimeException {
   public ApplicationNotFoundException(String message, String reason) {
     super(message, reason);
   }
+
+  /** Constructor for ApplicationNotFoundException with its downstream cause. */
+  public ApplicationNotFoundException(String message, Throwable cause) {
+    this(message, DEFAULT_REASON, cause);
+  }
+
+  /** Constructor for ApplicationNotFoundException with a reason and downstream cause. */
+  public ApplicationNotFoundException(String message, String reason, Throwable cause) {
+    super(message, reason, cause);
+  }
 }
