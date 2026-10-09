@@ -376,8 +376,6 @@ components:
         - scopingQuestions
         - clientDetails
       properties:
-        legalAidBefore:
-          $ref: "#/components/schemas/PriorLegalAid"
         legalAidLast6Months:
           type: boolean
         reasonForReapplication:

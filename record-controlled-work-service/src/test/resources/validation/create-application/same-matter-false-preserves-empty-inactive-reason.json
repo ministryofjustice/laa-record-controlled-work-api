@@ -3,7 +3,6 @@
   "operation": "createApplication",
   "accepted": true,
   "request": {
-    "legalAidBefore": "yesSameMatter",
     "providerOfficeCode": "office",
     "scopingQuestions": {
       "priorLegalAid": "yesSameMatter"

@@ -12,7 +12,6 @@ http:
     type: json
     data: |-
       {
-        "legalAidBefore": "false",
         "providerOfficeCode": "R1XEVG",
         "scopingQuestions": {
           "priorLegalAid": "yesSameMatter"
