@@ -16,6 +16,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.11'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation gradleTestKit()
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'rcw.api.repository.root', rootProject.projectDir.absolutePath
 }
 
 sourceSets.main.java.srcDirs += ['generated/src/main/java']
@@ -26,6 +35,13 @@ def applicationSpecification = file("$rootDir/record-controlled-work-api/open-ap
 def externalOpenApiSpecifications = file("$rootDir/record-controlled-work-api/open-api-specifications")
 def dtoGenerationDirectory = layout.buildDirectory.dir('openapi')
 def dtoGenerationSpecification = dtoGenerationDirectory.map { it.file('open-api-specification.yml') }
+def contractDatePolicySpecification = providers.gradleProperty('contractDatePolicySpecification')
+    .map { file(it) }
+    .orElse(applicationSpecification)
+def contractDatePolicySource = layout.buildDirectory.file(
+    'generated/sources/contract-date-policy/main/java/uk/gov/justice/laa/rcw/validation/CreateApplicationDatePolicy.java')
+
+sourceSets.main.java.srcDir(layout.buildDirectory.dir('generated/sources/contract-date-policy/main/java'))
 
 // Generate DTOs from a derived spec; runtime validation always uses the source specification.
 tasks.register('prepareDtoGenerationSpecification') {
@@ -59,6 +75,90 @@ tasks.register('prepareDtoGenerationSpecification') {
     }
 }
 
+tasks.register('generateContractDatePolicy') {
+    inputs.file(contractDatePolicySpecification)
+    outputs.file(contractDatePolicySource)
+
+    doLast {
+        def specification
+        contractDatePolicySpecification.get().withReader('UTF-8') { reader ->
+            specification = new Yaml(new SafeConstructor(new LoaderOptions())).load(reader)
+        }
+
+        def dateOfBirth = specification?.components?.schemas?.CreateClientDetailsRequestBody
+                ?.properties?.dateOfBirth
+        def metadata = dateOfBirth instanceof Map ? dateOfBirth.get('x-rcw-date') : null
+        def invalidMetadata = { String detail ->
+            throw new GradleException(
+                    "Invalid x-rcw-date metadata for CreateClientDetailsRequestBody.dateOfBirth: ${detail}")
+        }
+        if (!(metadata instanceof Map)) {
+            invalidMetadata('metadata is required')
+        }
+
+        def expectedKeys = ['exclusiveMinimum', 'inclusiveToday', 'timezone'] as Set
+        def actualKeys = metadata.keySet().collect { it.toString() } as Set
+        if (actualKeys != expectedKeys) {
+            invalidMetadata('expected exclusiveMinimum, inclusiveToday, and timezone')
+        }
+
+        def exclusiveMinimum = metadata.get('exclusiveMinimum')
+        def timezone = metadata.get('timezone')
+        if (!(exclusiveMinimum instanceof String)) {
+            invalidMetadata('exclusiveMinimum must be an ISO calendar date string')
+        }
+        try {
+            java.time.LocalDate.parse(exclusiveMinimum)
+        } catch (java.time.DateTimeException exception) {
+            invalidMetadata('exclusiveMinimum must be an ISO calendar date string')
+        }
+        if (metadata.get('inclusiveToday') != Boolean.TRUE) {
+            invalidMetadata('inclusiveToday must be true')
+        }
+        if (!(timezone instanceof String) || !timezone.matches('[A-Za-z0-9_+./:-]+')) {
+            invalidMetadata('timezone must be a supported zone identifier')
+        }
+        try {
+            java.time.ZoneId.of(timezone)
+        } catch (java.time.DateTimeException exception) {
+            invalidMetadata('timezone must be a supported zone identifier')
+        }
+
+        def output = contractDatePolicySource.get().asFile
+        output.parentFile.mkdirs()
+        output.setText("""package uk.gov.justice.laa.rcw.validation;
+
+import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+
+/** Enforces the generated create-request date policy. */
+public final class CreateApplicationDatePolicy {
+
+  private static final LocalDate EXCLUSIVE_MINIMUM = LocalDate.parse(\"${exclusiveMinimum}\");
+  private static final ZoneId TIMEZONE = ZoneId.of(\"${timezone}\");
+
+  private CreateApplicationDatePolicy() {}
+
+  /** Checks a date against the request policy and the current date in its declared timezone. */
+  public static boolean isValid(String value, Clock clock) {
+    if (value == null) {
+      return false;
+    }
+    try {
+      LocalDate date = LocalDate.parse(value);
+      LocalDate today = LocalDate.now(clock.withZone(TIMEZONE));
+      return date.isAfter(EXCLUSIVE_MINIMUM) && !date.isAfter(today);
+    } catch (DateTimeException exception) {
+      return false;
+    }
+  }
+}
+""", 'UTF-8')
+    }
+}
+
 openApiGenerate {
     generatorName = "spring"
     inputSpec = dtoGenerationSpecification.get().asFile.toString()
@@ -85,7 +185,7 @@ tasks.named('openApiGenerate') {
     dependsOn tasks.named('prepareDtoGenerationSpecification')
 }
 
-compileJava.dependsOn 'openApiGenerate'
+compileJava.dependsOn 'openApiGenerate', 'generateContractDatePolicy'
 
 clean {
     delete "$rootDir/record-controlled-work-api/generated"
