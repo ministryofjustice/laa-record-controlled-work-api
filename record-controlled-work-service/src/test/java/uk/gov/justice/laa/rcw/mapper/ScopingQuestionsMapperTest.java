@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 class ScopingQuestionsMapperTest {
@@ -20,11 +20,19 @@ class ScopingQuestionsMapperTest {
   void shouldMapScopingQuestionsToDatastoreMap() {
     assertThat(
             scopingQuestionsMapper.toDatastoreScopingQuestions(
-                new ScopingQuestions()
+                new CreateScopingQuestions()
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                    .familyLawClassification(FamilyLawClassification.PUBLIC)))
-        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter", "familyLawClassification", "public"));
-    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new ScopingQuestions()))
+                    .familyLawClassification(FamilyLawClassification.PRIVATE)
+                    .needsAdviceOnEUOrInternationalMaintenance(true)))
+        .isEqualTo(
+            Map.of(
+                "priorLegalAid",
+                "yesSameMatter",
+                "familyLawClassification",
+                "private",
+                "needsAdviceOnEUOrInternationalMaintenance",
+                true));
+    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new CreateScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
   }
