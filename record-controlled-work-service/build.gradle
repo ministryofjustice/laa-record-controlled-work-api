@@ -18,6 +18,9 @@ repositories {
 // Replaces application.yml @version@  with version from gradle.properties
 processResources {
     from "$rootDir/record-controlled-work-api/open-api-specification.yml"
+    from("$rootDir/record-controlled-work-api/open-api-specifications") {
+        into 'open-api-specifications'
+    }
     filesMatching('application.yml') {
         filter {
             it.replace('@version@', version)

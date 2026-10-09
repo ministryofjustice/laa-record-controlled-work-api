@@ -1,0 +1,19 @@
+{
+  "id": "invalid-calendar-date-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-02-30",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

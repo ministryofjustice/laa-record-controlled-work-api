@@ -1,0 +1,24 @@
+{
+  "id": "same-matter-false-preserves-empty-inactive-reason",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "yesSameMatter",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesSameMatter"
+    },
+    "legalAidLast6Months": false,
+    "reasonForReapplication": "",
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {
+    "/legalAidLast6Months": false,
+    "/reasonForReapplication": ""
+  }
+}

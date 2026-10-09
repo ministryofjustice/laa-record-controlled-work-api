@@ -1,0 +1,21 @@
+{
+  "id": "stale-inactive-reason-is-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "yesSameMatter",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesSameMatter"
+    },
+    "legalAidLast6Months": false,
+    "reasonForReapplication": "old reason",
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

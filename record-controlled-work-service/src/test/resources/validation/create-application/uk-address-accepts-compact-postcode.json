@@ -1,0 +1,27 @@
+{
+  "id": "uk-address-accepts-compact-postcode",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "10 Downing Street",
+        "townOrCity": "London",
+        "postCode": "SW1A2AA",
+        "country": "GB"
+      }
+    }
+  },
+  "preserves": {
+    "/clientDetails/address/postCode": "SW1A2AA"
+  }
+}

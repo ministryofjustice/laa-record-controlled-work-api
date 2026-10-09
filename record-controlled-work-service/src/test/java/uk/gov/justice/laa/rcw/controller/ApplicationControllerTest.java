@@ -19,12 +19,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,18 +38,21 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import uk.gov.justice.laa.rcw.config.ApplicationDetailsSchemaConfiguration;
+import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaConfiguration;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -69,7 +78,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationQueryService.VersionedApplicati
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 
 @WebMvcTest(ApplicationController.class)
-@Import(ApplicationDetailsSchemaConfiguration.class)
+@Import(ApplicationRequestSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
       "spring.autoconfigure.exclude="
@@ -396,6 +405,25 @@ class ApplicationControllerTest {
         mockApplicationCreationService);
   }
 
+  @Test
+  void updateApplicationDetails_normalizesNiNumberAndPostcode() throws Exception {
+    stubSuccessfulDetailsEdit();
+    ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
+    ObjectNode clientDetails = (ObjectNode) request.path("clientDetails");
+    clientDetails.put("niNumber", "a.b123456c");
+    ((ObjectNode) clientDetails.path("address")).put("postCode", " s.w.1a - 2aa ");
+
+    performDetailsPut("\"0\"", request.toString()).andExpect(status().isNoContent());
+
+    ArgumentCaptor<UpdateApplicationDetailsRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(UpdateApplicationDetailsRequestBody.class);
+    verify(mockApplicationDetailsService)
+        .updateApplicationDetails(
+            eq(UUID.fromString(DETAILS_APPLICATION_ID)), requestCaptor.capture(), eq(0L));
+    assertEquals("AB123456C", requestCaptor.getValue().getClientDetails().getNiNumber());
+    assertEquals("SW1A2AA", requestCaptor.getValue().getClientDetails().getAddress().getPostCode());
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {
@@ -435,7 +463,7 @@ class ApplicationControllerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"AB12345A", "BG123456A", "ab123456a", ""})
+  @ValueSource(strings = {"AB12345A", "BG123456A", "a.b123456s", ""})
   void updateApplicationDetails_rejectsInvalidNationalInsuranceNumber(String niNumber)
       throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
@@ -620,16 +648,20 @@ class ApplicationControllerTest {
         .thenReturn("\"42\"");
   }
 
+  private ObjectMapper createRequestMapper() {
+    return new ObjectMapper()
+        .registerModule(new JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  }
+
   @Test
   void createApplication_returnsCreatedStatus_andApplication() throws Exception {
     CreateApplicationRequestBody request = CreateApplicationRequestGenerator.createWithName(null);
     Application response = ApplicationGenerator.create(null);
     when(mockApplicationCreationService.createApplication(any())).thenReturn(response);
 
-    ObjectMapper mapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    ObjectMapper mapper = createRequestMapper();
 
     var mappedRequest = mapper.writeValueAsString(request);
 
@@ -655,10 +687,7 @@ class ApplicationControllerTest {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithoutName(null);
 
-    ObjectMapper mapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    ObjectMapper mapper = createRequestMapper();
 
     var mappedRequest = mapper.writeValueAsString(request);
 
@@ -680,10 +709,166 @@ class ApplicationControllerTest {
                         + "\"instance\":\"/api/v1/applications\"}"));
   }
 
+  @Test
+  void createApplication_rejectsPostcodeThatRemainsInvalidAfterNormalization() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    ((ObjectNode) request.path("clientDetails").path("address")).put("postCode", "INVALID");
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsMismatchedLegalAidAnswersBeforeCreation() throws Exception {
+    String request =
+        """
+        {
+            "legalAidBefore": "no",
+            "providerOfficeCode": "office",
+            "scopingQuestions": {"priorLegalAid": "yesSameMatter"},
+            "clientDetails": {
+                "firstName": "",
+                "lastName": "",
+                "dateOfBirth": "1990-01-01",
+                "hasFixedAddress": false
+            }
+        }
+        """;
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications").contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("createApplicationContractCases")
+  void createApplication_matchesContractCases(
+      String caseId, String operation, boolean accepted, JsonNode request, JsonNode preserves)
+      throws Exception {
+    assertEquals("createApplication", operation);
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    ResultActions result =
+        mockMvc.perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()));
+
+    if (!accepted) {
+      result.andExpect(status().isBadRequest());
+      verifyNoInteractions(mockApplicationCreationService);
+      return;
+    }
+
+    result.andExpect(status().isCreated());
+    ArgumentCaptor<CreateApplicationRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
+    verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
+    JsonNode actual = createRequestMapper().valueToTree(requestCaptor.getValue());
+    assertEquals(request, actual, caseId + " should preserve the complete request");
+    preserves
+        .fields()
+        .forEachRemaining(
+            expected ->
+                assertEquals(
+                    expected.getValue(),
+                    actual.at(expected.getKey()),
+                    caseId + " should preserve " + expected.getKey()));
+  }
+
+  private static Stream<Arguments> createApplicationContractCases() throws Exception {
+    Resource[] resources =
+        new PathMatchingResourcePatternResolver()
+            .getResources("classpath*:/validation/create-application/*.json");
+    if (resources.length == 0) {
+      throw new IllegalStateException("Create application contract cases were not found");
+    }
+
+    ObjectMapper mapper = new ObjectMapper();
+    return Arrays.stream(resources)
+        .sorted(Comparator.comparing(Resource::getFilename))
+        .map(
+            resource -> {
+              try (var input = resource.getInputStream()) {
+                JsonNode testCase = mapper.readTree(input);
+                return Arguments.of(
+                    testCase.path("id").asText(),
+                    testCase.path("operation").asText(),
+                    testCase.path("accepted").asBoolean(),
+                    testCase.path("request"),
+                    testCase.path("preserves"));
+              } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+              }
+            });
+  }
+
+  @Test
+  void createApplication_acceptsNamesWithoutFormatRestrictions_andPreservesThem() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    String firstName = Character.toString(0x2003);
+    String lastName = "O'Connor 42 " + Character.toString(0x674E);
+    ((ObjectNode) request.get("clientDetails"))
+        .put("firstName", firstName)
+        .put("lastName", lastName);
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isCreated());
+
+    verify(mockApplicationCreationService)
+        .createApplication(
+            argThat(
+                actual ->
+                    firstName.equals(actual.getClientDetails().getFirstName())
+                        && lastName.equals(actual.getClientDetails().getLastName())));
+  }
+
+  @Test
+  void createApplication_rejectsDuplicateJsonProperties_beforeCreation() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    String request =
+        mapper.writeValueAsString(CreateApplicationRequestGenerator.createWithName(null));
+    String duplicateRequest =
+        request.replace(
+            "\"legalAidLast6Months\":false",
+            "\"legalAidLast6Months\":false,\"legalAidLast6Months\":false");
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(duplicateRequest))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"null", "{\"priorLegalAid\":\"same_matter\"}"})
   void createApplication_rejectsInvalidScopingQuestions(String scopingQuestions) throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.set("scopingQuestions", mapper.readTree(scopingQuestions));
 
@@ -698,7 +883,7 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_rejectsScopingQuestionsWithoutPriorLegalAid() throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.set("scopingQuestions", mapper.createObjectNode());
     mockMvc
@@ -712,7 +897,7 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_rejectsMissingScopingQuestions() throws Exception {
-    ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    ObjectMapper mapper = createRequestMapper();
     ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
     request.remove("scopingQuestions");
 

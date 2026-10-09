@@ -83,7 +83,7 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   }
 
   @LocalServerPort private int port;
-  @Autowired private ApplicationDetailsRequestBodyValidator requestBodyValidator;
+  @Autowired private UpdateApplicationDetailsRequestBodyValidator requestBodyValidator;
 
   @DynamicPropertySource
   static void datastoreProperties(DynamicPropertyRegistry registry) {

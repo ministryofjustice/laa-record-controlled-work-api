@@ -1,0 +1,25 @@
+{
+  "id": "uk-address-rejects-invalid-postcode",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "Street",
+        "country": "GB",
+        "townOrCity": "London",
+        "postCode": "SW1A 2A"
+      }
+    }
+  },
+  "preserves": {}
+}

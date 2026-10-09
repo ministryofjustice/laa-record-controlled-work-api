@@ -1,0 +1,19 @@
+{
+  "id": "mismatched-legal-aid-values-are-rejected",
+  "operation": "createApplication",
+  "accepted": false,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "yesSameMatter"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {}
+}

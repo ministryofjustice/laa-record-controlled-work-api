@@ -1,0 +1,25 @@
+{
+  "id": "supported-kosovo-country-code-is-accepted",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "hasFixedAddress": true,
+      "address": {
+        "addressLine1": "Example",
+        "country": "XK"
+      }
+    }
+  },
+  "preserves": {
+    "/clientDetails/address/country": "XK"
+  }
+}
