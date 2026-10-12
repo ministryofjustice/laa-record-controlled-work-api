@@ -238,6 +238,12 @@ The following actuator endpoints have been configured:
 
 The Sentry Spring Boot integration is enabled when `SENTRY_DSN` is set. Configure the DSN as a deployment environment variable; `SENTRY_ENVIRONMENT` is optional and defaults to `ENVIRONMENT`.
 
+Request tracing is enabled with a default transaction sampling rate of 1%.
+Set `SENTRY_TRACES_SAMPLE_RATE` to a value between `0.0` and `1.0` to change the
+rate (`1.0` captures every transaction; `0.0` disables sampling). The Sentry Spring
+integration instruments incoming requests and supported outbound HTTP clients.
+The existing log redaction and `send-default-pii: false` setting remain in place.
+
 Keep Sentry authentication tokens in the deployment platform's secret manager. They are not required for runtime error reporting.
 
 ### Patterns and practices
