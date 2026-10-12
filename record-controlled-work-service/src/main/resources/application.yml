@@ -46,6 +46,11 @@ management:
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:${ENVIRONMENT:local}}
+  send-default-pii: false
+  logs:
+    enabled: true
+  logging:
+    minimum-level: INFO
 
 # ECS structured logging
 logging:

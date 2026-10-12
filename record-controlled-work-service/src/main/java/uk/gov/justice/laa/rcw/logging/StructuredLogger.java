@@ -118,9 +118,15 @@ public final class StructuredLogger {
       LoggingEventBuilder b =
           builder.addKeyValue("event.action", action).addKeyValue("event.outcome", outcome);
       for (Map.Entry<String, Object> entry : extras.entrySet()) {
-        b = b.addKeyValue(entry.getKey(), entry.getValue());
+        b = b.addKeyValue(entry.getKey(), LogRedactor.redact(entry.getKey(), entry.getValue()));
       }
-      b.log(message, args);
+      Object[] redactedArgs = args == null ? null : new Object[args.length];
+      if (args != null) {
+        for (int index = 0; index < args.length; index++) {
+          redactedArgs[index] = LogRedactor.redact("", args[index]);
+        }
+      }
+      b.log(message, redactedArgs);
     }
   }
 }
