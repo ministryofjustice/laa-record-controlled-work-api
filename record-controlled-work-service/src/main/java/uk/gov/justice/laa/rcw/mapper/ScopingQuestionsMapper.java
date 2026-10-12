@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 /** Maps scoping questions between the RCW model and the datastore's loose JSON. */
@@ -28,7 +28,7 @@ public interface ScopingQuestionsMapper {
   }
 
   /** Serializes the RCW model to a map without null-valued answers. */
-  default Map<String, Object> toDatastoreScopingQuestions(ScopingQuestions questions) {
+  default Map<String, Object> toDatastoreScopingQuestions(CreateScopingQuestions questions) {
     if (questions == null) {
       return Map.of();
     }
@@ -46,7 +46,7 @@ public interface ScopingQuestionsMapper {
         "clientDetails"
       })
   @Mapping(target = "priorLegalAid", source = "priorLegalAid")
-  ScopingQuestions toScopingQuestionsFromDetails(UpdateApplicationDetailsRequestBody request);
+  CreateScopingQuestions toScopingQuestionsFromDetails(UpdateApplicationDetailsRequestBody request);
 
   /** Converts editable scoping answers into the datastore's loose JSON map. */
   @Named("toDatastoreScopingQuestionsFromDetails")

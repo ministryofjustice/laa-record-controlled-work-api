@@ -176,7 +176,13 @@ class ApplicationMapperTest {
             .typeOfNonMeans(false)
             .contribution("100.00")
             .scopingQuestions(
-                Map.of("priorLegalAid", "yesSameMatter", "familyLawClassification", "public"))
+                Map.of(
+                    "priorLegalAid",
+                    "yesSameMatter",
+                    "familyLawClassification",
+                    "private",
+                    "needsAdviceOnEUOrInternationalMaintenance",
+                    true))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
@@ -205,7 +211,8 @@ class ApplicationMapperTest {
         .isEqualTo(
             new ApplicationScopingQuestions()
                 .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                .familyLawClassification(FamilyLawClassification.PUBLIC));
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(true));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");

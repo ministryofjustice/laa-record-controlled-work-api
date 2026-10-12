@@ -43,9 +43,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -598,7 +598,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "eTag": 5,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
-                            "familyLawClassification": "public"
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": true
                         },
                         "applicationType": "CONTROLLED_WORK",
                         "declaration": {
@@ -623,7 +624,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.applicationRefNumber").value("CW-111111"))
         .andExpect(jsonPath("$.ufn").value("123456/123"))
         .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("yesSameMatter"))
-        .andExpect(jsonPath("$.scopingQuestions.familyLawClassification").value("public"))
+        .andExpect(jsonPath("$.scopingQuestions.familyLawClassification").value("private"))
+        .andExpect(
+            jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(true))
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
@@ -883,9 +886,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(
-                        new ScopingQuestions()
+                        new CreateScopingQuestions()
                             .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                            .familyLawClassification(FamilyLawClassification.PUBLIC)));
+                            .familyLawClassification(FamilyLawClassification.PRIVATE)
+                            .needsAdviceOnEUOrInternationalMaintenance(true)));
     request.getClientDetails().setNiNumber(niNumber);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
@@ -998,7 +1002,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "eTag": 0,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
-                            "familyLawClassification": "public"
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": true
                         }
                     }
                     """)));
