@@ -1,5 +1,5 @@
 {
-  "id": "matching-same-matter-values-and-active-reason-are-preserved",
+  "id": "same-matter-and-active-reason-are-preserved",
   "operation": "createApplication",
   "accepted": true,
   "request": {
