@@ -19,10 +19,10 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-19267078
     implementation 'org.springframework:spring-webmvc:7.0.9'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORK-19267098
-    implementation 'ch.qos.logback:logback-core:1.5.37'
+    implementation 'ch.qos.logback:logback-core:1.6.5'
     // logback-classic pinned to match logback-core; a version mismatch makes Logback dump its
     // internal bootstrap status log to the console, breaking up the normal log output
-    implementation 'ch.qos.logback:logback-classic:1.5.37'
+    implementation 'ch.qos.logback:logback-classic:1.6.5'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.26'
     implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.26'
