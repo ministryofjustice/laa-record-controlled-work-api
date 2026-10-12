@@ -52,3 +52,14 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-TOOLSJACKSONCORE-20059682
 
 }
+
+plugins.withId('checkstyle') {
+    dependencies {
+        constraints {
+            checkstyle('com.google.guava:guava:33.7.2-jre') {
+                because 'Fix SNYK-JAVA-COMGOOGLEGUAVA-20825054'
+                // fix https://security.snyk.io/vuln/SNYK-JAVA-COMGOOGLEGUAVA-20825054
+            }
+        }
+    }
+}
