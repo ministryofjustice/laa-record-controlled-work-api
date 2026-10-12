@@ -15,6 +15,8 @@ public final class LogAction {
   public static final String APPLICATION_EVIDENCE_UPDATE = "application.evidence-update";
   public static final String APPLICATION_ERROR = "application.error";
   public static final String APPLICATION_DOWNSTREAM_ERROR = "application.downstream-error";
+  public static final String DATASTORE_AUTHORIZATION = "datastore.authorization";
+  public static final String DATASTORE_TOKEN_EXCHANGE = "datastore.token-exchange";
 
   // Request actions
   public static final String REQUEST_RECEIVED = "request.received";

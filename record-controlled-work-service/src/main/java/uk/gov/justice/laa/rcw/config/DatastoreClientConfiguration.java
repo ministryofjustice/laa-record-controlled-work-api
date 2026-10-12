@@ -1,5 +1,8 @@
 package uk.gov.justice.laa.rcw.config;
 
+import static uk.gov.justice.laa.rcw.logging.LogAction.DATASTORE_AUTHORIZATION;
+import static uk.gov.justice.laa.rcw.logging.LogAction.DATASTORE_TOKEN_EXCHANGE;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -10,6 +13,7 @@ import io.sentry.metrics.MetricsUnit;
 import io.sentry.metrics.SentryMetricsParameters;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
 import org.apache.hc.client5.http.HttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
@@ -38,12 +42,16 @@ import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.JwtBearerOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.OAuth2AuthorizationContext;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.endpoint.JwtBearerGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.RestClientJwtBearerTokenResponseClient;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import org.springframework.web.client.RestTemplate;
@@ -52,6 +60,8 @@ import uk.gov.justice.laa.ia.datastore.client.config.ApplicationResponseHttpMess
 import uk.gov.justice.laa.ia.datastore.client.config.DatastoreClientProperties;
 import uk.gov.justice.laa.ia.datastore.client.invoker.ApiClient;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
+import uk.gov.justice.laa.rcw.logging.SafeFailureDiagnostics;
+import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 
 /**
  * Configures the datastore {@link ApplicationApi} client to use a true On-Behalf-Of (jwt-bearer)
@@ -64,6 +74,9 @@ import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 @Configuration
 @SuppressWarnings({"deprecation", "removal"})
 public class DatastoreClientConfiguration {
+
+  private static final StructuredLogger log =
+      StructuredLogger.of(DatastoreClientConfiguration.class);
 
   /** Manages OBO (jwt-bearer) authorized clients for the {@code datastore} registration. */
   @Bean
@@ -91,7 +104,7 @@ public class DatastoreClientConfiguration {
         new RestClientJwtBearerTokenResponseClient();
     responseClient.setParametersCustomizer(
         params -> params.add("requested_token_use", "on_behalf_of"));
-    provider.setAccessTokenResponseClient(responseClient);
+    provider.setAccessTokenResponseClient(new ObservedJwtBearerTokenResponseClient(responseClient));
     return provider;
   }
 
@@ -102,6 +115,32 @@ public class DatastoreClientConfiguration {
     }
     throw new IllegalStateException(
         "No JWT available on the current authentication to use as an OBO assertion");
+  }
+
+  private static final class ObservedJwtBearerTokenResponseClient
+      implements OAuth2AccessTokenResponseClient<JwtBearerGrantRequest> {
+
+    private final OAuth2AccessTokenResponseClient<JwtBearerGrantRequest> delegate;
+
+    private ObservedJwtBearerTokenResponseClient(
+        OAuth2AccessTokenResponseClient<JwtBearerGrantRequest> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public OAuth2AccessTokenResponse getTokenResponse(JwtBearerGrantRequest request) {
+      long startTimeNanos = System.nanoTime();
+      logOAuthEvent(DATASTORE_TOKEN_EXCHANGE, "start", "in_progress", startTimeNanos, null, null);
+      try {
+        OAuth2AccessTokenResponse response = delegate.getTokenResponse(request);
+        logOAuthEvent(DATASTORE_TOKEN_EXCHANGE, "finish", "success", startTimeNanos, null, null);
+        return response;
+      } catch (RuntimeException exception) {
+        logOAuthEvent(
+            DATASTORE_TOKEN_EXCHANGE, "finish", "failure", startTimeNanos, exception, null);
+        throw exception;
+      }
+    }
   }
 
   /** Overrides the library's default client-credentials {@link ApplicationApi} bean with OBO. */
@@ -221,12 +260,7 @@ public class DatastoreClientConfiguration {
     @Override
     public ClientHttpResponse intercept(
         HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-      Authentication principal = SecurityContextHolder.getContext().getAuthentication();
-      OAuth2AuthorizeRequest authorizeRequest =
-          OAuth2AuthorizeRequest.withClientRegistrationId(clientRegistrationId)
-              .principal(principal)
-              .build();
-      OAuth2AccessToken accessToken = clientManager.authorize(authorizeRequest).getAccessToken();
+      OAuth2AccessToken accessToken = authorize();
       request.getHeaders().setBearerAuth(accessToken.getTokenValue());
       long startTimeNanos = System.nanoTime();
       try {
@@ -241,5 +275,70 @@ public class DatastoreClientConfiguration {
                 SentryMetricsParameters.create(Map.of("http.method", request.getMethod().name())));
       }
     }
+
+    private OAuth2AccessToken authorize() {
+      long startTimeNanos = System.nanoTime();
+      logOAuthEvent(DATASTORE_AUTHORIZATION, "start", "in_progress", startTimeNanos, null, null);
+      try {
+        Authentication principal = SecurityContextHolder.getContext().getAuthentication();
+        OAuth2AuthorizeRequest authorizeRequest =
+            OAuth2AuthorizeRequest.withClientRegistrationId(clientRegistrationId)
+                .principal(principal)
+                .build();
+
+        OAuth2AuthorizedClient authorizedClient = clientManager.authorize(authorizeRequest);
+        if (authorizedClient == null) {
+          logOAuthEvent(
+              DATASTORE_AUTHORIZATION,
+              "finish",
+              "failure",
+              startTimeNanos,
+              null,
+              "authorized_client_missing");
+          return null;
+        }
+
+        OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+        logOAuthEvent(DATASTORE_AUTHORIZATION, "finish", "success", startTimeNanos, null, null);
+        return accessToken;
+      } catch (RuntimeException exception) {
+        logOAuthEvent(
+            DATASTORE_AUTHORIZATION, "finish", "failure", startTimeNanos, exception, null);
+        throw exception;
+      }
+    }
+  }
+
+  private static void logOAuthEvent(
+      String action,
+      String phase,
+      String outcome,
+      long startTimeNanos,
+      Throwable failure,
+      String failureCategory) {
+    StructuredLogger.BuildStage event;
+    if ("failure".equals(outcome)) {
+      event = log.warn().action(action).outcome(outcome);
+    } else {
+      event = log.info().action(action).outcome(outcome);
+    }
+    event = event.with("event.phase", phase);
+
+    if ("finish".equals(phase)) {
+      event = event.with("duration_ms", (System.nanoTime() - startTimeNanos) / 1_000_000.0);
+    }
+    if (failure != null) {
+      event =
+          event
+              .with("failure.category", SafeFailureDiagnostics.category(failure))
+              .with("failure.cause_classes", SafeFailureDiagnostics.causeClasses(failure));
+    } else if (failureCategory != null) {
+      event =
+          event
+              .with("failure.category", failureCategory)
+              .with("failure.cause_classes", List.of("OAuth2AuthorizedClientMissing"));
+    }
+
+    event.log("Datastore {} {}", action, phase);
   }
 }

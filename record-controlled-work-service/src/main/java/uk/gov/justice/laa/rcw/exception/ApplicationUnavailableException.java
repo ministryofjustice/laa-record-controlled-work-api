@@ -23,4 +23,14 @@ public class ApplicationUnavailableException extends ApiRuntimeException {
   public ApplicationUnavailableException(String message, String reason) {
     super(message, reason);
   }
+
+  /** Constructor for ApplicationUnavailableException with its downstream cause. */
+  public ApplicationUnavailableException(String message, Throwable cause) {
+    this(message, DEFAULT_REASON, cause);
+  }
+
+  /** Constructor for ApplicationUnavailableException with a reason and downstream cause. */
+  public ApplicationUnavailableException(String message, String reason, Throwable cause) {
+    super(message, reason, cause);
+  }
 }
