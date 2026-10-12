@@ -150,6 +150,29 @@ make dev
 
 This application uses **ECS (Elastic Common Schema) structured logging** for production environments and console logging for local development.
 
+#### Sentry Logs
+
+Set `SENTRY_DSN` to enable uploads and `SENTRY_ENVIRONMENT` to label the environment.
+The Sentry Logback integration forwards INFO and higher logs to Sentry Logs. Console
+logging remains enabled, and automatic default PII collection is disabled.
+
+`StructuredLogger` replaces sensitive fields with `[REDACTED]` before they reach
+appenders. Redaction is case-insensitive and handles dotted field names and nested
+maps, lists and arrays without modifying the original data. Sentry also redacts
+matching log attributes immediately before upload, including attributes from MDC.
+Structured error event extras, tags, and breadcrumb data use the same redaction.
+
+Redacted fields: `accessToken`, `address`, `apiKey`, `authorization`, `cookie`,
+`dateOfBirth`, `firstName`, `idToken`, `lastName`, `niNumber`, `password`,
+`refreshToken`, `secret`, and `token`. Matching applies to the final segment of
+dotted paths, including `headers.authorization`, `headers.cookie`,
+`req.headers.authorization`, and `req.headers.cookie`.
+
+Field redaction does not detect arbitrary PII in message text, exception messages,
+URLs, or objects already converted to strings. Do not interpolate personal data
+or secrets into messages or log whole domain objects; use named structured fields.
+Configure Sentry project-side data scrubbing as an additional safeguard.
+
 #### Structured Logging (Default/Production)
 
 By default, the application outputs logs in ECS JSON format with distributed tracing support:
