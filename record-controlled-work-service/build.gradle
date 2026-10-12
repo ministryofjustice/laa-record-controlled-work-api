@@ -1,5 +1,5 @@
 plugins {
-    id 'io.freefair.lombok' version '9.7.0'
+    id 'io.freefair.lombok' version '9.8.0'
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
     //    id 'io.sentry.jvm.gradle' version '6.5.0'
     id 'com.diffplug.spotless' version "8.10.3"
@@ -53,7 +53,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'io.sentry:sentry-spring-boot-4:8.58.0'
+    implementation 'io.sentry:sentry-spring-boot-4:8.59.0'
     implementation 'io.sentry:sentry-logback:8.58.0'
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-oauth2'
@@ -71,8 +71,8 @@ dependencies {
 
     implementation 'com.fasterxml.jackson.core:jackson-core:2.21.7'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.7'
-    implementation 'org.openapitools:jackson-databind-nullable:0.2.11'
-    implementation 'com.networknt:json-schema-validator:2.0.4'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.12'
+    implementation 'com.networknt:json-schema-validator:2.0.8'
     implementation 'org.apache.commons:commons-lang3:3.21.0'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.6.4'
 
