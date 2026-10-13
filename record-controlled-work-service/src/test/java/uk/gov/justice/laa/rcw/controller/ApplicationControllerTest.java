@@ -2,6 +2,8 @@ package uk.gov.justice.laa.rcw.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -68,6 +70,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
@@ -922,6 +925,88 @@ class ApplicationControllerTest {
     verifyNoInteractions(mockApplicationCreationService);
   }
 
+  @Test
+  void createApplication_usesScopingOverridesAndPreservesNullAndFalse() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode contractCase = mapper.createObjectNode();
+    ObjectNode rawRequest =
+        mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    rawRequest.remove("scopingQuestions");
+    contractCase.set("request", rawRequest);
+    contractCase
+        .putObject("scopingQuestionOverrides")
+        .put("priorLegalAid", "no")
+        .put("familyLawClassification", "public")
+        .putNull("needsAdviceOnEUOrInternationalMaintenance")
+        .put("needsProtectiveInjunction", false);
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    ObjectNode request = createContractRequest(mapper, contractCase);
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isCreated());
+
+    ArgumentCaptor<CreateApplicationRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
+    verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
+    assertEquals(
+        PriorLegalAid.NO, requestCaptor.getValue().getScopingQuestions().getPriorLegalAid());
+    assertNull(
+        requestCaptor
+            .getValue()
+            .getScopingQuestions()
+            .getNeedsAdviceOnEUOrInternationalMaintenance());
+    assertEquals(
+        Boolean.FALSE,
+        requestCaptor.getValue().getScopingQuestions().getNeedsProtectiveInjunction());
+  }
+
+  @Test
+  void createApplication_doesNotRepairRawRequestWithoutScopingQuestions() throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode contractCase = mapper.createObjectNode();
+    ObjectNode rawRequest =
+        mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    rawRequest.remove("scopingQuestions");
+    contractCase.set("request", rawRequest);
+
+    ObjectNode request = createContractRequest(mapper, contractCase);
+    assertEquals(rawRequest, request);
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsContractCaseWithRawScopingAndOverrides() {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode contractCase = mapper.createObjectNode();
+    contractCase.set(
+        "request", mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null)));
+    contractCase.putObject("scopingQuestionOverrides");
+
+    assertThrows(IllegalStateException.class, () -> createContractRequest(mapper, contractCase));
+  }
+
+  @Test
+  void createApplication_scopingQuestionDefaultsAreIndependent() {
+    var first = CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO);
+    var second = CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO);
+    first.priorLegalAid(PriorLegalAid.YES_SAME_MATTER);
+
+    assertEquals(PriorLegalAid.NO, second.getPriorLegalAid());
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("createApplicationContractCases")
   void createApplication_matchesContractCases(
@@ -978,12 +1063,37 @@ class ApplicationControllerTest {
                     testCase.path("id").asText(),
                     testCase.path("operation").asText(),
                     testCase.path("accepted").asBoolean(),
-                    testCase.path("request"),
+                    createContractRequest(mapper, testCase),
                     testCase.path("preserves"));
               } catch (IOException exception) {
                 throw new UncheckedIOException(exception);
               }
             });
+  }
+
+  private static ObjectNode createContractRequest(ObjectMapper mapper, JsonNode contractCase) {
+    ObjectNode request = ((ObjectNode) contractCase.path("request")).deepCopy();
+    JsonNode overrides = contractCase.get("scopingQuestionOverrides");
+    if (overrides == null) {
+      return request;
+    }
+    if (!overrides.isObject()) {
+      throw new IllegalStateException("Scoping-question overrides must be an object");
+    }
+    if (request.has("scopingQuestions")) {
+      throw new IllegalStateException(
+          "A contract case cannot combine raw scoping questions and overrides");
+    }
+
+    ObjectNode scopingQuestions =
+        mapper.valueToTree(
+            CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO));
+    overrides
+        .fields()
+        .forEachRemaining(
+            override -> scopingQuestions.set(override.getKey(), override.getValue().deepCopy()));
+    request.set("scopingQuestions", scopingQuestions);
+    return request;
   }
 
   @Test

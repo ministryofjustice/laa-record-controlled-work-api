@@ -2,14 +2,9 @@
   "id": "required-names-accept-whitespace-and-empty-values",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "clientDetails": {
       "firstName": " ",
       "lastName": "",

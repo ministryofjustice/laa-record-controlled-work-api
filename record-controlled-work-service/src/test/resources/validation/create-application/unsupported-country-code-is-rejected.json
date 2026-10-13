@@ -2,14 +2,9 @@
   "id": "unsupported-country-code-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

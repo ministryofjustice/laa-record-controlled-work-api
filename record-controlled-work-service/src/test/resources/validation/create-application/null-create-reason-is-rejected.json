@@ -2,14 +2,9 @@
   "id": "null-create-reason-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "reasonForReapplication": null,
     "clientDetails": {
       "firstName": "Ada",
