@@ -599,7 +599,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
-                            "needsAdviceOnEUOrInternationalMaintenance": true
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false
                         },
                         "applicationType": "CONTROLLED_WORK",
                         "declaration": {
@@ -626,7 +627,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value("yesSameMatter"))
         .andExpect(jsonPath("$.scopingQuestions.familyLawClassification").value("private"))
         .andExpect(
-            jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(true))
+            jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(false))
+        .andExpect(jsonPath("$.scopingQuestions.needsProtectiveInjunction").value(false))
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
@@ -889,7 +891,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         new CreateScopingQuestions()
                             .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                             .familyLawClassification(FamilyLawClassification.PRIVATE)
-                            .needsAdviceOnEUOrInternationalMaintenance(true)));
+                            .needsAdviceOnEUOrInternationalMaintenance(false)
+                            .needsProtectiveInjunction(false)));
     request.getClientDetails().setNiNumber(niNumber);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
@@ -1003,7 +1006,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
-                            "needsAdviceOnEUOrInternationalMaintenance": true
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false
                         }
                     }
                     """)));

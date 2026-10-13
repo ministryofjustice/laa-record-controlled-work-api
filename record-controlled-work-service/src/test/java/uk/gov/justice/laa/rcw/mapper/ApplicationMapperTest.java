@@ -182,7 +182,9 @@ class ApplicationMapperTest {
                     "familyLawClassification",
                     "private",
                     "needsAdviceOnEUOrInternationalMaintenance",
-                    true))
+                    false,
+                    "needsProtectiveInjunction",
+                    false))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
@@ -212,7 +214,8 @@ class ApplicationMapperTest {
             new ApplicationScopingQuestions()
                 .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(true));
+                .needsAdviceOnEUOrInternationalMaintenance(false)
+                .needsProtectiveInjunction(false));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");
