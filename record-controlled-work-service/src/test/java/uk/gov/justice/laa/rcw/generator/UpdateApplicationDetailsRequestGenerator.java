@@ -1,6 +1,8 @@
 package uk.gov.justice.laa.rcw.generator;
 
 import java.time.LocalDate;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -13,7 +15,12 @@ public final class UpdateApplicationDetailsRequestGenerator {
   /** Creates the standard valid request used by details integration tests. */
   public static UpdateApplicationDetailsRequestBody validRequest() {
     return new UpdateApplicationDetailsRequestBody()
-        .priorLegalAid(PriorLegalAid.NO)
+        .scopingQuestions(
+            new CreateScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(false)
+                .needsProtectiveInjunction(false))
         .legalAidLast6Months(false)
         .reasonForReapplication(null)
         .ecfFlag(true)
