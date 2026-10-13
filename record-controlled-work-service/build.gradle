@@ -143,6 +143,9 @@ dependencies {
         pactTestImplementation('org.bouncycastle:bcpkix-jdk18on:1.86') {
             because 'fixes CRITICAL bouncycastle CVEs pulled in transitively by io.pact.plugin.driver:core'
         }
+        pactTestImplementation('com.google.guava:guava:33.7.2-jre') {
+            because 'fixes SNYK-JAVA-COMGOOGLEGUAVA-20825054, pulled in transitively by au.com.dius.pact.consumer:junit5'
+        }
     }
 }
 
