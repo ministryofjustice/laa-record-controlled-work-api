@@ -40,10 +40,9 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.config.DatastoreClientConfiguration;
 import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -411,12 +410,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
             .hasFixedAddress(true)
             .address(address);
     return new UpdateApplicationDetailsRequestBody()
-        .scopingQuestions(
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(false))
+        .scopingQuestions(ScopingQuestionsGenerator.valid(PriorLegalAid.NO))
         .legalAidLast6Months(false)
         .reasonForReapplication(null)
         .ecfFlag(false)

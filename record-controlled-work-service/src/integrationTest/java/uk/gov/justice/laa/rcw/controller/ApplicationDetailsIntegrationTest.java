@@ -35,7 +35,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.ResultActions;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -242,6 +245,11 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
   void shouldClearMaintenanceAnswerWhenChangingPrivateApplicationToPublic() throws Exception {
     String id = UUID.randomUUID().toString();
     String path = "/api/v0/applications/" + id;
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
+    request.setScopingQuestions(
+        ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
+            .familyLawClassification(FamilyLawClassification.PUBLIC)
+            .needsAdviceOnEUOrInternationalMaintenance(null));
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo(path))
             .willReturn(
@@ -280,28 +288,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                 .withBearerWriteToken()
                 .header("If-Match", "\"31\"")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                        "scopingQuestions": {
-                            "priorLegalAid": "no",
-                            "familyLawClassification": "public",
-                            "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": false
-                        },
-                        "legalAidLast6Months": false,
-                        "reasonForReapplication": null,
-                        "ecfFlag": true,
-                        "clientDetails": {
-                            "firstName": "Test",
-                            "lastName": "Client",
-                            "dateOfBirth": "1990-01-01",
-                            "niNumber": null,
-                            "hasFixedAddress": false,
-                            "address": null
-                        }
-                    }
-                    """))
+                .content(toJson(request)))
         .andExpect(status().isNoContent())
         .andExpect(header().string("ETag", "\"32\""));
 

@@ -13,7 +13,7 @@ public final class UpdateApplicationDetailsRequestGenerator {
   /** Creates the standard valid request used by details integration tests. */
   public static UpdateApplicationDetailsRequestBody validRequest() {
     return new UpdateApplicationDetailsRequestBody()
-        .scopingQuestions(CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO))
+        .scopingQuestions(ScopingQuestionsGenerator.valid(PriorLegalAid.NO))
         .legalAidLast6Months(false)
         .reasonForReapplication(null)
         .ecfFlag(true)
