@@ -102,8 +102,7 @@ class ContractValidationTest {
     verify(mockApplicationCreationService).createApplication(any());
   }
 
-  private MockHttpServletRequestBuilder createRequest(
-      String dateOfBirth) throws IOException {
+  private MockHttpServletRequestBuilder createRequest(String dateOfBirth) throws IOException {
     Resource resource = new PathMatchingResourcePatternResolver().getResource(BASE_CREATE_CASE);
     ObjectMapper mapper = new ObjectMapper();
     JsonNode contractCase;
