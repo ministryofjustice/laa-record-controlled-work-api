@@ -44,10 +44,10 @@ import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -913,7 +913,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(
-                        new CreateScopingQuestions()
+                        new ScopingQuestions()
                             .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                             .familyLawClassification(FamilyLawClassification.PRIVATE)
                             .needsAdviceOnEUOrInternationalMaintenance(false)

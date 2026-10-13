@@ -25,11 +25,11 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -333,8 +333,8 @@ class ApplicationMapperTest {
     assertThat(result.getReasonForReapplication_JsonNullable().get()).isEqualTo("Reapplication");
     assertThat(result.getEcfFlag_JsonNullable().get()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
-    assertThat(result.getScopingQuestions_JsonNullable().get())
-        .isEqualTo(
+    Map<String, Object> expectedScopingQuestions =
+      new HashMap<>(
             Map.of(
                 "priorLegalAid",
                 "yesSameMatter",
@@ -344,6 +344,8 @@ class ApplicationMapperTest {
                 false,
                 "needsProtectiveInjunction",
                 false));
+          expectedScopingQuestions.put("privateFamilyCaseScope", null);
+          assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getUfn()).isNull();
     assertThat(result.getLaaReference()).isNull();
     assertThat(result.getMeansAssessmentRequired()).isNull();
@@ -389,7 +391,7 @@ class ApplicationMapperTest {
     UpdateApplicationDetailsRequestBody request =
         new UpdateApplicationDetailsRequestBody()
             .scopingQuestions(
-                new CreateScopingQuestions()
+                new ScopingQuestions()
                     .priorLegalAid(PriorLegalAid.NO)
                     .familyLawClassification(FamilyLawClassification.PUBLIC)
                     .needsAdviceOnEUOrInternationalMaintenance(null)
@@ -419,6 +421,7 @@ class ApplicationMapperTest {
                 "familyLawClassification", "public",
                 "needsProtectiveInjunction", false));
     expectedScopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", null);
+          expectedScopingQuestions.put("privateFamilyCaseScope", null);
     assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().isPresent()).isTrue();
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().get()).isNull();
@@ -453,7 +456,7 @@ class ApplicationMapperTest {
             .address(address);
     return new UpdateApplicationDetailsRequestBody()
         .scopingQuestions(
-            new CreateScopingQuestions()
+            new ScopingQuestions()
                 .priorLegalAid(priorLegalAid)
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)

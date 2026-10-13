@@ -380,7 +380,7 @@ components:
         providerOfficeCode:
           type: string
         scopingQuestions:
-          $ref: '#/components/schemas/CreateScopingQuestions'
+          $ref: '#/components/schemas/ScopingQuestions'
         clientDetails:
           $ref: "#/components/schemas/CreateClientDetailsRequestBody"
       allOf:
@@ -389,7 +389,7 @@ components:
       not:
         $ref: "./open-api-specifications/validation/CreateApplication/PriorLegalAid.yml#/components/schemas/SameMatterMissingRecentAidRule"
 
-    CreateScopingQuestions:
+    ScopingQuestions:
       type: object
       additionalProperties: false
       required:
@@ -537,7 +537,7 @@ components:
         - clientDetails
       properties:
         scopingQuestions:
-          $ref: "#/components/schemas/CreateScopingQuestions"
+          $ref: "#/components/schemas/ScopingQuestions"
         legalAidLast6Months:
           type: boolean
           description: Journey answer; not persisted as a separate field.
