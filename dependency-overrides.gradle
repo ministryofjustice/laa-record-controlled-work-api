@@ -26,7 +26,7 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-CHQOSLOGBACK-17675439
     implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.26'
     implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.26'
-    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.26'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-el:11.0.27'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17732890
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-17733746
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20302842
