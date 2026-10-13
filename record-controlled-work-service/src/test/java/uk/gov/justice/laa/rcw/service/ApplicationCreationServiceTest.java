@@ -33,8 +33,8 @@ import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationCreationServiceTest {
@@ -69,7 +69,7 @@ class ApplicationCreationServiceTest {
                 builder
                     .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(
-                        new ScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER)));
+                        new CreateScopingQuestions().priorLegalAid(PriorLegalAid.YES_SAME_MATTER)));
     StartApplicationCommand startCommand =
         StartApplicationCommand.builder().providerOfficeCode(AUTHORIZED_OFFICE_CODE).build();
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");

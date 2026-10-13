@@ -3,13 +3,16 @@ package uk.gov.justice.laa.rcw.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.Address;
 import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class AddressMapperTest {
 
-  private final AddressMapper addressMapper = new AddressMapperImpl();
+  private final AddressMapper addressMapper = MapperFixtures.addressMapper();
 
   @Test
   void shouldMapDatastoreAddressToAddress() {
@@ -47,6 +50,36 @@ class AddressMapperTest {
     assertThat(result.getTownOrCity()).isEqualTo(address.getTownOrCity());
     assertThat(result.getPostCode()).isEqualTo(address.getPostCode());
     assertThat(result.getCountry()).isEqualTo(address.getCountry());
+  }
+
+  @Test
+  void shouldMapEditableAddressAndPreserveNullableValues() {
+    UpdateAddressRequestBody address =
+        new UpdateAddressRequestBody()
+            .addressLine1("1 Example Street")
+            .addressLine2("")
+            .addressLine3(null)
+            .addressLine4("Flat 2")
+            .townOrCity("London")
+            .postCode(null)
+            .county("")
+            .country("GB");
+
+    var result = addressMapper.toPatchAddressData(address);
+
+    assertThat(result.getAddressLine1()).isEqualTo("1 Example Street");
+    assertThat(result.getAddressLine2_JsonNullable()).isEqualTo(JsonNullable.of(""));
+    assertThat(result.getAddressLine3_JsonNullable()).isEqualTo(JsonNullable.of(null));
+    assertThat(result.getAddressLine4_JsonNullable()).isEqualTo(JsonNullable.of("Flat 2"));
+    assertThat(result.getTownOrCity_JsonNullable()).isEqualTo(JsonNullable.of("London"));
+    assertThat(result.getPostCode_JsonNullable()).isEqualTo(JsonNullable.of(null));
+    assertThat(result.getCounty_JsonNullable()).isEqualTo(JsonNullable.of(""));
+    assertThat(result.getCountry()).isEqualTo("GB");
+  }
+
+  @Test
+  void shouldMapNullEditableAddressToNull() {
+    assertThat(addressMapper.toPatchAddressData(null)).isNull();
   }
 
   @Test

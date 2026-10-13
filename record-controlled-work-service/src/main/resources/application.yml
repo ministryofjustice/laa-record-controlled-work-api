@@ -44,8 +44,8 @@ management:
         include: health, prometheus
 
 sentry:
-  dsn: # configure dsn url here
-  environment: # configure environment name here
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:${ENVIRONMENT:local}}
 
 # ECS structured logging
 logging:
@@ -71,6 +71,10 @@ logging:
         node_name: ${HOSTNAME:unknown}
 
 laa:
+  request:
+    body:
+      # Maximum application details JSON size in bytes.
+      max-size-bytes: ${EDIT_APPLICATION_MAX_BODY_BYTES:65536}
   datastore:
     client:
       base-url: ${DATASTORE_URL:http://localhost:8080}

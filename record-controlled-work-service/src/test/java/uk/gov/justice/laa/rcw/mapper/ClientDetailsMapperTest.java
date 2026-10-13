@@ -4,14 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
 import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 class ClientDetailsMapperTest {
 
-  private final ClientDetailsMapper clientDetailsMapper =
-      new ClientDetailsMapperImpl(new AddressMapperImpl());
+  private final ClientDetailsMapper clientDetailsMapper = MapperFixtures.clientDetailsMapper();
 
   @Test
   void shouldMapDatastoreClientDetailsAndNestedAddress() {
@@ -104,5 +106,57 @@ class ClientDetailsMapperTest {
   @Test
   void shouldMapNullClientDetailsRequestToNull() {
     assertThat(clientDetailsMapper.toCreateClientCommand(null)).isNull();
+  }
+
+  @Test
+  void shouldMapEditableClientDetailsIncludingAddressAndBooleanAnswers() {
+    UpdateClientDetailsRequestBody client =
+        new UpdateClientDetailsRequestBody()
+            .firstName("Ada")
+            .lastName("Lovelace")
+            .dateOfBirth(LocalDate.of(1990, 1, 1))
+            .niNumber("AB123456C")
+            .hasFixedAddress(true)
+            .address(
+                new uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody()
+                    .addressLine1("1 Example Street")
+                    .addressLine2(null)
+                    .addressLine3("")
+                    .addressLine4(null)
+                    .townOrCity("London")
+                    .postCode(null)
+                    .county(null)
+                    .country("GB"));
+
+    var result = clientDetailsMapper.toPatchClientDetailsData(client);
+
+    assertThat(result.getFirstName()).isEqualTo("Ada");
+    assertThat(result.getLastName()).isEqualTo("Lovelace");
+    assertThat(result.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
+    assertThat(result.getNiNumber_JsonNullable()).isEqualTo(JsonNullable.of("AB123456C"));
+    assertThat(result.getNoFixedAbode()).isFalse();
+    assertThat(result.getAddress_JsonNullable().isPresent()).isTrue();
+    assertThat(result.getAddress().getAddressLine2_JsonNullable()).isEqualTo(JsonNullable.of(null));
+    assertThat(result.getAddress().getAddressLine3_JsonNullable()).isEqualTo(JsonNullable.of(""));
+
+    client.setHasFixedAddress(false);
+    assertThat(clientDetailsMapper.toPatchClientDetailsData(client).getNoFixedAbode()).isTrue();
+  }
+
+  @Test
+  void shouldPreserveExplicitNullClientClearsAsPresent() {
+    UpdateClientDetailsRequestBody client =
+        new UpdateClientDetailsRequestBody()
+            .firstName("Ada")
+            .lastName("Lovelace")
+            .dateOfBirth(LocalDate.of(1990, 1, 1))
+            .niNumber(null)
+            .hasFixedAddress(false)
+            .address(null);
+
+    var result = clientDetailsMapper.toPatchClientDetailsData(client);
+
+    assertThat(result.getNiNumber_JsonNullable()).isEqualTo(JsonNullable.of(null));
+    assertThat(result.getAddress_JsonNullable()).isEqualTo(JsonNullable.of(null));
   }
 }

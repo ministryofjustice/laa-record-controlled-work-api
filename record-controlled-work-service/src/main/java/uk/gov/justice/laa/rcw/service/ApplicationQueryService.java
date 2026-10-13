@@ -5,13 +5,16 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_LIST;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.exception.ApplicationNotFoundException;
+import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
@@ -20,6 +23,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Service class for querying Applications. */
 @Service
@@ -31,7 +35,7 @@ public class ApplicationQueryService {
   private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
   private final EligibilityMapper eligibilityMapper;
-  private final AuthorizedOfficesProvider authorizedOfficesProvider;
+  private final ApplicationGuard applicationGuard;
 
   /**
    * Gets all Applications.
@@ -68,10 +72,7 @@ public class ApplicationQueryService {
    * @param providerOfficeCode the office code on the application
    */
   void checkAuthorizedForOffice(UUID applicationId, String providerOfficeCode) {
-    if (!authorizedOfficesProvider.currentAuthorizedOfficeCodes().contains(providerOfficeCode)) {
-      throw new ApplicationForbiddenException(
-          "Not authorized to update application %s".formatted(applicationId));
-    }
+    applicationGuard.checkAuthorizedForOffice(applicationId, providerOfficeCode);
   }
 
   /**
@@ -95,27 +96,31 @@ public class ApplicationQueryService {
   /**
    * Gets an Application or empty optional if not found.
    *
-   * @return {@link Optional} of {@link Application}
+   * @return the application and its original datastore version, when visible
    */
-  public Optional<Application> getApplication(UUID applicationId) {
-    Optional<Application> application;
+  public Optional<VersionedApplication> getApplication(UUID applicationId) {
+    ApplicationResponse response;
     try {
-      application =
-          Optional.of(
-              applicationMapper.toApplication(applicationGateway.fetchApplication(applicationId)));
+      response = applicationGateway.fetchApplicationDetails(applicationId);
+      applicationGuard.checkVisibleForOffice(applicationId, response.getProviderOfficeCode());
     } catch (ApplicationNotFoundException exception) {
       return Optional.empty();
     }
-    if (!authorizedOfficesProvider
-        .currentAuthorizedOfficeCodes()
-        .contains(application.orElseThrow().getProviderOfficeCode())) {
-      return Optional.empty();
+    OptionalLong version = ApplicationVersionParser.parseVersion(response.geteTag());
+    if (version.isEmpty()) {
+      throw new ApplicationUpstreamErrorException(
+          "Datastore returned an invalid application version",
+          "DATASTORE_INVALID_APPLICATION_VERSION");
     }
     log.info()
         .action(APPLICATION_FETCH)
         .outcome("success")
         .with("application.id", applicationId)
         .log("Retrieved application {}", applicationId);
-    return application;
+    return Optional.of(
+        new VersionedApplication(applicationMapper.toApplication(response), version.getAsLong()));
   }
+
+  /** A mapped application with its original datastore version, outside the public body. */
+  public record VersionedApplication(Application application, long version) {}
 }

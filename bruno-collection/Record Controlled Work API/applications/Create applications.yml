@@ -16,6 +16,8 @@ http:
         "providerOfficeCode": "R1XEVG",
         "scopingQuestions": {
           "priorLegalAid": "yesSameMatter"
+          "familyLawClassification": "private"
+          "needsAdviceOnEUOrInternationalMaintenance": true
         },
         "clientDetails": {
           "firstName": "Joe",
@@ -88,6 +90,8 @@ examples:
             "providerOfficeCode": "R1XEVG",
             "scopingQuestions": {
               "priorLegalAid": "yesSameMatter"
+              "familyLawClassification": "private"
+              "needsAdviceOnEUOrInternationalMaintenance": true
             },
             "clientDetails": {
               "firstName": "Joe",

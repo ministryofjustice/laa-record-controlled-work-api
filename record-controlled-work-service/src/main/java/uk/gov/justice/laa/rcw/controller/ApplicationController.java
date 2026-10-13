@@ -8,21 +8,26 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.justice.laa.rcw.api.ApplicationsApi;
+import uk.gov.justice.laa.rcw.exception.ApplicationPreconditionRequiredException;
+import uk.gov.justice.laa.rcw.exception.ApplicationRequestValidationException;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationResponseBody;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationStatusRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateDeclarationRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateEvidenceRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateMeansDataRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
+import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
+import uk.gov.justice.laa.rcw.util.ApplicationVersionParser;
 
 /** Controller for handling application requests. */
 @RestController
@@ -30,6 +35,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 public class ApplicationController implements ApplicationsApi {
 
   private final ApplicationQueryService applicationQueryService;
+  private final ApplicationDetailsService applicationDetailsService;
   private final ApplicationMeansService applicationMeansService;
   private final ApplicationUpdateService applicationUpdateService;
   private final ApplicationEvidenceService applicationEvidenceService;
@@ -65,8 +71,26 @@ public class ApplicationController implements ApplicationsApi {
   public ResponseEntity<Application> getApplication(UUID id) {
     return applicationQueryService
         .getApplication(id)
-        .map(ResponseEntity::ok)
+        .map(
+            result ->
+                ResponseEntity.ok().eTag("\"" + result.version() + "\"").body(result.application()))
         .orElse(ResponseEntity.notFound().build());
+  }
+
+  @Override
+  public ResponseEntity<Void> updateApplicationDetails(
+      UUID id, UpdateApplicationDetailsRequestBody request, String ifMatch) {
+    long version = validateIfMatch(ifMatch);
+    String etag = applicationDetailsService.updateApplicationDetails(id, request, version);
+    return ResponseEntity.noContent().eTag(etag).build();
+  }
+
+  private long validateIfMatch(String ifMatch) {
+    if (ifMatch == null) {
+      throw new ApplicationPreconditionRequiredException();
+    }
+    return ApplicationVersionParser.parseIfMatch(ifMatch)
+        .orElseThrow(() -> new ApplicationRequestValidationException("INVALID_IF_MATCH"));
   }
 
   @Override

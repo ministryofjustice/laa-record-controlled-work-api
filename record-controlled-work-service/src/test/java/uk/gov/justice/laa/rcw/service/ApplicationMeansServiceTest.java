@@ -27,8 +27,9 @@ import uk.gov.justice.laa.ia.datastore.client.model.UpdateMeansDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
-import uk.gov.justice.laa.rcw.mapper.EligibilityMapperImpl;
+import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
+import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
 @ExtendWith(MockitoExtension.class)
 class ApplicationMeansServiceTest {
@@ -40,12 +41,12 @@ class ApplicationMeansServiceTest {
 
   private ApplicationGuard applicationGuard;
   private ApplicationMeansService applicationMeansService;
-  private EligibilityMapperImpl eligibilityMapper;
+  private EligibilityMapper eligibilityMapper;
 
   @BeforeEach
   void setUp() {
     applicationGuard = new ApplicationGuard(mockAuthorizedOfficesProvider);
-    eligibilityMapper = new EligibilityMapperImpl();
+    eligibilityMapper = MapperFixtures.eligibilityMapper();
     applicationMeansService =
         new ApplicationMeansService(mockApplicationGateway, applicationGuard, eligibilityMapper);
     lenient()
@@ -122,9 +123,10 @@ class ApplicationMeansServiceTest {
                 .eTag(1L)
                 .providerOfficeCode(AUTHORIZED_OFFICE_CODE)
                 .build());
-    doThrow(
-            new ApplicationConflictException(
-                "Application %s was modified concurrently".formatted(applicationId)))
+    ApplicationConflictException datastoreFailure =
+        new ApplicationConflictException(
+            "Application %s was modified concurrently".formatted(applicationId));
+    doThrow(datastoreFailure)
         .when(mockApplicationGateway)
         .updateMeansData(eq(applicationId), any());
 
@@ -133,7 +135,9 @@ class ApplicationMeansServiceTest {
                 applicationMeansService.updateMeans(
                     applicationId, EligibilityData.builder().build(), Map.of()))
         .isInstanceOf(ApplicationConflictException.class)
-        .hasMessageContaining(applicationId.toString());
+        .hasMessageContaining(applicationId.toString())
+        .cause()
+        .isSameAs(datastoreFailure);
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
     verify(mockApplicationGateway, times(2)).updateMeansData(eq(applicationId), any());
