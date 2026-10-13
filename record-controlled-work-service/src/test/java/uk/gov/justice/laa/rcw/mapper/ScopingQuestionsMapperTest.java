@@ -23,7 +23,8 @@ class ScopingQuestionsMapperTest {
                 new CreateScopingQuestions()
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
-                    .needsAdviceOnEUOrInternationalMaintenance(true)))
+                    .needsAdviceOnEUOrInternationalMaintenance(false)
+                    .needsProtectiveInjunction(false)))
         .isEqualTo(
             Map.of(
                 "priorLegalAid",
@@ -31,7 +32,9 @@ class ScopingQuestionsMapperTest {
                 "familyLawClassification",
                 "private",
                 "needsAdviceOnEUOrInternationalMaintenance",
-                true));
+                false,
+                "needsProtectiveInjunction",
+                false));
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new CreateScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();

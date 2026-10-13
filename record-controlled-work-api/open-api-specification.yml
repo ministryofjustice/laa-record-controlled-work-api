@@ -403,6 +403,9 @@ components:
         needsAdviceOnEUOrInternationalMaintenance:
           nullable: true
           type: boolean
+        needsProtectiveInjunction:
+          nullable: true
+          type: boolean
 
     ApplicationScopingQuestions:
       type: object
@@ -413,6 +416,8 @@ components:
         familyLawClassification:
           $ref: "#/components/schemas/familyLawClassification"
         needsAdviceOnEUOrInternationalMaintenance:
+          type: boolean
+        needsProtectiveInjunction:
           type: boolean
 
     CreateClientDetailsRequestBody:

@@ -34,7 +34,8 @@ public class CreateApplicationRequestGenerator {
                 new CreateScopingQuestions()
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
-                    .needsAdviceOnEUOrInternationalMaintenance(true))
+                    .needsAdviceOnEUOrInternationalMaintenance(false)
+                    .needsProtectiveInjunction(false))
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e");
     if (customizer != null) {
       customizer.accept(builder);

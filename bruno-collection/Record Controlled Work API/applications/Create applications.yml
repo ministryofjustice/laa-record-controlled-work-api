@@ -17,7 +17,8 @@ http:
         "scopingQuestions": {
           "priorLegalAid": "yesSameMatter"
           "familyLawClassification": "private"
-          "needsAdviceOnEUOrInternationalMaintenance": true
+          "needsAdviceOnEUOrInternationalMaintenance": false
+          "needsProtectiveInjunction": false
         },
         "clientDetails": {
           "firstName": "Joe",
@@ -91,7 +92,8 @@ examples:
             "scopingQuestions": {
               "priorLegalAid": "yesSameMatter"
               "familyLawClassification": "private"
-              "needsAdviceOnEUOrInternationalMaintenance": true
+              "needsAdviceOnEUOrInternationalMaintenance": false
+              "needsProtectiveInjunction": false
             },
             "clientDetails": {
               "firstName": "Joe",
