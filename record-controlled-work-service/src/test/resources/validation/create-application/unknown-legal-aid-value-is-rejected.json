@@ -5,7 +5,10 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "unknown"
+      "priorLegalAid": "unknown",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "clientDetails": {
       "firstName": "Ada",

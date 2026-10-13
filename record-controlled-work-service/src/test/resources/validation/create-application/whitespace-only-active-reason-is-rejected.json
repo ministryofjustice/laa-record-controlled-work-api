@@ -5,10 +5,13 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "yesSameMatter"
+      "priorLegalAid": "yesSameMatter",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "legalAidLast6Months": true,
-    "reasonForReapplication": "\u2003",
+    "reasonForReapplication": " ",
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

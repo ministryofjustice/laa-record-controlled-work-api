@@ -5,7 +5,10 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "yesSameMatter"
+      "priorLegalAid": "yesSameMatter",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "legalAidLast6Months": true,
     "reasonForReapplication": "A separate legal issue",
