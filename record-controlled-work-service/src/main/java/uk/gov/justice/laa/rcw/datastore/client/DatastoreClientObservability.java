@@ -197,7 +197,7 @@ final class DatastoreClientObservability {
       if ("failure".equals(outcome)) {
         event = log.warn().action(action).outcome(outcome);
       } else {
-        event = log.info().action(action).outcome(outcome);
+        event = log.debug().action(action).outcome(outcome);
       }
       event = event.with("event.phase", phase);
 
