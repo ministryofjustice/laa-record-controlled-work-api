@@ -6,7 +6,7 @@ import java.util.Map;
 import org.mapstruct.Mapper;
 import org.mapstruct.Named;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 /** Maps scoping questions between the RCW model and the datastore's loose JSON. */
 @Mapper(componentModel = "spring")
@@ -24,7 +24,7 @@ public interface ScopingQuestionsMapper {
   }
 
   /** Serializes the RCW model to a map without null-valued answers. */
-  default Map<String, Object> toDatastoreScopingQuestions(CreateScopingQuestions questions) {
+  default Map<String, Object> toDatastoreScopingQuestions(ScopingQuestions questions) {
     if (questions == null) {
       return Map.of();
     }
@@ -33,8 +33,7 @@ public interface ScopingQuestionsMapper {
 
   /** Converts editable scoping answers into the datastore map, retaining explicit null answers. */
   @Named("toDatastoreScopingQuestionsFromDetails")
-  default Map<String, Object> toDatastoreScopingQuestionsFromDetails(
-      CreateScopingQuestions questions) {
+  default Map<String, Object> toDatastoreScopingQuestionsFromDetails(ScopingQuestions questions) {
     if (questions == null) {
       return Map.of();
     }

@@ -41,9 +41,9 @@ import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.config.DatastoreClientConfiguration;
 import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -412,7 +412,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
             .address(address);
     return new UpdateApplicationDetailsRequestBody()
         .scopingQuestions(
-            new CreateScopingQuestions()
+            new ScopingQuestions()
                 .priorLegalAid(PriorLegalAid.NO)
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)

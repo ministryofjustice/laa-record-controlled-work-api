@@ -5,10 +5,10 @@ import java.util.function.Consumer;
 import uk.gov.justice.laa.rcw.model.CreateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateClientDetailsRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 /** Generator for an Application model for tests. */
 public class CreateApplicationRequestGenerator {
@@ -33,7 +33,7 @@ public class CreateApplicationRequestGenerator {
         CreateApplicationRequestBody.builder()
             .legalAidLast6Months(false)
             .scopingQuestions(
-                new CreateScopingQuestions()
+                new ScopingQuestions()
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
                     .needsAdviceOnEUOrInternationalMaintenance(false)

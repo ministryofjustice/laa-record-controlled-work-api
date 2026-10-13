@@ -1,9 +1,9 @@
 package uk.gov.justice.laa.rcw.generator;
 
 import java.time.LocalDate;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
 
@@ -16,7 +16,7 @@ public final class UpdateApplicationDetailsRequestGenerator {
   public static UpdateApplicationDetailsRequestBody validRequest() {
     return new UpdateApplicationDetailsRequestBody()
         .scopingQuestions(
-            new CreateScopingQuestions()
+            new ScopingQuestions()
                 .priorLegalAid(PriorLegalAid.NO)
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)

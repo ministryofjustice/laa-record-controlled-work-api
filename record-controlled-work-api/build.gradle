@@ -60,7 +60,7 @@ tasks.register('prepareDtoGenerationSpecification') {
             'CreateApplicationRequestBody',
             'CreateClientDetailsRequestBody',
             'CreateAddressRequestBody',
-            'CreateScopingQuestions',
+            'ScopingQuestions',
             'UpdateApplicationDetailsRequestBody'
         ].each { name ->
             def schema = specification.components.schemas[name]
