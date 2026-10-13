@@ -58,7 +58,12 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   private static final String VALID_BODY =
       """
       {
-        "priorLegalAid": "no",
+        "scopingQuestions": {
+          "priorLegalAid": "no",
+          "familyLawClassification": "private",
+          "needsAdviceOnEUOrInternationalMaintenance": false,
+          "needsProtectiveInjunction": false
+        },
         "legalAidLast6Months": false,
         "reasonForReapplication": null,
         "ecfFlag": false,

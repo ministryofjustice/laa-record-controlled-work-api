@@ -61,7 +61,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   private static final String VALID_DETAILS_PUT_BODY =
       """
       {
-          "priorLegalAid": "no",
+          "scopingQuestions": {
+              "priorLegalAid": "no",
+              "familyLawClassification": "public",
+              "needsAdviceOnEUOrInternationalMaintenance": null,
+              "needsProtectiveInjunction": false
+          },
           "legalAidLast6Months": false,
           "reasonForReapplication": null,
           "ecfFlag": true,
@@ -364,7 +369,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             "eTag": 31,
             "reasonForReapplication": null,
             "ecfFlag": true,
-            "scopingQuestions": {"priorLegalAid": "no"},
+            "scopingQuestions": {
+                "priorLegalAid": "no",
+                "familyLawClassification": "public",
+                "needsAdviceOnEUOrInternationalMaintenance": null,
+                "needsProtectiveInjunction": false
+            },
             "clientDetails": {
                 "firstName": "Test",
                 "lastName": "Client",
@@ -433,7 +443,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                           "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "public",
+                            "needsAdviceOnEUOrInternationalMaintenance": null,
+                            "needsProtectiveInjunction": false
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -1303,7 +1318,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                       "eTag": 31,
                       "reasonForReapplication": null,
                       "ecfFlag": true,
-                      "scopingQuestions": {"priorLegalAid": "no"},
+                                            "scopingQuestions": {
+                                                "priorLegalAid": "no",
+                                                "familyLawClassification": "public",
+                                                "needsAdviceOnEUOrInternationalMaintenance": null,
+                                                "needsProtectiveInjunction": false
+                                            },
                       "clientDetails": {
                         "firstName": "Test",
                         "lastName": "Client",
