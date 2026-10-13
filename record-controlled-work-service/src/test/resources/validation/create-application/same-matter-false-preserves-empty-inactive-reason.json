@@ -2,14 +2,11 @@
   "id": "same-matter-false-preserves-empty-inactive-reason",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {
+    "priorLegalAid": "yesSameMatter"
+  },
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "yesSameMatter",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "legalAidLast6Months": false,
     "reasonForReapplication": "",
     "clientDetails": {

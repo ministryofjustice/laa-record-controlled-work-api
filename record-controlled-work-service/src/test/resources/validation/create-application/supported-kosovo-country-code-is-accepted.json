@@ -2,14 +2,9 @@
   "id": "supported-kosovo-country-code-is-accepted",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

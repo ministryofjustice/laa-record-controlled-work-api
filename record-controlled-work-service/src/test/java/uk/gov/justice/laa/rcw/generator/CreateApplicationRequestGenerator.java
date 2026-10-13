@@ -13,6 +13,21 @@ import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 /** Generator for an Application model for tests. */
 public class CreateApplicationRequestGenerator {
 
+  /**
+   * Creates valid scoping answers for a prior legal aid response.
+   *
+   * @param aid prior legal aid answer
+   * @return valid default scoping answers
+   */
+  public static ScopingQuestions validScopingQuestions(PriorLegalAid aid) {
+    return new ScopingQuestions()
+        .priorLegalAid(aid)
+        .familyLawClassification(FamilyLawClassification.PRIVATE)
+        .needsAdviceOnEUOrInternationalMaintenance(false)
+          .needsProtectiveInjunction(false)
+          .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE);
+  }
+
   /** Generator Application with name property. */
   public static CreateApplicationRequestBody createWithName(
       Consumer<CreateApplicationRequestBody.Builder> customizer) {
@@ -32,13 +47,7 @@ public class CreateApplicationRequestGenerator {
     var builder =
         CreateApplicationRequestBody.builder()
             .legalAidLast6Months(false)
-            .scopingQuestions(
-                new ScopingQuestions()
-                    .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                    .familyLawClassification(FamilyLawClassification.PRIVATE)
-                    .needsAdviceOnEUOrInternationalMaintenance(false)
-                    .needsProtectiveInjunction(false)
-                    .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE))
+            .scopingQuestions(validScopingQuestions(PriorLegalAid.YES_SAME_MATTER))
             .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e");
     if (customizer != null) {
       customizer.accept(builder);

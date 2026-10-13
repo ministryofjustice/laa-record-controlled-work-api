@@ -2,14 +2,9 @@
   "id": "multilingual-name-values-are-preserved",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "clientDetails": {
       "firstName": "Zoë 李",
       "lastName": "O'Connor 42",

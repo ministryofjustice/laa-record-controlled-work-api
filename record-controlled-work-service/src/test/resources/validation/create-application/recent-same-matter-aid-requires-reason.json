@@ -2,14 +2,11 @@
   "id": "recent-same-matter-aid-requires-reason",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {
+    "priorLegalAid": "yesSameMatter"
+  },
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "yesSameMatter",
-      "familyLawClassification": "private",
-      "needsAdviceOnEUOrInternationalMaintenance": false,
-      "needsProtectiveInjunction": false
-    },
     "legalAidLast6Months": true,
     "clientDetails": {
       "firstName": "Ada",
