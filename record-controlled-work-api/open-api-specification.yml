@@ -114,8 +114,7 @@ paths:
             ETag:
               description: Strong application version validator, quoted as an integer
               schema:
-                type: string
-                pattern: '^"[0-9]+"$'
+                $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/StrongApplicationVersion"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -163,8 +162,7 @@ paths:
             Strong quoted integer validator from GET. If omitted, the server
             returns 428 Precondition Required.
           schema:
-            type: string
-            pattern: '^"[0-9]+"$'
+            $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/StrongApplicationVersion"
       requestBody:
         required: true
         content:
@@ -178,8 +176,7 @@ paths:
             ETag:
               description: New strong application version validator, quoted as an integer
               schema:
-                type: string
-                pattern: '^"[0-9]+"$'
+                $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/StrongApplicationVersion"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -447,7 +444,8 @@ components:
           description: Formatting characters are removed and letters uppercased before validation.
           minLength: 9
           maxLength: 9
-          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
+          allOf:
+            - $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/NationalInsuranceNumberFormat"
         hasFixedAddress:
           type: boolean
         address:
@@ -537,8 +535,9 @@ components:
           description: Required but nullable; formatting characters are removed and letters uppercased before validation. Null clears the NI number.
           minLength: 9
           maxLength: 9
-          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
           nullable: true
+          allOf:
+            - $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/NationalInsuranceNumberFormat"
         hasFixedAddress:
           type: boolean
           description: False requires address to be null.
@@ -835,8 +834,9 @@ components:
           type: string
           minLength: 9
           maxLength: 9
-          pattern: '^(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z][0-9]{6}[ABCD]$'
           nullable: true
+          allOf:
+            - $ref: "./open-api-specifications/validation/StringConstraints.yml#/components/schemas/NationalInsuranceNumberFormat"
         hasFixedAddress:
           type: boolean
         address:
