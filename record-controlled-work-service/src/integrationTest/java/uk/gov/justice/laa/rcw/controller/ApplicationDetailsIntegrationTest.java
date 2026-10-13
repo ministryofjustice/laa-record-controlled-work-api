@@ -150,7 +150,12 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                         "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -215,7 +220,108 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                         "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false
+                        },
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "noFixedAbode": true,
+                            "address": null
+                        }
+                    }
+                    """)));
+  }
+
+  @Test
+  void shouldClearMaintenanceAnswerWhenChangingPrivateApplicationToPublic() throws Exception {
+    String id = UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT",
+                        "eTag": 31,
+                        "ecfFlag": true,
+                        "client": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "noFixedAbode": true,
+                            "address": null
+                        },
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": true,
+                            "needsProtectiveInjunction": false
+                        }
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", id)
+                .withBearerWriteToken()
+                .header("If-Match", "\"31\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "public",
+                            "needsAdviceOnEUOrInternationalMaintenance": null,
+                            "needsProtectiveInjunction": false
+                        },
+                        "legalAidLast6Months": false,
+                        "reasonForReapplication": null,
+                        "ecfFlag": true,
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "hasFixedAddress": false,
+                            "address": null
+                        }
+                    }
+                    """))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"32\""));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 31,
+                        "reasonForReapplication": null,
+                        "ecfFlag": true,
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "public",
+                            "needsAdviceOnEUOrInternationalMaintenance": null,
+                            "needsProtectiveInjunction": false
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -543,7 +649,12 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                       "eTag": 31,
                       "reasonForReapplication": null,
                       "ecfFlag": true,
-                      "scopingQuestions": {"priorLegalAid": "no"},
+                                            "scopingQuestions": {
+                                                "priorLegalAid": "no",
+                                                "familyLawClassification": "private",
+                                                "needsAdviceOnEUOrInternationalMaintenance": false,
+                                                "needsProtectiveInjunction": false
+                                            },
                       "clientDetails": {
                         "firstName": "Test",
                         "lastName": "Client",

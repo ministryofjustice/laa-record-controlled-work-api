@@ -95,7 +95,12 @@ class ApplicationControllerTest {
   private static final String VALID_DETAILS_REQUEST =
       """
       {
-          "priorLegalAid": "no",
+          "scopingQuestions": {
+              "priorLegalAid": "no",
+              "familyLawClassification": "public",
+              "needsAdviceOnEUOrInternationalMaintenance": null,
+              "needsProtectiveInjunction": false
+          },
           "legalAidLast6Months": false,
           "reasonForReapplication": null,
           "ecfFlag": false,
@@ -112,7 +117,12 @@ class ApplicationControllerTest {
   private static final String VALID_FIXED_ADDRESS_DETAILS_REQUEST =
       """
       {
-          "priorLegalAid": "no",
+          "scopingQuestions": {
+              "priorLegalAid": "no",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false
+          },
           "legalAidLast6Months": false,
           "reasonForReapplication": null,
           "ecfFlag": false,
@@ -427,7 +437,7 @@ class ApplicationControllerTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "priorLegalAid",
+        "scopingQuestions",
         "legalAidLast6Months",
         "ecfFlag",
         "clientDetails",
@@ -440,6 +450,80 @@ class ApplicationControllerTest {
       throws Exception {
     assertInvalidDetails(
         removeDetailsProperty(detailsRequest(VALID_DETAILS_REQUEST), propertyPath));
+  }
+
+  @ParameterizedTest
+  @MethodSource("validDetailsScopingAnswers")
+  void updateApplicationDetails_acceptsValidScopingBranches(
+      String familyLawClassification, Boolean needsMaintenanceAdvice) throws Exception {
+    ObjectNode request = detailsRequestWithScoping(familyLawClassification, needsMaintenanceAdvice);
+    stubSuccessfulDetailsEdit();
+
+    performDetailsPut("\"0\"", request.toString()).andExpect(status().isNoContent());
+
+    verify(mockApplicationDetailsService)
+        .updateApplicationDetails(eq(UUID.fromString(DETAILS_APPLICATION_ID)), any(), eq(0L));
+  }
+
+  private static Stream<Arguments> validDetailsScopingAnswers() {
+    return Stream.of(
+        Arguments.of("private", true),
+        Arguments.of("private", false),
+        Arguments.of("public", null));
+  }
+
+  @Test
+  void updateApplicationDetails_rejectsMissingOrNullScopingQuestions() throws Exception {
+    ObjectNode request = detailsRequestWithScoping("private", false);
+    request.remove("scopingQuestions");
+    assertInvalidDetails(request);
+
+    request = detailsRequestWithScoping("private", false);
+    request.putNull("scopingQuestions");
+    assertInvalidDetails(request);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "scopingQuestions.priorLegalAid",
+        "scopingQuestions.familyLawClassification",
+        "scopingQuestions.needsAdviceOnEUOrInternationalMaintenance",
+        "scopingQuestions.needsProtectiveInjunction"
+      })
+  void updateApplicationDetails_rejectsMissingScopingAnswers(String propertyPath) throws Exception {
+    assertInvalidDetails(
+        removeDetailsProperty(detailsRequestWithScoping("private", false), propertyPath));
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"priorLegalAid\":\"invalid\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"invalid\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false,\"unexpected\":true}"
+      })
+  void updateApplicationDetails_rejectsInvalidScopingAnswers(String scopingQuestions)
+      throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.set("scopingQuestions", new ObjectMapper().readTree(scopingQuestions));
+
+    assertInvalidDetails(request);
   }
 
   @ParameterizedTest
@@ -513,17 +597,17 @@ class ApplicationControllerTest {
   @Test
   void updateApplicationDetails_rejectsContradictoryLegalAidAnswers() throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.put("priorLegalAid", "yesSameMatter");
+    ((ObjectNode) request.get("scopingQuestions")).put("priorLegalAid", "yesSameMatter");
     request.put("legalAidLast6Months", true);
     assertInvalidDetails(request);
 
     request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.put("priorLegalAid", "yesDifferentMatter");
+    ((ObjectNode) request.get("scopingQuestions")).put("priorLegalAid", "yesDifferentMatter");
     request.put("legalAidLast6Months", true);
     assertInvalidDetails(request);
 
     request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.put("priorLegalAid", "yesSameMatter");
+    ((ObjectNode) request.get("scopingQuestions")).put("priorLegalAid", "yesSameMatter");
     request.put("reasonForReapplication", "reason");
     assertInvalidDetails(request);
 
@@ -534,7 +618,7 @@ class ApplicationControllerTest {
   @Test
   void updateApplicationDetails_requiresNonblankReasonOnApplicableBranch() throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.put("priorLegalAid", "yesSameMatter");
+    ((ObjectNode) request.get("scopingQuestions")).put("priorLegalAid", "yesSameMatter");
     request.put("legalAidLast6Months", true);
     request.put("reasonForReapplication", "  ");
 
@@ -544,7 +628,7 @@ class ApplicationControllerTest {
   @Test
   void updateApplicationDetails_allowsValidReasonAndEmptyOptionalAddressValues() throws Exception {
     ObjectNode request = detailsRequest(VALID_FIXED_ADDRESS_DETAILS_REQUEST);
-    request.put("priorLegalAid", "yesSameMatter");
+    ((ObjectNode) request.get("scopingQuestions")).put("priorLegalAid", "yesSameMatter");
     request.put("legalAidLast6Months", true);
     request.put("reasonForReapplication", "Same matter reason");
     ((ObjectNode) request.path("clientDetails").path("address")).put("addressLine2", "");
@@ -602,6 +686,21 @@ class ApplicationControllerTest {
 
   private ObjectNode detailsRequest(String requestBody) throws Exception {
     return (ObjectNode) new ObjectMapper().readTree(requestBody);
+  }
+
+  private ObjectNode detailsRequestWithScoping(
+      String familyLawClassification, Boolean needsMaintenanceAdvice) throws Exception {
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    ObjectNode scopingQuestions = request.putObject("scopingQuestions");
+    scopingQuestions.put("priorLegalAid", "no");
+    scopingQuestions.put("familyLawClassification", familyLawClassification);
+    if (needsMaintenanceAdvice == null) {
+      scopingQuestions.putNull("needsAdviceOnEUOrInternationalMaintenance");
+    } else {
+      scopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", needsMaintenanceAdvice);
+    }
+    scopingQuestions.put("needsProtectiveInjunction", false);
+    return request;
   }
 
   private ObjectNode removeDetailsProperty(ObjectNode request, String propertyPath) {
@@ -746,6 +845,78 @@ class ApplicationControllerTest {
     mockMvc
         .perform(
             post("/api/v1/applications").contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsProtectiveInjunction\":false}"
+      })
+  void createApplication_acceptsValidFamilyScopingBranches(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isCreated());
+
+    verify(mockApplicationCreationService).createApplication(any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"invalid\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"invalid\",\"familyLawClassification\":\"private\","
+            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}",
+        "{\"priorLegalAid\":\"no\",\"needsAdviceOnEUOrInternationalMaintenance\":false,"
+            + "\"needsProtectiveInjunction\":false}"
+      })
+  void createApplication_rejectsInvalidFamilyScopingBranches(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(mockApplicationCreationService);

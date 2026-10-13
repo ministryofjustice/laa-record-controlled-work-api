@@ -394,11 +394,11 @@ components:
       additionalProperties: false
       required:
         - priorLegalAid
+        - familyLawClassification
       properties:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"
         familyLawClassification:
-          nullable: true
           allOf:
             - $ref: "#/components/schemas/familyLawClassification"
         needsAdviceOnEUOrInternationalMaintenance:
@@ -411,6 +411,33 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/privateFamilyCaseScope"
+      allOf:
+        - oneOf:
+            - required:
+                - familyLawClassification
+                - needsAdviceOnEUOrInternationalMaintenance
+              properties:
+                familyLawClassification:
+                  enum:
+                    - private
+                needsAdviceOnEUOrInternationalMaintenance:
+                  enum:
+                    - true
+                    - false
+            - required:
+                - familyLawClassification
+              properties:
+                familyLawClassification:
+                  enum:
+                    - public
+              not:
+                required:
+                  - needsAdviceOnEUOrInternationalMaintenance
+                properties:
+                  needsAdviceOnEUOrInternationalMaintenance:
+                    enum:
+                      - true
+                      - false
 
     ApplicationScopingQuestions:
       type: object
@@ -503,14 +530,14 @@ components:
       type: object
       additionalProperties: false
       required:
-        - priorLegalAid
+        - scopingQuestions
         - legalAidLast6Months
         - reasonForReapplication
         - ecfFlag
         - clientDetails
       properties:
-        priorLegalAid:
-          $ref: "#/components/schemas/PriorLegalAid"
+        scopingQuestions:
+          $ref: "#/components/schemas/CreateScopingQuestions"
         legalAidLast6Months:
           type: boolean
           description: Journey answer; not persisted as a separate field.
@@ -525,6 +552,14 @@ components:
           type: boolean
         clientDetails:
           $ref: "#/components/schemas/UpdateClientDetailsRequestBody"
+      allOf:
+        - properties:
+            scopingQuestions:
+              required:
+                - priorLegalAid
+                - familyLawClassification
+                - needsAdviceOnEUOrInternationalMaintenance
+                - needsProtectiveInjunction
 
     UpdateClientDetailsRequestBody:
       type: object

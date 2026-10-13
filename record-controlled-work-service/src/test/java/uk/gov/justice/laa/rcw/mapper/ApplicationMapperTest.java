@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
@@ -332,7 +334,16 @@ class ApplicationMapperTest {
     assertThat(result.getEcfFlag_JsonNullable().get()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().get())
-        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
+        .isEqualTo(
+            Map.of(
+                "priorLegalAid",
+                "yesSameMatter",
+                "familyLawClassification",
+                "private",
+                "needsAdviceOnEUOrInternationalMaintenance",
+                false,
+                "needsProtectiveInjunction",
+                false));
     assertThat(result.getUfn()).isNull();
     assertThat(result.getLaaReference()).isNull();
     assertThat(result.getMeansAssessmentRequired()).isNull();
@@ -377,7 +388,12 @@ class ApplicationMapperTest {
   void shouldMapNoFixedAddressAndExplicitNullableClears() {
     UpdateApplicationDetailsRequestBody request =
         new UpdateApplicationDetailsRequestBody()
-            .priorLegalAid(PriorLegalAid.NO)
+            .scopingQuestions(
+                new CreateScopingQuestions()
+                    .priorLegalAid(PriorLegalAid.NO)
+                    .familyLawClassification(FamilyLawClassification.PUBLIC)
+                    .needsAdviceOnEUOrInternationalMaintenance(null)
+                    .needsProtectiveInjunction(false))
             .legalAidLast6Months(false)
             .reasonForReapplication(null)
             .ecfFlag(false)
@@ -396,8 +412,14 @@ class ApplicationMapperTest {
     assertThat(result.getReasonForReapplication_JsonNullable().get()).isNull();
     assertThat(result.getEcfFlag_JsonNullable().get()).isFalse();
     assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
-    assertThat(result.getScopingQuestions_JsonNullable().get())
-        .isEqualTo(Map.of("priorLegalAid", "no"));
+    Map<String, Object> expectedScopingQuestions =
+        new HashMap<>(
+            Map.of(
+                "priorLegalAid", "no",
+                "familyLawClassification", "public",
+                "needsProtectiveInjunction", false));
+    expectedScopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", null);
+    assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().isPresent()).isTrue();
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().get()).isNull();
     assertThat(result.getClientDetails().getNoFixedAbode()).isTrue();
@@ -430,7 +452,12 @@ class ApplicationMapperTest {
             .hasFixedAddress(true)
             .address(address);
     return new UpdateApplicationDetailsRequestBody()
-        .priorLegalAid(priorLegalAid)
+        .scopingQuestions(
+            new CreateScopingQuestions()
+                .priorLegalAid(priorLegalAid)
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(false)
+                .needsProtectiveInjunction(false))
         .legalAidLast6Months(last6Months)
         .reasonForReapplication(reason)
         .ecfFlag(true)

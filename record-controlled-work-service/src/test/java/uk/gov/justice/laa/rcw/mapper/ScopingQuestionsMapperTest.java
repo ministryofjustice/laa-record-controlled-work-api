@@ -47,11 +47,36 @@ class ScopingQuestionsMapperTest {
 
   @Test
   void shouldMapEditRequestAnswersToDatastoreScopingMap() {
+    Map<String, Object> expected =
+        new HashMap<>(
+            Map.of(
+                "priorLegalAid", "no",
+                "familyLawClassification", "public",
+                "needsProtectiveInjunction", false));
+    expected.put("needsAdviceOnEUOrInternationalMaintenance", null);
     UpdateApplicationDetailsRequestBody request =
-        new UpdateApplicationDetailsRequestBody().priorLegalAid(PriorLegalAid.YES_SAME_MATTER);
+        new UpdateApplicationDetailsRequestBody()
+            .scopingQuestions(
+                new CreateScopingQuestions()
+                    .priorLegalAid(PriorLegalAid.NO)
+                    .familyLawClassification(FamilyLawClassification.PUBLIC)
+                    .needsAdviceOnEUOrInternationalMaintenance(null)
+                    .needsProtectiveInjunction(false));
 
-    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(request))
-        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
+    assertThat(
+            scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(
+                request.getScopingQuestions()))
+        .isEqualTo(expected);
+  }
+
+  @Test
+  void shouldOmitNullAnswersWhenCreatingScopingData() {
+    assertThat(
+            scopingQuestionsMapper.toDatastoreScopingQuestions(
+                new CreateScopingQuestions()
+                    .priorLegalAid(PriorLegalAid.NO)
+                    .familyLawClassification(FamilyLawClassification.PUBLIC)))
+        .isEqualTo(Map.of("priorLegalAid", "no", "familyLawClassification", "public"));
   }
 
   @ParameterizedTest
