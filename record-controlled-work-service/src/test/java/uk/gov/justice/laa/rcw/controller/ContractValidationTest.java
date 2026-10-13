@@ -32,6 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaConfiguration;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
@@ -101,7 +102,7 @@ class ContractValidationTest {
     verify(mockApplicationCreationService).createApplication(any());
   }
 
-  private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder createRequest(
+  private MockHttpServletRequestBuilder createRequest(
       String dateOfBirth) throws IOException {
     Resource resource = new PathMatchingResourcePatternResolver().getResource(BASE_CREATE_CASE);
     ObjectMapper mapper = new ObjectMapper();
