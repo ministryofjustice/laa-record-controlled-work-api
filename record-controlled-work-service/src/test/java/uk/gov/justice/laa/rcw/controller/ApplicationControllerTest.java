@@ -64,6 +64,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationUpstreamErrorException;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.ApplicationOverviewGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
@@ -98,12 +99,6 @@ class ApplicationControllerTest {
   private static final String VALID_DETAILS_REQUEST =
       """
       {
-          "scopingQuestions": {
-              "priorLegalAid": "no",
-              "familyLawClassification": "public",
-              "needsAdviceOnEUOrInternationalMaintenance": null,
-              "needsProtectiveInjunction": false
-          },
           "legalAidLast6Months": false,
           "reasonForReapplication": null,
           "ecfFlag": false,
@@ -120,12 +115,6 @@ class ApplicationControllerTest {
   private static final String VALID_FIXED_ADDRESS_DETAILS_REQUEST =
       """
       {
-          "scopingQuestions": {
-              "priorLegalAid": "no",
-              "familyLawClassification": "private",
-              "needsAdviceOnEUOrInternationalMaintenance": false,
-              "needsProtectiveInjunction": false
-          },
           "legalAidLast6Months": false,
           "reasonForReapplication": null,
           "ecfFlag": false,
@@ -320,7 +309,7 @@ class ApplicationControllerTest {
   @Test
   void updateApplicationDetails_returnsPreconditionRequired_whenIfMatchIsMissing()
       throws Exception {
-    performDetailsPut(null, VALID_DETAILS_REQUEST)
+    performDetailsPut(null, detailsRequest(VALID_DETAILS_REQUEST).toString())
         .andExpect(status().isPreconditionRequired())
         .andExpect(jsonPath("$.status").value(428))
         .andExpect(jsonPath("$.reason").value("IF_MATCH_REQUIRED"));
@@ -337,7 +326,7 @@ class ApplicationControllerTest {
   @MethodSource("invalidIfMatchValues")
   void updateApplicationDetails_returnsConsistentBadRequest_whenIfMatchIsInvalid(String ifMatch)
       throws Exception {
-    performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
+    performDetailsPut(ifMatch, detailsRequest(VALID_DETAILS_REQUEST).toString())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.detail").value("Invalid request content."))
@@ -369,7 +358,7 @@ class ApplicationControllerTest {
   @ValueSource(strings = {"\"0\"", "\"000\"", "\"9223372036854775807\""})
   void updateApplicationDetails_acceptsValidIfMatchVersions(String ifMatch) throws Exception {
     stubSuccessfulDetailsEdit();
-    performDetailsPut(ifMatch, VALID_DETAILS_REQUEST)
+    performDetailsPut(ifMatch, detailsRequest(VALID_DETAILS_REQUEST).toString())
         .andExpect(status().isNoContent())
         .andExpect(header().string("ETag", "\"42\""));
     verify(mockApplicationDetailsService)
@@ -407,7 +396,7 @@ class ApplicationControllerTest {
   @Test
   void updateApplicationDetails_allowsExplicitNullForNullableProperties() throws Exception {
     stubSuccessfulDetailsEdit();
-    performDetailsPut("\"0\"", VALID_DETAILS_REQUEST)
+    performDetailsPut("\"0\"", detailsRequest(VALID_DETAILS_REQUEST).toString())
         .andExpect(status().isNoContent())
         .andExpect(header().string("ETag", "\"42\""));
     verifyNoInteractions(
@@ -688,21 +677,25 @@ class ApplicationControllerTest {
   }
 
   private ObjectNode detailsRequest(String requestBody) throws Exception {
-    return (ObjectNode) new ObjectMapper().readTree(requestBody);
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = (ObjectNode) mapper.readTree(requestBody);
+    request.set(
+        "scopingQuestions", mapper.valueToTree(ScopingQuestionsGenerator.valid(PriorLegalAid.NO)));
+    return request;
   }
 
   private ObjectNode detailsRequestWithScoping(
       String familyLawClassification, Boolean needsMaintenanceAdvice) throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    ObjectNode scopingQuestions = request.putObject("scopingQuestions");
-    scopingQuestions.put("priorLegalAid", "no");
+    ObjectNode scopingQuestions =
+        createRequestMapper().valueToTree(ScopingQuestionsGenerator.valid(PriorLegalAid.NO));
     scopingQuestions.put("familyLawClassification", familyLawClassification);
     if (needsMaintenanceAdvice == null) {
       scopingQuestions.putNull("needsAdviceOnEUOrInternationalMaintenance");
     } else {
       scopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", needsMaintenanceAdvice);
     }
-    scopingQuestions.put("needsProtectiveInjunction", false);
+    request.set("scopingQuestions", scopingQuestions);
     return request;
   }
 
@@ -1000,8 +993,8 @@ class ApplicationControllerTest {
 
   @Test
   void createApplication_scopingQuestionDefaultsAreIndependent() {
-    var first = CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO);
-    var second = CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO);
+    var first = ScopingQuestionsGenerator.valid(PriorLegalAid.NO);
+    var second = ScopingQuestionsGenerator.valid(PriorLegalAid.NO);
     first.priorLegalAid(PriorLegalAid.YES_SAME_MATTER);
 
     assertEquals(PriorLegalAid.NO, second.getPriorLegalAid());
@@ -1086,8 +1079,7 @@ class ApplicationControllerTest {
     }
 
     ObjectNode scopingQuestions =
-        mapper.valueToTree(
-            CreateApplicationRequestGenerator.validScopingQuestions(PriorLegalAid.NO));
+        mapper.valueToTree(ScopingQuestionsGenerator.valid(PriorLegalAid.NO));
     overrides
         .fields()
         .forEachRemaining(

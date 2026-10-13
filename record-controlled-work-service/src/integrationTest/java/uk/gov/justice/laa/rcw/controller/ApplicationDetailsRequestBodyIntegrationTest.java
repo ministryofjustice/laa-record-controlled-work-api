@@ -42,6 +42,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.exception.ApplicationRequestTooLargeException;
+import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
@@ -55,28 +56,6 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   private static final int MAX_BODY_BYTES = 65_536;
   private static final UUID APPLICATION_ID =
       UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
-  private static final String VALID_BODY =
-      """
-      {
-        "scopingQuestions": {
-          "priorLegalAid": "no",
-          "familyLawClassification": "private",
-          "needsAdviceOnEUOrInternationalMaintenance": false,
-          "needsProtectiveInjunction": false
-        },
-        "legalAidLast6Months": false,
-        "reasonForReapplication": null,
-        "ecfFlag": false,
-        "clientDetails": {
-          "firstName": "PrivateValueForOversizedBody",
-          "lastName": "Client",
-          "dateOfBirth": "1990-01-01",
-          "niNumber": null,
-          "hasFixedAddress": false,
-          "address": null
-        }
-      }
-      """;
   private static final String DETAILS_PATH = "/api/v1/applications/" + APPLICATION_ID + "/details";
   private static final WireMockServer DATASTORE =
       new WireMockServer(WireMockConfiguration.options().dynamicPort());
@@ -114,7 +93,7 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   void shouldAcceptExactLimitOverChunkedHttp() throws Exception {
     stubSuccessfulEdit();
 
-    HttpResponse<String> response = sendChunked(padToLimit(VALID_BODY));
+    HttpResponse<String> response = sendChunked(padToLimit(validBody()));
 
     assertThat(response.statusCode()).isEqualTo(204);
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID)));
@@ -126,7 +105,7 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void shouldRejectLimitPlusOneOverChunkedHttpWithoutDatastoreRequests() throws Exception {
-    String requestBody = padToLimit(VALID_BODY) + " ";
+    String requestBody = padToLimit(validBody()) + " ";
 
     HttpResponse<String> response = sendChunked(requestBody);
 
@@ -172,6 +151,12 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
             .PUT(publisher)
             .build();
     return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+  }
+
+  private String validBody() throws Exception {
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest().ecfFlag(false);
+    request.getClientDetails().setFirstName("PrivateValueForOversizedBody");
+    return toJson(request);
   }
 
   private static String padToLimit(String body) {
