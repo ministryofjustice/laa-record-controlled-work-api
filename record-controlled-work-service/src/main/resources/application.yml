@@ -46,6 +46,14 @@ management:
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENVIRONMENT:${ENVIRONMENT:local}}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.01}
+  ignored-transactions:
+    - '^(?:[A-Z]+ )?/actuator/health(?:/.*)?$'
+  send-default-pii: false
+  logs:
+    enabled: true
+  logging:
+    minimum-level: INFO
 
 # ECS structured logging
 logging:

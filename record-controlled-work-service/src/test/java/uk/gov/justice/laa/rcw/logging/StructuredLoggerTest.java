@@ -10,9 +10,13 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 class StructuredLoggerTest {
@@ -126,6 +130,75 @@ class StructuredLoggerTest {
     assertThat(singleEvent().getKeyValuePairs())
         .extracting(kv -> kv.key)
         .containsSubsequence("first", "second", "third");
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "accessToken",
+        "address",
+        "apiKey",
+        "authorization",
+        "cookie",
+        "dateOfBirth",
+        "firstName",
+        "headers.authorization",
+        "headers.cookie",
+        "idToken",
+        "lastName",
+        "niNumber",
+        "password",
+        "refreshToken",
+        "req.headers.authorization",
+        "req.headers.cookie",
+        "secret",
+        "token",
+        "Authorization",
+        "COOKIE"
+      })
+  void with_redactsSensitiveFields(String field) {
+    log.info()
+        .action(APPLICATION_FETCH)
+        .outcome("success")
+        .with(field, "sensitive-test-value")
+        .log("Redaction check");
+
+    assertThat(keyValue(singleEvent(), field)).isEqualTo("[REDACTED]");
+  }
+
+  @Test
+  void with_redactsNestedFieldsWithoutMutatingInput() {
+    Map<String, Object> headers = Map.of("authorization", "sensitive-test-value", "status", 200);
+    Map<String, Object> request = Map.of("headers", headers);
+    List<Map<String, Object>> items = List.of(Map.of("firstName", "sensitive-test-value"));
+
+    log.info()
+        .action(APPLICATION_FETCH)
+        .outcome("success")
+        .with("req", request)
+        .with("items", items)
+        .with("array", items.toArray())
+        .log("Nested redaction check");
+
+    ILoggingEvent event = singleEvent();
+    assertThat(keyValue(event, "req"))
+        .isEqualTo(Map.of("headers", Map.of("authorization", "[REDACTED]", "status", 200)));
+    assertThat(keyValue(event, "items")).isEqualTo(List.of(Map.of("firstName", "[REDACTED]")));
+    assertThat(keyValue(event, "array")).isEqualTo(List.of(Map.of("firstName", "[REDACTED]")));
+    assertThat(headers).containsEntry("authorization", "sensitive-test-value");
+    assertThat(items.getFirst()).containsEntry("firstName", "sensitive-test-value");
+  }
+
+  @Test
+  void log_redactsStructuredArgumentsWithoutMutatingInput() {
+    Map<String, Object> argument = Map.of("token", "sensitive-test-value", "status", 200);
+
+    log.info().action(APPLICATION_FETCH).outcome("success").log("Request {}", argument);
+
+    assertThat(singleEvent().getFormattedMessage())
+        .contains("[REDACTED]", "200")
+        .doesNotContain("sensitive-test-value");
+    assertThat(argument).containsEntry("token", "sensitive-test-value");
   }
 
   private ILoggingEvent singleEvent() {

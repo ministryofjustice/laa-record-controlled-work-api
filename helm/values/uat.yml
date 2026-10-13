@@ -94,6 +94,7 @@ containerEnvironment:
     DATASTORE_URL: "http://laa-info-and-advice-datastore.laa-info-and-advice-datastore-uat.svc.cluster.local"
     SENTRY_DSN: "https://b50c6c6ceece1c29daa3fa2f99e62ade@o345774.ingest.us.sentry.io/4512061903863808"
     SENTRY_ENVIRONMENT: uat
+    SENTRY_TRACES_SAMPLE_RATE: "1.0"
   secrets:
     - name: ISSUER
       secretName: rcw-api-env-secrets
