@@ -5,17 +5,20 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "no"
+      "priorLegalAid": "no",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "clientDetails": {
-      "firstName": "Zo\u00eb \u674e",
+      "firstName": "Zoë 李",
       "lastName": "O'Connor 42",
       "dateOfBirth": "1990-01-01",
       "hasFixedAddress": false
     }
   },
   "preserves": {
-    "/clientDetails/firstName": "Zo\u00eb \u674e",
+    "/clientDetails/firstName": "Zoë 李",
     "/clientDetails/lastName": "O'Connor 42"
   }
 }

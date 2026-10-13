@@ -5,7 +5,10 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "no"
+      "priorLegalAid": "no",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "clientDetails": {
       "firstName": "Ada",
@@ -15,7 +18,7 @@
       "address": {
         "addressLine1": "Street",
         "country": "GB",
-        "townOrCity": "\u2003",
+        "townOrCity": " ",
         "postCode": "SW1A 2AA"
       }
     }

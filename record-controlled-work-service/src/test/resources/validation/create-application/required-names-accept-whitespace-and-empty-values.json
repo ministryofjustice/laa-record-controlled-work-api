@@ -5,17 +5,20 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "no"
+      "priorLegalAid": "no",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "clientDetails": {
-      "firstName": "\u2003",
+      "firstName": " ",
       "lastName": "",
       "dateOfBirth": "1990-01-01",
       "hasFixedAddress": false
     }
   },
   "preserves": {
-    "/clientDetails/firstName": "\u2003",
+    "/clientDetails/firstName": " ",
     "/clientDetails/lastName": ""
   }
 }

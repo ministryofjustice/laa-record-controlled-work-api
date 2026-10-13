@@ -5,7 +5,10 @@
   "request": {
     "providerOfficeCode": "office",
     "scopingQuestions": {
-      "priorLegalAid": "no"
+      "priorLegalAid": "no",
+      "familyLawClassification": "private",
+      "needsAdviceOnEUOrInternationalMaintenance": false,
+      "needsProtectiveInjunction": false
     },
     "clientDetails": {
       "firstName": "Ada",
@@ -13,7 +16,7 @@
       "dateOfBirth": "1990-01-01",
       "hasFixedAddress": true,
       "address": {
-        "addressLine1": "\u2003\u00a0",
+        "addressLine1": "  ",
         "country": "FR"
       }
     }
