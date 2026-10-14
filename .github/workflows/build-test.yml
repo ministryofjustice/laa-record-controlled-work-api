@@ -33,7 +33,7 @@ jobs:
       # Single invocation so Gradle configures once rather than per task.
       - name: Build, test and verify
         run: >-
-          ./gradlew build jacocoTestCoverageVerification spotlessCheck checkstyleAll
+          ./gradlew build :record-controlled-work-service:jacocoTestCoverageVerification spotlessCheck checkstyleAll
           integrationTest --tests '*IntegrationTest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
