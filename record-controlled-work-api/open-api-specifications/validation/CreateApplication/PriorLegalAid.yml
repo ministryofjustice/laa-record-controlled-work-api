@@ -1,0 +1,74 @@
+components:
+  schemas:
+    PriorLegalAidRule:
+      oneOf:
+        - $ref: "#/components/schemas/NoPriorLegalAidBranch"
+        - $ref: "#/components/schemas/YesDifferentMatterBranch"
+        - $ref: "#/components/schemas/YesSameMatterBranch"
+
+    NoPriorLegalAidBranch:
+      properties:
+        legalAidBefore:
+          enum:
+            - 'no'
+        scopingQuestions:
+          properties:
+            priorLegalAid:
+              enum:
+                - 'no'
+
+    YesDifferentMatterBranch:
+      properties:
+        legalAidBefore:
+          enum:
+            - yesDifferentMatter
+        scopingQuestions:
+          properties:
+            priorLegalAid:
+              enum:
+                - yesDifferentMatter
+
+    YesSameMatterBranch:
+      properties:
+        legalAidBefore:
+          enum:
+            - yesSameMatter
+        scopingQuestions:
+          properties:
+            priorLegalAid:
+              enum:
+                - yesSameMatter
+
+    RecentLegalAidRule:
+      oneOf:
+        - $ref: "#/components/schemas/NoLegalAidInLastSixMonthsBranch"
+        - $ref: "#/components/schemas/YesLegalAidInLastSixMonthsBranch"
+
+    NoLegalAidInLastSixMonthsBranch:
+      properties:
+        legalAidLast6Months:
+          enum:
+            - false
+        reasonForReapplication:
+          type: string
+          maxLength: 0
+
+    YesLegalAidInLastSixMonthsBranch:
+      allOf:
+        - $ref: "#/components/schemas/YesSameMatterBranch"
+        - properties:
+            legalAidLast6Months:
+              enum:
+                - true
+            reasonForReapplication:
+              $ref: "../StringConstraints.yml#/components/schemas/NonblankString"
+          required:
+            - legalAidLast6Months
+            - reasonForReapplication
+
+    SameMatterMissingRecentAidRule:
+      allOf:
+        - $ref: "#/components/schemas/YesSameMatterBranch"
+        - not:
+            required:
+              - legalAidLast6Months

@@ -1,0 +1,54 @@
+components:
+  schemas:
+    ClientDetailsAddressRule:
+      oneOf:
+        - $ref: "#/components/schemas/ClientDetailsWithFixedAddressBranch"
+        - $ref: "#/components/schemas/ClientDetailsWithoutFixedAddressBranch"
+
+    ClientDetailsWithFixedAddressBranch:
+      properties:
+        hasFixedAddress:
+          enum:
+            - true
+      required:
+        - address
+
+    ClientDetailsWithoutFixedAddressBranch:
+      properties:
+        hasFixedAddress:
+          enum:
+            - false
+      not:
+        required:
+          - address
+
+    AddressLineOneNonblankRule:
+      not:
+        properties:
+          addressLine1:
+            $ref: "../StringConstraints.yml#/components/schemas/WhitespaceOnlyString"
+
+    AddressCountryRule:
+      oneOf:
+        - $ref: "#/components/schemas/UkAddressBranch"
+        - $ref: "#/components/schemas/NonUkAddressBranch"
+
+    UkAddressBranch:
+      properties:
+        country:
+          enum:
+            - GB
+        townOrCity:
+          $ref: "../StringConstraints.yml#/components/schemas/NonblankString"
+        postCode:
+          $ref: "../StringConstraints.yml#/components/schemas/UkPostcodeString"
+      required:
+        - townOrCity
+        - postCode
+
+    NonUkAddressBranch:
+      not:
+        properties:
+          country:
+            enum:
+              - GB

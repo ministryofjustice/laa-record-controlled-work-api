@@ -1,0 +1,22 @@
+{
+  "id": "valid-ni-number-is-preserved",
+  "operation": "createApplication",
+  "accepted": true,
+  "request": {
+    "legalAidBefore": "no",
+    "providerOfficeCode": "office",
+    "scopingQuestions": {
+      "priorLegalAid": "no"
+    },
+    "clientDetails": {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "dateOfBirth": "1990-01-01",
+      "niNumber": "AB123456D",
+      "hasFixedAddress": false
+    }
+  },
+  "preserves": {
+    "/clientDetails/niNumber": "AB123456D"
+  }
+}

@@ -1,3 +1,8 @@
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.LoaderOptions
+import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.constructor.SafeConstructor
+
 plugins {
     id 'org.openapi.generator' version '7.25.0'
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
@@ -17,9 +22,46 @@ sourceSets.main.java.srcDirs += ['generated/src/main/java']
 
 checkstyleMain.exclude "*"
 
+def applicationSpecification = file("$rootDir/record-controlled-work-api/open-api-specification.yml")
+def externalOpenApiSpecifications = file("$rootDir/record-controlled-work-api/open-api-specifications")
+def dtoGenerationDirectory = layout.buildDirectory.dir('openapi')
+def dtoGenerationSpecification = dtoGenerationDirectory.map { it.file('open-api-specification.yml') }
+
+// Generate DTOs from a derived spec; runtime validation always uses the source specification.
+tasks.register('prepareDtoGenerationSpecification') {
+    inputs.file(applicationSpecification)
+    inputs.dir(externalOpenApiSpecifications)
+    outputs.dir(dtoGenerationDirectory)
+
+    doLast {
+        def specification
+        applicationSpecification.withReader('UTF-8') { reader ->
+            specification = new Yaml(new SafeConstructor(new LoaderOptions())).load(reader)
+        }
+        // OpenAPI Generator turns composed request schemas into synthetic models and drops DTO fields.
+        // Keep composition in the source spec; NetworkNT validates it before request binding.
+        ['CreateApplicationRequestBody', 'CreateClientDetailsRequestBody', 'CreateAddressRequestBody'].each { name ->
+            def schema = specification.components.schemas[name]
+            schema.remove('allOf')
+            schema.remove('not')
+            schema.remove('oneOf')
+        }
+        def output = dtoGenerationSpecification.get().asFile
+        output.parentFile.mkdirs()
+        def options = new DumperOptions()
+        options.defaultFlowStyle = DumperOptions.FlowStyle.BLOCK
+        output.withWriter('UTF-8') { writer -> new Yaml(options).dump(specification, writer) }
+        // Keep relative external references valid from the derived spec's directory.
+        copy {
+            from externalOpenApiSpecifications
+            into new File(output.parentFile, 'open-api-specifications')
+        }
+    }
+}
+
 openApiGenerate {
     generatorName = "spring"
-    inputSpec = "$rootDir/record-controlled-work-api/open-api-specification.yml".toString()
+    inputSpec = dtoGenerationSpecification.get().asFile.toString()
     outputDir = "$rootDir/record-controlled-work-api/generated".toString()
     cleanupOutput = true
     apiPackage = "uk.gov.justice.laa.rcw.api"
@@ -37,6 +79,10 @@ openApiGenerate {
             useSpringBoot3      : "true",
             useTags             : "true",
     ]
+}
+
+tasks.named('openApiGenerate') {
+    dependsOn tasks.named('prepareDtoGenerationSpecification')
 }
 
 compileJava.dependsOn 'openApiGenerate'
