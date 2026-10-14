@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: ECR auth
         id: ecr
-        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@a6c52899d796f1e7c9691eb8d8bbeb97c028e202 # main
+        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@665b123096f599d105d3b7ae19bd4b81bcabd99a # main
         with:
           ecr_region: ${{ vars.ECR_REGION }}
           ecr_role: ${{ secrets.ECR_ROLE_TO_ASSUME }}
@@ -34,7 +34,7 @@ jobs:
   deploy:
     name: ${{ inputs.app-environment }}
     needs: ecr
-    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-deploy.yml@a6c52899d796f1e7c9691eb8d8bbeb97c028e202 # main
+    uses: ministryofjustice/laa-reusable-github-actions/.github/workflows/cp-deploy.yml@665b123096f599d105d3b7ae19bd4b81bcabd99a # main
     with:
       environment: ${{ inputs.app-environment }}
       image_registry: ${{ needs.ecr.outputs.registry }}
