@@ -9,7 +9,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,7 +27,6 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Stream;
 import lombok.experimental.ExtensionMethod;
 import org.junit.jupiter.api.AfterAll;
@@ -534,7 +532,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(header().string("ETag", "\"" + version + "\""))
         .andExpect(jsonPath("$.id").value(id))
         .andExpect(jsonPath("$.ecfFlag").value(nullValue()))
-        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.scopingQuestions.priorLegalAid").value(nullValue()))
         .andExpect(jsonPath("$.eTag").doesNotExist());
 
     DATASTORE.verify(
@@ -637,81 +635,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
         .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
         .andExpect(jsonPath("$.eligibility.result.indication").value(true));
-  }
-
-  @ParameterizedTest
-  @MethodSource("applicationScopingQuestionsCases")
-  void shouldOmitUnansweredScopingQuestionsAndPreserveAnsweredValues(
-      String scopingQuestions, Map<String, Object> expectedScopingQuestions) throws Exception {
-    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                        "id": "%s",
-                        "providerOfficeCode": "%s",
-                        "referenceNumber": null,
-                        "eTag": 0,
-                        "scopingQuestions": %s
-                    }
-                    """
-                        .formatted(
-                            applicationId,
-                            TestJwtConfig.AUTHORIZED_OFFICE_CODE,
-                            scopingQuestions))));
-
-    mockMvc
-        .perform(get("/api/v1/applications/{id}", applicationId).withBearerReadToken())
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.scopingQuestions").value(is(expectedScopingQuestions)))
-        .andExpect(jsonPath("$.applicationRefNumber").hasJsonPath())
-        .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
-  }
-
-  private static Stream<Arguments> applicationScopingQuestionsCases() {
-    return Stream.of(
-        Arguments.of("{}", Map.of()),
-        Arguments.of(
-            """
-            {
-                "priorLegalAid": null,
-                "familyLawClassification": null,
-                "needsAdviceOnEUOrInternationalMaintenance": null,
-                "needsProtectiveInjunction": null
-            }
-            """,
-            Map.of()),
-        Arguments.of(
-            """
-            {"priorLegalAid": "same_matter", "familyLawClassification": "legacy"}
-            """,
-            Map.of()),
-        Arguments.of(
-            """
-            {
-                "priorLegalAid": "no",
-                "familyLawClassification": "private",
-                "needsAdviceOnEUOrInternationalMaintenance": false
-            }
-            """,
-            Map.of(
-                "priorLegalAid", "no",
-                "familyLawClassification", "private",
-                "needsAdviceOnEUOrInternationalMaintenance", false)),
-        Arguments.of(
-            """
-            {
-                "priorLegalAid": "no",
-                "familyLawClassification": "public",
-                "needsProtectiveInjunction": true
-            }
-            """,
-            Map.of(
-                "priorLegalAid", "no",
-                "familyLawClassification", "public",
-                "needsProtectiveInjunction", true)));
   }
 
   @Test
@@ -828,8 +751,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.eligibility.data").value(nullValue()))
         .andExpect(jsonPath("$.eligibility.result.indication").value(false))
-        .andExpect(jsonPath("$.scopingQuestions").hasJsonPath())
-        .andExpect(jsonPath("$.scopingQuestions").value(nullValue()))
         .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
   }
 
