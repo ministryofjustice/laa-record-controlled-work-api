@@ -2,37 +2,20 @@ components:
   schemas:
     PriorLegalAidRule:
       oneOf:
-        - $ref: "#/components/schemas/NoPriorLegalAidBranch"
-        - $ref: "#/components/schemas/YesDifferentMatterBranch"
+        - $ref: "#/components/schemas/NoOrDifferentMatterBranch"
         - $ref: "#/components/schemas/YesSameMatterBranch"
 
-    NoPriorLegalAidBranch:
+    NoOrDifferentMatterBranch:
       properties:
-        legalAidBefore:
-          enum:
-            - 'no'
         scopingQuestions:
           properties:
             priorLegalAid:
               enum:
                 - 'no'
-
-    YesDifferentMatterBranch:
-      properties:
-        legalAidBefore:
-          enum:
-            - yesDifferentMatter
-        scopingQuestions:
-          properties:
-            priorLegalAid:
-              enum:
                 - yesDifferentMatter
 
     YesSameMatterBranch:
       properties:
-        legalAidBefore:
-          enum:
-            - yesSameMatter
         scopingQuestions:
           properties:
             priorLegalAid:
