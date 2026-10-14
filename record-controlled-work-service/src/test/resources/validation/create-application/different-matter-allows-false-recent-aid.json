@@ -1,9 +1,8 @@
 {
-  "id": "matching-different-matter-values-allow-false-recent-aid",
+  "id": "different-matter-allows-false-recent-aid",
   "operation": "createApplication",
   "accepted": true,
   "request": {
-    "legalAidBefore": "yesDifferentMatter",
     "providerOfficeCode": "office",
     "scopingQuestions": {
       "priorLegalAid": "yesDifferentMatter"
@@ -18,7 +17,6 @@
     }
   },
   "preserves": {
-    "/legalAidBefore": "yesDifferentMatter",
     "/scopingQuestions/priorLegalAid": "yesDifferentMatter",
     "/legalAidLast6Months": false,
     "/reasonForReapplication": ""

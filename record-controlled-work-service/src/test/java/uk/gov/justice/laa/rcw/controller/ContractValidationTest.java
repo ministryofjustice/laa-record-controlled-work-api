@@ -58,7 +58,7 @@ class ContractValidationTest {
 
   private static final String BASE_CREATE_CASE =
       "classpath:/validation/create-application/"
-          + "matching-same-matter-values-and-active-reason-are-preserved.json";
+          + "same-matter-and-active-reason-are-preserved.json";
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private Clock mockClock;

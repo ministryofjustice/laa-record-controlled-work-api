@@ -1,9 +1,8 @@
 {
-  "id": "matching-same-matter-values-and-active-reason-are-preserved",
+  "id": "same-matter-and-active-reason-are-preserved",
   "operation": "createApplication",
   "accepted": true,
   "request": {
-    "legalAidBefore": "yesSameMatter",
     "providerOfficeCode": "office",
     "scopingQuestions": {
       "priorLegalAid": "yesSameMatter"
@@ -18,7 +17,6 @@
     }
   },
   "preserves": {
-    "/legalAidBefore": "yesSameMatter",
     "/scopingQuestions/priorLegalAid": "yesSameMatter",
     "/legalAidLast6Months": true,
     "/reasonForReapplication": "A separate legal issue"
