@@ -415,10 +415,14 @@ components:
         priorLegalAid:
           $ref: "#/components/schemas/PriorLegalAid"
         familyLawClassification:
-          $ref: "#/components/schemas/familyLawClassification"
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/familyLawClassification"
         needsAdviceOnEUOrInternationalMaintenance:
+          nullable: true
           type: boolean
         needsProtectiveInjunction:
+          nullable: true
           type: boolean
 
     CreateClientDetailsRequestBody:
