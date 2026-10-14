@@ -92,8 +92,7 @@ class ScopingQuestionsMapperTest {
   @Test
   void shouldPreserveUnansweredAndFalseScopingAnswers() {
     ApplicationScopingQuestions legacyAnswers =
-        scopingQuestionsMapper.toApplicationScopingQuestions(
-            Map.of("priorLegalAid", "no"));
+        scopingQuestionsMapper.toApplicationScopingQuestions(Map.of("priorLegalAid", "no"));
 
     assertThat(legacyAnswers.getNeedsAdviceOnEUOrInternationalMaintenance()).isNull();
     assertThat(legacyAnswers.getNeedsProtectiveInjunction()).isNull();
