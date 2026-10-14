@@ -32,6 +32,13 @@ Includes the following subprojects:
 - `record-controlled-work-api` - OpenAPI specification used for generating API stub interfaces and documentation.
 - `record-controlled-work-service` - REST API service with CRUD operations interfacing a JPA repository with an in-memory database.
 
+### Application response serialization
+
+Unanswered optional fields in `scopingQuestions` are omitted from application responses, as required
+by the OpenAPI schema. Answered `false` and `true` values are preserved. This uses a targeted Jackson
+mixin; nullable application fields, including `scopingQuestions` itself, retain their existing JSON
+representation.
+
 ## Setup Instructions
 
 ### Install pre-hook commits
