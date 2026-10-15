@@ -411,33 +411,18 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/privateFamilyCaseScope"
+        careProceedingsStarted:
+          nullable: true
+          type: boolean
+        careProceedingsParentalResponsibility:
+          nullable: true
+          type: boolean
+        caseMeetsMeritsCriteria:
+          nullable: true
+          type: boolean
       allOf:
-        - oneOf:
-            - required:
-                - familyLawClassification
-                - needsAdviceOnEUOrInternationalMaintenance
-              properties:
-                familyLawClassification:
-                  enum:
-                    - private
-                needsAdviceOnEUOrInternationalMaintenance:
-                  enum:
-                    - true
-                    - false
-            - required:
-                - familyLawClassification
-              properties:
-                familyLawClassification:
-                  enum:
-                    - public
-              not:
-                required:
-                  - needsAdviceOnEUOrInternationalMaintenance
-                properties:
-                  needsAdviceOnEUOrInternationalMaintenance:
-                    enum:
-                      - true
-                      - false
+        - $ref: "./open-api-specifications/validation/CreateApplication/FamilyLaw.yml#/components/schemas/FamilyLawRule"
+        - $ref: "./open-api-specifications/validation/CreateApplication/ScopingQuestions.yml#/components/schemas/MeritsCriteriaRule"
 
     ApplicationScopingQuestions:
       type: object
@@ -459,6 +444,15 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/privateFamilyCaseScope"
+        careProceedingsStarted:
+          nullable: true
+          type: boolean
+        careProceedingsParentalResponsibility:
+          nullable: true
+          type: boolean
+        caseMeetsMeritsCriteria:
+          nullable: true
+          type: boolean
 
     CreateClientDetailsRequestBody:
       additionalProperties: false
@@ -552,14 +546,6 @@ components:
           type: boolean
         clientDetails:
           $ref: "#/components/schemas/UpdateClientDetailsRequestBody"
-      allOf:
-        - properties:
-            scopingQuestions:
-              required:
-                - priorLegalAid
-                - familyLawClassification
-                - needsAdviceOnEUOrInternationalMaintenance
-                - needsProtectiveInjunction
 
     UpdateClientDetailsRequestBody:
       type: object
@@ -974,6 +960,7 @@ components:
     privateFamilyCaseScope:
       type: string
       enum:
+        - none
         - domesticAbuse
         - childAbuse
         - under18

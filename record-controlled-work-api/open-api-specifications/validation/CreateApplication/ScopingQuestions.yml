@@ -1,0 +1,8 @@
+components:
+  schemas:
+    MeritsCriteriaRule:
+      required:
+        - caseMeetsMeritsCriteria
+      properties:
+        caseMeetsMeritsCriteria:
+          enum: [true]
