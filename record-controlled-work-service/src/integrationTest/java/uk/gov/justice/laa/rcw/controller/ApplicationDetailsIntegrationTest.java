@@ -157,7 +157,8 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -227,7 +228,8 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -307,7 +309,8 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -640,7 +643,8 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                                                 "priorLegalAid": "no",
                                                 "familyLawClassification": "private",
                                                 "needsAdviceOnEUOrInternationalMaintenance": false,
-                                                "needsProtectiveInjunction": false
+                                                "needsProtectiveInjunction": false,
+                                                "privateFamilyCaseScope": "domesticAbuse"
                                             },
                       "clientDetails": {
                         "firstName": "Test",

@@ -261,7 +261,8 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
                         "priorLegalAid": "no",
                         "familyLawClassification": "private",
                         "needsAdviceOnEUOrInternationalMaintenance": false,
-                        "needsProtectiveInjunction": false
+                        "needsProtectiveInjunction": false,
+                        "privateFamilyCaseScope": "domesticAbuse"
                       },
                       "clientDetails": {
                         "firstName": "Ada",
