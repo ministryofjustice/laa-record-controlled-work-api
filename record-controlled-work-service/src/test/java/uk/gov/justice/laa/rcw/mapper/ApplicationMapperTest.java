@@ -334,7 +334,7 @@ class ApplicationMapperTest {
     assertThat(result.getEcfFlag_JsonNullable().get()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
     Map<String, Object> expectedScopingQuestions =
-      new HashMap<>(
+        new HashMap<>(
             Map.of(
                 "priorLegalAid",
                 "yesSameMatter",
@@ -344,8 +344,8 @@ class ApplicationMapperTest {
                 false,
                 "needsProtectiveInjunction",
                 false));
-          expectedScopingQuestions.put("privateFamilyCaseScope", null);
-          assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
+    expectedScopingQuestions.put("privateFamilyCaseScope", null);
+    assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getUfn()).isNull();
     assertThat(result.getLaaReference()).isNull();
     assertThat(result.getMeansAssessmentRequired()).isNull();
@@ -421,7 +421,7 @@ class ApplicationMapperTest {
                 "familyLawClassification", "public",
                 "needsProtectiveInjunction", false));
     expectedScopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", null);
-          expectedScopingQuestions.put("privateFamilyCaseScope", null);
+    expectedScopingQuestions.put("privateFamilyCaseScope", null);
     assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().isPresent()).isTrue();
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().get()).isNull();
