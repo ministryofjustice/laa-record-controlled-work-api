@@ -1,0 +1,146 @@
+components:
+  schemas:
+    # Select the branch matching the required family-law classification.
+    FamilyLawRule:
+      oneOf:
+        - $ref: "#/components/schemas/PrivateFamilyLawBranch"
+        - $ref: "#/components/schemas/PublicFamilyLawBranch"
+
+    # Private cases answer maintenance advice, then follow the reached-question gates.
+    PrivateFamilyLawBranch:
+      allOf:
+        - required: [familyLawClassification, needsAdviceOnEUOrInternationalMaintenance]
+          properties:
+            familyLawClassification:
+              enum: [private]
+            needsAdviceOnEUOrInternationalMaintenance:
+              enum: [true, false]
+        - $ref: "#/components/schemas/ProtectiveInjunctionRule"
+        - $ref: "#/components/schemas/PrivateFamilyCaseScopeRule"
+        - $ref: "#/components/schemas/PublicBranchIsNullRule"
+
+    # In private cases, public-branch answers must be null or absent.
+    PublicBranchIsNullRule:
+      properties:
+        careProceedingsStarted:
+          enum: [null]
+        careProceedingsParentalResponsibility:
+          enum: [null]
+
+    # Public cases skip private-law questions and answer about care proceedings.
+    PublicFamilyLawBranch:
+      allOf:
+        - required: [familyLawClassification, careProceedingsStarted]
+          properties:
+            familyLawClassification:
+              enum: [public]
+            careProceedingsStarted:
+              enum: [true, false]
+        - $ref: "#/components/schemas/PrivateBranchIsNullRule"
+        - $ref: "#/components/schemas/CareProceedingsParentalResponsibilityRule"
+
+    # In public cases, private-branch answers must be null or absent.
+    PrivateBranchIsNullRule:
+      properties:
+        needsAdviceOnEUOrInternationalMaintenance:
+          enum: [null]
+        needsProtectiveInjunction:
+          enum: [null]
+        privateFamilyCaseScope:
+          enum: [null]
+
+    # The injunction question is reached only for private cases answering false to maintenance advice.
+    ProtectiveInjunctionRule:
+      oneOf:
+        # When reached, require a boolean answer.
+        - allOf:
+            - $ref: "#/components/schemas/ProtectiveInjunctionReached"
+          required: [needsProtectiveInjunction]
+          properties:
+            needsProtectiveInjunction:
+              enum: [true, false]
+        # Otherwise, the skipped answer must be null or absent.
+        - not:
+            $ref: "#/components/schemas/ProtectiveInjunctionReached"
+          properties:
+            needsProtectiveInjunction:
+              enum: [null]
+
+    # Prerequisite for the injunction question: private classification and maintenance advice=false.
+    ProtectiveInjunctionReached:
+      required: [needsAdviceOnEUOrInternationalMaintenance]
+      properties:
+        familyLawClassification:
+          enum: [private]
+        needsAdviceOnEUOrInternationalMaintenance:
+          enum: [false]
+
+    # The private-case scope question is reached only when the injunction answer is false.
+    PrivateFamilyCaseScopeRule:
+      oneOf:
+        # When reached, require a non-null scope.
+        - allOf:
+            - $ref: "#/components/schemas/PrivateFamilyCaseScopeReached"
+          required: [privateFamilyCaseScope]
+          properties:
+            privateFamilyCaseScope:
+              not:
+                enum: [null]
+        # Otherwise, the skipped answer must be null or absent.
+        - not:
+            $ref: "#/components/schemas/PrivateFamilyCaseScopeReached"
+          properties:
+            privateFamilyCaseScope:
+              enum: [null]
+
+    # Prerequisite for private-case scope: private, maintenance advice=false, and injunction=false.
+    PrivateFamilyCaseScopeReached:
+      allOf:
+        - $ref: "#/components/schemas/ProtectiveInjunctionReached"
+      required: [needsProtectiveInjunction]
+      properties:
+        needsProtectiveInjunction:
+          enum: [false]
+
+    # Public cases require the care-proceedings answer; private cases skip it.
+    CareProceedingsStartedRule:
+      oneOf:
+        # Public classification: require a boolean answer.
+        - required: [careProceedingsStarted]
+          properties:
+            familyLawClassification:
+              enum: [public]
+            careProceedingsStarted:
+              enum: [true, false]
+        # Private classification: care proceedings must be null or absent.
+        - properties:
+            familyLawClassification:
+              enum: [private]
+            careProceedingsStarted:
+              enum: [null]
+
+    # Parental responsibility is asked only when public care proceedings have started.
+    CareProceedingsParentalResponsibilityRule:
+      oneOf:
+        # When reached, require a boolean answer.
+        - allOf:
+            - $ref: "#/components/schemas/CareProceedingsParentalResponsibilityReached"
+          required: [careProceedingsParentalResponsibility]
+          properties:
+            careProceedingsParentalResponsibility:
+              enum: [true, false]
+        # Otherwise, the skipped answer must be null or absent.
+        - not:
+            $ref: "#/components/schemas/CareProceedingsParentalResponsibilityReached"
+          properties:
+            careProceedingsParentalResponsibility:
+              enum: [null]
+
+    # Prerequisite for parental responsibility: public classification and careProceedingsStarted=true.
+    CareProceedingsParentalResponsibilityReached:
+      required: [careProceedingsStarted]
+      properties:
+        familyLawClassification:
+          enum: [public]
+        careProceedingsStarted:
+          enum: [true]
