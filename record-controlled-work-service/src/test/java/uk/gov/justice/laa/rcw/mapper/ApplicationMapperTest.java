@@ -27,6 +27,7 @@ import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -184,7 +185,9 @@ class ApplicationMapperTest {
                     "needsAdviceOnEUOrInternationalMaintenance",
                     false,
                     "needsProtectiveInjunction",
-                    false))
+                    false,
+                    "privateFamilyCaseScope",
+                    "domesticAbuse"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
@@ -215,7 +218,8 @@ class ApplicationMapperTest {
                 .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(false));
+                .needsProtectiveInjunction(false)
+                .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");

@@ -47,6 +47,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -601,7 +602,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         },
                         "applicationType": "CONTROLLED_WORK",
                         "declaration": {
@@ -630,6 +632,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(
             jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(false))
         .andExpect(jsonPath("$.scopingQuestions.needsProtectiveInjunction").value(false))
+        .andExpect(jsonPath("$.scopingQuestions.privateFamilyCaseScope").value("domesticAbuse"))
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
@@ -899,7 +902,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                             .familyLawClassification(FamilyLawClassification.PRIVATE)
                             .needsAdviceOnEUOrInternationalMaintenance(false)
-                            .needsProtectiveInjunction(false)));
+                            .needsProtectiveInjunction(false)
+                            .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)));
     request.getClientDetails().setNiNumber(niNumber);
     request.getClientDetails().getAddress().setAddressLine3("");
     request.getClientDetails().getAddress().setAddressLine4("");
@@ -1020,7 +1024,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         }
                     }
                     """)));
