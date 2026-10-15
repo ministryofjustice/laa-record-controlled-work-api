@@ -7,7 +7,12 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import uk.gov.justice.laa.rcw.model.*;
+import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
+import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
+import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
 class ScopingQuestionsMapperTest {
 
