@@ -8,9 +8,12 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Clock;
@@ -35,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaConfiguration;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
+import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
 import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
@@ -56,9 +60,6 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
     })
 class ContractValidationTest {
 
-  private static final String BASE_CREATE_CASE =
-      "classpath:/validation/create-application/"
-          + "same-matter-and-active-reason-are-preserved.json";
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private Clock mockClock;
@@ -103,13 +104,18 @@ class ContractValidationTest {
   }
 
   private MockHttpServletRequestBuilder createRequest(String dateOfBirth) throws IOException {
-    Resource resource = new PathMatchingResourcePatternResolver().getResource(BASE_CREATE_CASE);
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode contractCase;
-    try (var input = resource.getInputStream()) {
-      contractCase = mapper.readTree(input);
-    }
-    ObjectNode request = ((ObjectNode) contractCase.path("request")).deepCopy();
+    ObjectMapper mapper =
+        new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    ObjectNode request =
+        mapper.valueToTree(
+            CreateApplicationRequestGenerator.createWithName(
+                builder ->
+                    builder
+                        .legalAidLast6Months(true)
+                        .reasonForReapplication("A separate legal issue")));
     ((ObjectNode) request.path("clientDetails")).put("dateOfBirth", dateOfBirth);
     return post("/api/v1/applications")
         .contentType(MediaType.APPLICATION_JSON)

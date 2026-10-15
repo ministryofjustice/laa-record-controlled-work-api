@@ -56,7 +56,13 @@ tasks.register('prepareDtoGenerationSpecification') {
         }
         // OpenAPI Generator turns composed request schemas into synthetic models and drops DTO fields.
         // Keep composition in the source spec; NetworkNT validates it before request binding.
-        ['CreateApplicationRequestBody', 'CreateClientDetailsRequestBody', 'CreateAddressRequestBody'].each { name ->
+        [
+            'CreateApplicationRequestBody',
+            'CreateClientDetailsRequestBody',
+            'CreateAddressRequestBody',
+            'ScopingQuestions',
+            'UpdateApplicationDetailsRequestBody'
+        ].each { name ->
             def schema = specification.components.schemas[name]
             schema.remove('allOf')
             schema.remove('not')

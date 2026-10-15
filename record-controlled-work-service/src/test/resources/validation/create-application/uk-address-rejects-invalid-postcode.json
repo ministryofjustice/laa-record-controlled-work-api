@@ -2,11 +2,9 @@
   "id": "uk-address-rejects-invalid-postcode",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

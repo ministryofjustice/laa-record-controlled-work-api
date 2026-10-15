@@ -2,11 +2,9 @@
   "id": "recent-aid-outside-same-matter-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "legalAidLast6Months": true,
     "clientDetails": {
       "firstName": "Ada",

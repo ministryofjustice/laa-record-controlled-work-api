@@ -2,20 +2,18 @@
   "id": "required-names-accept-whitespace-and-empty-values",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
-      "firstName": "\u2003",
+      "firstName": " ",
       "lastName": "",
       "dateOfBirth": "1990-01-01",
       "hasFixedAddress": false
     }
   },
   "preserves": {
-    "/clientDetails/firstName": "\u2003",
+    "/clientDetails/firstName": " ",
     "/clientDetails/lastName": ""
   }
 }

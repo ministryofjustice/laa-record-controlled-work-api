@@ -2,18 +2,16 @@
   "id": "unicode-whitespace-address-line-one-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",
       "dateOfBirth": "1990-01-01",
       "hasFixedAddress": true,
       "address": {
-        "addressLine1": "\u2003\u00a0",
+        "addressLine1": "  ",
         "country": "FR"
       }
     }

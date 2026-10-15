@@ -43,11 +43,11 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
+import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -58,23 +58,6 @@ import uk.gov.justice.laa.rcw.utils.extensions.MockHttpServletRequestBuilderExte
 class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
   private static final String SERVICE_NAME = "laa-record-controlled-work-api";
-  private static final String VALID_DETAILS_PUT_BODY =
-      """
-      {
-          "priorLegalAid": "no",
-          "legalAidLast6Months": false,
-          "reasonForReapplication": null,
-          "ecfFlag": true,
-          "clientDetails": {
-              "firstName": "Test",
-              "lastName": "Client",
-              "dateOfBirth": "1990-01-01",
-              "niNumber": null,
-              "hasFixedAddress": false,
-              "address": null
-          }
-      }
-      """;
   private static final String UUID_REGEX =
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
   private static final WireMockServer DATASTORE =
@@ -364,7 +347,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             "eTag": 31,
             "reasonForReapplication": null,
             "ecfFlag": true,
-            "scopingQuestions": {"priorLegalAid": "no"},
+            "scopingQuestions": {
+                "priorLegalAid": "no",
+                "familyLawClassification": "public",
+                "needsAdviceOnEUOrInternationalMaintenance": null,
+                "needsProtectiveInjunction": false,
+                "privateFamilyCaseScope": "domesticAbuse"
+            },
             "clientDetails": {
                 "firstName": "Test",
                 "lastName": "Client",
@@ -408,7 +397,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .header("If-Match", "\"31\"")
                 .header("X-Correlation-ID", "details-edit-correlation")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(VALID_DETAILS_PUT_BODY))
+                .content(validFamilyPublicUpdate()))
         .andExpect(status().isNoContent())
         .andExpect(header().string("ETag", "\"32\""));
 
@@ -433,7 +422,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                           "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "public",
+                            "needsAdviceOnEUOrInternationalMaintenance": null,
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -898,12 +893,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
                     .scopingQuestions(
-                        new CreateScopingQuestions()
-                            .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                            .familyLawClassification(FamilyLawClassification.PRIVATE)
-                            .needsAdviceOnEUOrInternationalMaintenance(false)
-                            .needsProtectiveInjunction(false)
-                            .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)));
+                        ScopingQuestionsGenerator.valid(PriorLegalAid.YES_SAME_MATTER)));
     request.getClientDetails().setNiNumber(niNumber);
     request.getClientDetails().getAddress().setAddressLine3("");
     request.getClientDetails().getAddress().setAddressLine4("");
@@ -1303,7 +1293,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                       "eTag": 31,
                       "reasonForReapplication": null,
                       "ecfFlag": true,
-                      "scopingQuestions": {"priorLegalAid": "no"},
+                                            "scopingQuestions": {
+                                                "priorLegalAid": "no",
+                                                "familyLawClassification": "public",
+                                                "needsAdviceOnEUOrInternationalMaintenance": null,
+                                                "needsProtectiveInjunction": false,
+                                                "privateFamilyCaseScope": "domesticAbuse"
+                                            },
                       "clientDetails": {
                         "firstName": "Test",
                         "lastName": "Client",
@@ -1438,7 +1434,16 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .withBearerWriteToken()
             .header("If-Match", "\"31\"")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(VALID_DETAILS_PUT_BODY));
+            .content(validFamilyPublicUpdate()));
+  }
+
+  private String validFamilyPublicUpdate() throws Exception {
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
+    request.setScopingQuestions(
+        ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
+            .familyLawClassification(FamilyLawClassification.PUBLIC)
+            .needsAdviceOnEUOrInternationalMaintenance(null));
+    return toJson(request);
   }
 
   private static String applicationDetailsResponse(String id, long version, String firstName) {

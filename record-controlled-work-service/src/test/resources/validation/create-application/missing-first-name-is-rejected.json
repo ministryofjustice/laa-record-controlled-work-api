@@ -2,11 +2,9 @@
   "id": "missing-first-name-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
       "lastName": "Lovelace",
       "dateOfBirth": "1990-01-01",
