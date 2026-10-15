@@ -27,7 +27,8 @@ class ScopingQuestionsMapperTest {
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
                     .needsAdviceOnEUOrInternationalMaintenance(false)
                     .needsProtectiveInjunction(false)
-                    .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)))
+                    .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
+                    .caseMeetsMeritsCriteria(false)))
         .isEqualTo(
             Map.of(
                 "priorLegalAid",
@@ -39,7 +40,9 @@ class ScopingQuestionsMapperTest {
                 "needsProtectiveInjunction",
                 false,
                 "privateFamilyCaseScope",
-                "domesticAbuse"));
+                "domesticAbuse",
+                "caseMeetsMeritsCriteria",
+                false));
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new ScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
@@ -50,11 +53,18 @@ class ScopingQuestionsMapperTest {
     Map<String, Object> expected =
         new HashMap<>(
             Map.of(
-                "priorLegalAid", "no",
-                "familyLawClassification", "public",
-                "needsProtectiveInjunction", false));
+                "priorLegalAid",
+                "no",
+                "familyLawClassification",
+                "public",
+                "careProceedingsStarted",
+                false,
+                "caseMeetsMeritsCriteria",
+                false));
     expected.put("needsAdviceOnEUOrInternationalMaintenance", null);
+    expected.put("needsProtectiveInjunction", null);
     expected.put("privateFamilyCaseScope", null);
+    expected.put("careProceedingsParentalResponsibility", null);
     UpdateApplicationDetailsRequestBody request =
         new UpdateApplicationDetailsRequestBody()
             .scopingQuestions(
@@ -62,7 +72,11 @@ class ScopingQuestionsMapperTest {
                     .priorLegalAid(PriorLegalAid.NO)
                     .familyLawClassification(FamilyLawClassification.PUBLIC)
                     .needsAdviceOnEUOrInternationalMaintenance(null)
-                    .needsProtectiveInjunction(false));
+                    .needsProtectiveInjunction(null)
+                    .privateFamilyCaseScope(null)
+                    .careProceedingsStarted(false)
+                    .careProceedingsParentalResponsibility(null)
+                    .caseMeetsMeritsCriteria(false));
 
     assertThat(
             scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(
@@ -131,12 +145,16 @@ class ScopingQuestionsMapperTest {
     answers.put("priorLegalAid", "no");
     answers.put("needsAdviceOnEUOrInternationalMaintenance", null);
     answers.put("needsProtectiveInjunction", false);
+    answers.put("careProceedingsStarted", false);
+    answers.put("caseMeetsMeritsCriteria", false);
 
     assertThat(scopingQuestionsMapper.toApplicationScopingQuestions(answers))
         .isEqualTo(
             new ApplicationScopingQuestions()
                 .priorLegalAid(PriorLegalAid.NO)
                 .needsAdviceOnEUOrInternationalMaintenance(null)
-                .needsProtectiveInjunction(false));
+                .needsProtectiveInjunction(false)
+                .careProceedingsStarted(false)
+                .caseMeetsMeritsCriteria(false));
   }
 }

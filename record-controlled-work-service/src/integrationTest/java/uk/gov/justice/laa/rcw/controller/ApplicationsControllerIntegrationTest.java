@@ -351,8 +351,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 "priorLegalAid": "no",
                 "familyLawClassification": "public",
                 "needsAdviceOnEUOrInternationalMaintenance": null,
-                "needsProtectiveInjunction": false,
-                "privateFamilyCaseScope": "domesticAbuse"
+                "needsProtectiveInjunction": null,
+                "privateFamilyCaseScope": null,
+                "careProceedingsStarted": false,
+                "careProceedingsParentalResponsibility": null,
+                "caseMeetsMeritsCriteria": true
             },
             "clientDetails": {
                 "firstName": "Test",
@@ -426,8 +429,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "needsProtectiveInjunction": null,
+                            "privateFamilyCaseScope": null,
+                            "careProceedingsStarted": false,
+                            "careProceedingsParentalResponsibility": null,
+                            "caseMeetsMeritsCriteria": true
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -628,6 +634,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(false))
         .andExpect(jsonPath("$.scopingQuestions.needsProtectiveInjunction").value(false))
         .andExpect(jsonPath("$.scopingQuestions.privateFamilyCaseScope").value("domesticAbuse"))
+        .andExpect(jsonPath("$.scopingQuestions.careProceedingsStarted").doesNotExist())
+        .andExpect(
+            jsonPath("$.scopingQuestions.careProceedingsParentalResponsibility").doesNotExist())
+        .andExpect(jsonPath("$.scopingQuestions.caseMeetsMeritsCriteria").doesNotExist())
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
@@ -1015,7 +1025,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "privateFamilyCaseScope": "domesticAbuse",
+                            "caseMeetsMeritsCriteria": true
                         }
                     }
                     """)));
@@ -1297,8 +1308,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "priorLegalAid": "no",
                                                 "familyLawClassification": "public",
                                                 "needsAdviceOnEUOrInternationalMaintenance": null,
-                                                "needsProtectiveInjunction": false,
-                                                "privateFamilyCaseScope": "domesticAbuse"
+                                                "needsProtectiveInjunction": null,
+                                                "privateFamilyCaseScope": null,
+                                                "careProceedingsStarted": false,
+                                                "careProceedingsParentalResponsibility": null,
+                                                "caseMeetsMeritsCriteria": true
                                             },
                       "clientDetails": {
                         "firstName": "Test",
@@ -1442,7 +1456,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     request.setScopingQuestions(
         ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
             .familyLawClassification(FamilyLawClassification.PUBLIC)
-            .needsAdviceOnEUOrInternationalMaintenance(null));
+            .needsAdviceOnEUOrInternationalMaintenance(null)
+            .needsProtectiveInjunction(null)
+            .privateFamilyCaseScope(null)
+            .careProceedingsStarted(false)
+            .careProceedingsParentalResponsibility(null)
+            .caseMeetsMeritsCriteria(true));
     return toJson(request);
   }
 

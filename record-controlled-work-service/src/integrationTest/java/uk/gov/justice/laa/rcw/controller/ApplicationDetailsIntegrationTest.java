@@ -39,6 +39,8 @@ import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -158,7 +160,10 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "privateFamilyCaseScope": "domesticAbuse",
+                            "careProceedingsStarted": null,
+                            "careProceedingsParentalResponsibility": null,
+                            "caseMeetsMeritsCriteria": true
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -229,7 +234,10 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "privateFamilyCaseScope": "domesticAbuse",
+                            "careProceedingsStarted": null,
+                            "careProceedingsParentalResponsibility": null,
+                            "caseMeetsMeritsCriteria": true
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -251,7 +259,12 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
     request.setScopingQuestions(
         ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
             .familyLawClassification(FamilyLawClassification.PUBLIC)
-            .needsAdviceOnEUOrInternationalMaintenance(null));
+            .needsAdviceOnEUOrInternationalMaintenance(null)
+            .needsProtectiveInjunction(null)
+            .privateFamilyCaseScope(null)
+            .careProceedingsStarted(false)
+            .careProceedingsParentalResponsibility(null)
+            .caseMeetsMeritsCriteria(true));
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo(path))
             .willReturn(
@@ -309,8 +322,11 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "needsProtectiveInjunction": null,
+                            "privateFamilyCaseScope": null,
+                            "careProceedingsStarted": false,
+                            "careProceedingsParentalResponsibility": null,
+                            "caseMeetsMeritsCriteria": true
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -322,6 +338,128 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         }
                     }
                     """)));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("branchEditSnapshots")
+  void shouldPersistActiveAnswersAndClearSkippedAnswers(
+      String branch, ScopingQuestions scopingQuestions, String expectedAnswers) throws Exception {
+    String id = UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(okJson(applicationDetailsResponse(id, 31, "Test"))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
+    request.setScopingQuestions(scopingQuestions);
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", id)
+                .withBearerWriteToken()
+                .header("If-Match", "\"31\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(request)))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"32\""));
+
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 31,
+                        "reasonForReapplication": null,
+                        "ecfFlag": true,
+                        "scopingQuestions": %s,
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "noFixedAbode": true,
+                            "address": null
+                        }
+                    }
+                    """
+                        .formatted(expectedAnswers))));
+  }
+
+  private static Stream<Arguments> branchEditSnapshots() {
+    return Stream.of(
+        Arguments.of(
+            "private maintenance shortcut",
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(true)
+                .caseMeetsMeritsCriteria(true),
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":true,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """),
+        Arguments.of(
+            "private injunction shortcut",
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(false)
+                .needsProtectiveInjunction(true)
+                .caseMeetsMeritsCriteria(true),
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """),
+        Arguments.of(
+            "private completed dropout",
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PRIVATE)
+                .needsAdviceOnEUOrInternationalMaintenance(false)
+                .needsProtectiveInjunction(false)
+                .privateFamilyCaseScope(PrivateFamilyCaseScope.NONE)
+                .caseMeetsMeritsCriteria(true),
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+             "privateFamilyCaseScope":"none","careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """),
+        Arguments.of(
+            "public care proceedings started",
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PUBLIC)
+                .careProceedingsStarted(true)
+                .careProceedingsParentalResponsibility(true)
+                .caseMeetsMeritsCriteria(true),
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":true,
+             "careProceedingsParentalResponsibility":true,"caseMeetsMeritsCriteria":true}
+            """),
+        Arguments.of(
+            "public care proceedings not started",
+            new ScopingQuestions()
+                .priorLegalAid(PriorLegalAid.NO)
+                .familyLawClassification(FamilyLawClassification.PUBLIC)
+                .careProceedingsStarted(false)
+                .caseMeetsMeritsCriteria(true),
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":false,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """));
   }
 
   @Test
@@ -644,7 +782,10 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                                                 "familyLawClassification": "private",
                                                 "needsAdviceOnEUOrInternationalMaintenance": false,
                                                 "needsProtectiveInjunction": false,
-                                                "privateFamilyCaseScope": "domesticAbuse"
+                                                "privateFamilyCaseScope": "domesticAbuse",
+                                                "careProceedingsStarted": null,
+                                                "careProceedingsParentalResponsibility": null,
+                                                "caseMeetsMeritsCriteria": true
                                             },
                       "clientDetails": {
                         "firstName": "Test",
