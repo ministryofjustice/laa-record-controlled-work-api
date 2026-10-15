@@ -407,6 +407,10 @@ components:
         needsProtectiveInjunction:
           nullable: true
           type: boolean
+        privateFamilyCaseScope:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/privateFamilyCaseScope"
 
     ApplicationScopingQuestions:
       type: object
@@ -424,6 +428,10 @@ components:
         needsProtectiveInjunction:
           nullable: true
           type: boolean
+        privateFamilyCaseScope:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/privateFamilyCaseScope"
 
     CreateClientDetailsRequestBody:
       additionalProperties: false
@@ -927,6 +935,14 @@ components:
       enum:
         - public
         - private
+
+    privateFamilyCaseScope:
+      type: string
+      enum:
+        - domesticAbuse
+        - childAbuse
+        - under18
+        - parentOrGuardian
 
     ProblemDetail:
       type: object

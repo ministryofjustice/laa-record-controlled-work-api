@@ -7,11 +7,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
-import uk.gov.justice.laa.rcw.model.CreateScopingQuestions;
-import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
-import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
+import uk.gov.justice.laa.rcw.model.*;
 
 class ScopingQuestionsMapperTest {
 
@@ -25,7 +21,8 @@ class ScopingQuestionsMapperTest {
                     .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
                     .needsAdviceOnEUOrInternationalMaintenance(false)
-                    .needsProtectiveInjunction(false)))
+                    .needsProtectiveInjunction(false)
+                    .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)))
         .isEqualTo(
             Map.of(
                 "priorLegalAid",
@@ -35,7 +32,9 @@ class ScopingQuestionsMapperTest {
                 "needsAdviceOnEUOrInternationalMaintenance",
                 false,
                 "needsProtectiveInjunction",
-                false));
+                false,
+                "privateFamilyCaseScope",
+                "domesticAbuse"));
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new CreateScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
