@@ -351,7 +351,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 "priorLegalAid": "no",
                 "familyLawClassification": "public",
                 "needsAdviceOnEUOrInternationalMaintenance": null,
-                "needsProtectiveInjunction": false
+                "needsProtectiveInjunction": false,
+                "privateFamilyCaseScope": "domesticAbuse"
             },
             "clientDetails": {
                 "firstName": "Test",
@@ -425,7 +426,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "priorLegalAid": "no",
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": false
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
                         },
                         "clientDetails": {
                             "firstName": "Test",
@@ -1295,7 +1297,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "priorLegalAid": "no",
                                                 "familyLawClassification": "public",
                                                 "needsAdviceOnEUOrInternationalMaintenance": null,
-                                                "needsProtectiveInjunction": false
+                                                "needsProtectiveInjunction": false,
+                                                "privateFamilyCaseScope": "domesticAbuse"
                                             },
                       "clientDetails": {
                         "firstName": "Test",
