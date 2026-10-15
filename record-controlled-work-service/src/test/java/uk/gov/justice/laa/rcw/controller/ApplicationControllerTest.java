@@ -445,10 +445,12 @@ class ApplicationControllerTest {
   }
 
   @ParameterizedTest
-  @MethodSource("validDetailsScopingAnswers")
-  void updateApplicationDetails_acceptsValidScopingBranches(
-      String familyLawClassification, Boolean needsMaintenanceAdvice) throws Exception {
-    ObjectNode request = detailsRequestWithScoping(familyLawClassification, needsMaintenanceAdvice);
+  @MethodSource("validScopingQuestionBranches")
+  void updateApplicationDetails_acceptsRawBranchConsistentScopingQuestions(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
     stubSuccessfulDetailsEdit();
 
     performDetailsPut("\"0\"", request.toString()).andExpect(status().isNoContent());
@@ -457,64 +459,335 @@ class ApplicationControllerTest {
         .updateApplicationDetails(eq(UUID.fromString(DETAILS_APPLICATION_ID)), any(), eq(0L));
   }
 
-  private static Stream<Arguments> validDetailsScopingAnswers() {
+  @ParameterizedTest
+  @MethodSource("invalidScopingQuestionBranches")
+  void updateApplicationDetails_rejectsRawInvalidScopingQuestions(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+
+    assertInvalidDetails(request);
+  }
+
+  @ParameterizedTest
+  @MethodSource("validScopingQuestionBranches")
+  void createApplication_acceptsRawBranchConsistentScopingQuestions(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isCreated());
+
+    verify(mockApplicationCreationService).createApplication(any());
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidScopingQuestionBranches")
+  void createApplication_rejectsRawInvalidScopingQuestions(String scopingQuestions)
+      throws Exception {
+    ObjectMapper mapper = createRequestMapper();
+    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
+    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(request.toString()))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  private static Stream<String> validScopingQuestionBranches() {
+    return Stream.concat(
+        Stream.of(
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":true,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
+             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,
+             "caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+             "privateFamilyCaseScope":"none","careProceedingsStarted":null,
+             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+             "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+             "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "careProceedingsStarted":false,"careProceedingsParentalResponsibility":null,
+             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,
+             "caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "careProceedingsStarted":false,"caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "careProceedingsStarted":true,"careProceedingsParentalResponsibility":false,
+             "caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"public",
+             "careProceedingsStarted":true,"careProceedingsParentalResponsibility":true,
+             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
+             "privateFamilyCaseScope":null,
+             "caseMeetsMeritsCriteria":true}
+            """,
+            """
+            {"priorLegalAid":"no","familyLawClassification":"private",
+             "needsAdviceOnEUOrInternationalMaintenance":false,
+             "needsProtectiveInjunction":false,"privateFamilyCaseScope":"domesticAbuse",
+             "caseMeetsMeritsCriteria":true}
+            """),
+        Stream.of("domesticAbuse", "childAbuse", "under18", "parentOrGuardian")
+            .map(
+                scope ->
+                    """
+                    {"priorLegalAid":"no","familyLawClassification":"private",
+                     "needsAdviceOnEUOrInternationalMaintenance":false,
+                     "needsProtectiveInjunction":false,"privateFamilyCaseScope":"%s",
+                     "caseMeetsMeritsCriteria":true}
+                    """
+                        .formatted(scope)));
+  }
+
+  private static Stream<String> invalidScopingQuestionBranches() {
     return Stream.of(
-        Arguments.of("private", true),
-        Arguments.of("private", false),
-        Arguments.of("public", null));
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":null,"caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":null}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":"none"}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":null}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
+         "privateFamilyCaseScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":true,"caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":true,
+         "needsProtectiveInjunction":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":"invalid","caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":true,
+         "careProceedingsParentalResponsibility":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":true,"careProceedingsParentalResponsibility":false,
+         "caseMeetsMeritsCriteria":true,"needsAdviceOnEUOrInternationalMaintenance":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":"false","caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":"false"}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":"none","unexpected":true}
+        """,
+        """
+        {"familyLawClassification":"public","careProceedingsStarted":false,
+         "caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","careProceedingsStarted":false,
+         "caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":null,
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
+         "privateFamilyCaseScope":null,"caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":null,"caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":true,"careProceedingsParentalResponsibility":null,
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":null,"familyLawClassification":"public",
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":null,
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":"false",
+         "needsProtectiveInjunction":false,"privateFamilyCaseScope":"domesticAbuse",
+         "caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":"false",
+         "privateFamilyCaseScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":true,
+         "careProceedingsStarted":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"private",
+         "needsAdviceOnEUOrInternationalMaintenance":true,"caseMeetsMeritsCriteria":true,
+         "careProceedingsParentalResponsibility":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":true,
+         "needsProtectiveInjunction":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":false,"caseMeetsMeritsCriteria":true,
+         "privateFamilyCaseScope":"none"}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":true,"careProceedingsParentalResponsibility":false,
+         "caseMeetsMeritsCriteria":true,"needsProtectiveInjunction":false}
+        """,
+        """
+        {"priorLegalAid":"no","familyLawClassification":"public",
+         "careProceedingsStarted":true,"careProceedingsParentalResponsibility":false,
+         "caseMeetsMeritsCriteria":true,"privateFamilyCaseScope":"none"}
+        """);
   }
 
   @Test
   void updateApplicationDetails_rejectsMissingOrNullScopingQuestions() throws Exception {
-    ObjectNode request = detailsRequestWithScoping("private", false);
+    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
     request.remove("scopingQuestions");
     assertInvalidDetails(request);
 
-    request = detailsRequestWithScoping("private", false);
+    request = detailsRequest(VALID_DETAILS_REQUEST);
     request.putNull("scopingQuestions");
     assertInvalidDetails(request);
   }
 
   @ParameterizedTest
   @ValueSource(
-      strings = {
-        "scopingQuestions.priorLegalAid",
-        "scopingQuestions.familyLawClassification",
-        "scopingQuestions.needsAdviceOnEUOrInternationalMaintenance",
-        "scopingQuestions.needsProtectiveInjunction"
-      })
+      strings = {"scopingQuestions.priorLegalAid", "scopingQuestions.familyLawClassification"})
   void updateApplicationDetails_rejectsMissingScopingAnswers(String propertyPath) throws Exception {
     assertInvalidDetails(
-        removeDetailsProperty(detailsRequestWithScoping("private", false), propertyPath));
+        removeDetailsProperty(detailsRequest(VALID_DETAILS_REQUEST), propertyPath));
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"priorLegalAid\":\"invalid\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"invalid\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false,\"unexpected\":true}"
-      })
-  void updateApplicationDetails_rejectsInvalidScopingAnswers(String scopingQuestions)
-      throws Exception {
+  @Test
+  void updateApplicationDetails_rejectsMissingNullOrFalseMerits() throws Exception {
     ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.set("scopingQuestions", new ObjectMapper().readTree(scopingQuestions));
+    ObjectNode scopingQuestions = (ObjectNode) request.get("scopingQuestions");
+    scopingQuestions.put("caseMeetsMeritsCriteria", true);
+    scopingQuestions.remove("caseMeetsMeritsCriteria");
+    assertInvalidDetails(request);
 
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("scopingQuestions")).putNull("caseMeetsMeritsCriteria");
+    assertInvalidDetails(request);
+
+    request = detailsRequest(VALID_DETAILS_REQUEST);
+    ((ObjectNode) request.get("scopingQuestions")).put("caseMeetsMeritsCriteria", false);
     assertInvalidDetails(request);
   }
 
@@ -684,21 +957,6 @@ class ApplicationControllerTest {
     return request;
   }
 
-  private ObjectNode detailsRequestWithScoping(
-      String familyLawClassification, Boolean needsMaintenanceAdvice) throws Exception {
-    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    ObjectNode scopingQuestions =
-        createRequestMapper().valueToTree(ScopingQuestionsGenerator.valid(PriorLegalAid.NO));
-    scopingQuestions.put("familyLawClassification", familyLawClassification);
-    if (needsMaintenanceAdvice == null) {
-      scopingQuestions.putNull("needsAdviceOnEUOrInternationalMaintenance");
-    } else {
-      scopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", needsMaintenanceAdvice);
-    }
-    request.set("scopingQuestions", scopingQuestions);
-    return request;
-  }
-
   private ObjectNode removeDetailsProperty(ObjectNode request, String propertyPath) {
     String[] properties = propertyPath.split("\\.");
     ObjectNode parent = request;
@@ -846,78 +1104,6 @@ class ApplicationControllerTest {
     verifyNoInteractions(mockApplicationCreationService);
   }
 
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsProtectiveInjunction\":false}"
-      })
-  void createApplication_acceptsValidFamilyScopingBranches(String scopingQuestions)
-      throws Exception {
-    ObjectMapper mapper = createRequestMapper();
-    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
-    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
-    when(mockApplicationCreationService.createApplication(any()))
-        .thenReturn(ApplicationGenerator.create(null));
-
-    mockMvc
-        .perform(
-            post("/api/v1/applications")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(request.toString()))
-        .andExpect(status().isCreated());
-
-    verify(mockApplicationCreationService).createApplication(any());
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":null,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"private\","
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":true,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"public\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"familyLawClassification\":\"invalid\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"invalid\",\"familyLawClassification\":\"private\","
-            + "\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}",
-        "{\"priorLegalAid\":\"no\",\"needsAdviceOnEUOrInternationalMaintenance\":false,"
-            + "\"needsProtectiveInjunction\":false}"
-      })
-  void createApplication_rejectsInvalidFamilyScopingBranches(String scopingQuestions)
-      throws Exception {
-    ObjectMapper mapper = createRequestMapper();
-    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
-    request.set("scopingQuestions", mapper.readTree(scopingQuestions));
-
-    mockMvc
-        .perform(
-            post("/api/v1/applications")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(request.toString()))
-        .andExpect(status().isBadRequest());
-
-    verifyNoInteractions(mockApplicationCreationService);
-  }
-
   @Test
   void createApplication_usesScopingOverridesAndPreservesNullAndFalse() throws Exception {
     ObjectMapper mapper = createRequestMapper();
@@ -931,7 +1117,11 @@ class ApplicationControllerTest {
         .put("priorLegalAid", "no")
         .put("familyLawClassification", "public")
         .putNull("needsAdviceOnEUOrInternationalMaintenance")
-        .put("needsProtectiveInjunction", false);
+        .putNull("needsProtectiveInjunction")
+        .putNull("privateFamilyCaseScope")
+        .put("careProceedingsStarted", false)
+        .putNull("careProceedingsParentalResponsibility")
+        .put("caseMeetsMeritsCriteria", true);
     when(mockApplicationCreationService.createApplication(any()))
         .thenReturn(ApplicationGenerator.create(null));
 
@@ -953,9 +1143,14 @@ class ApplicationControllerTest {
             .getValue()
             .getScopingQuestions()
             .getNeedsAdviceOnEUOrInternationalMaintenance());
+    assertNull(requestCaptor.getValue().getScopingQuestions().getNeedsProtectiveInjunction());
+    assertNull(requestCaptor.getValue().getScopingQuestions().getPrivateFamilyCaseScope());
     assertEquals(
-        Boolean.FALSE,
-        requestCaptor.getValue().getScopingQuestions().getNeedsProtectiveInjunction());
+        Boolean.FALSE, requestCaptor.getValue().getScopingQuestions().getCareProceedingsStarted());
+    assertNull(
+        requestCaptor.getValue().getScopingQuestions().getCareProceedingsParentalResponsibility());
+    assertEquals(
+        Boolean.TRUE, requestCaptor.getValue().getScopingQuestions().getCaseMeetsMeritsCriteria());
   }
 
   @Test
@@ -1080,6 +1275,8 @@ class ApplicationControllerTest {
 
     ObjectNode scopingQuestions =
         mapper.valueToTree(ScopingQuestionsGenerator.valid(PriorLegalAid.NO));
+    scopingQuestions.remove("careProceedingsStarted");
+    scopingQuestions.remove("careProceedingsParentalResponsibility");
     overrides
         .fields()
         .forEachRemaining(

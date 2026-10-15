@@ -22,6 +22,7 @@ public final class ScopingQuestionsGenerator {
         .familyLawClassification(FamilyLawClassification.PRIVATE)
         .needsAdviceOnEUOrInternationalMaintenance(false)
         .needsProtectiveInjunction(false)
-        .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE);
+        .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
+        .caseMeetsMeritsCriteria(true);
   }
 }

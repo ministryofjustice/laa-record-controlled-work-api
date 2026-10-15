@@ -262,7 +262,10 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
                         "familyLawClassification": "private",
                         "needsAdviceOnEUOrInternationalMaintenance": false,
                         "needsProtectiveInjunction": false,
-                        "privateFamilyCaseScope": "domesticAbuse"
+                        "privateFamilyCaseScope": "domesticAbuse",
+                        "careProceedingsStarted": null,
+                        "careProceedingsParentalResponsibility": null,
+                        "caseMeetsMeritsCriteria": true
                       },
                       "clientDetails": {
                         "firstName": "Ada",
