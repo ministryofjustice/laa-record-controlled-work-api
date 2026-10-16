@@ -18,6 +18,8 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -38,8 +40,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
-import uk.gov.justice.laa.rcw.config.DatastoreClientConfiguration;
 import uk.gov.justice.laa.rcw.constants.CorrelationConstants;
+import uk.gov.justice.laa.rcw.datastore.client.DatastoreClientConfiguration;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
@@ -64,6 +66,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
 
   @Autowired private ApplicationGateway applicationGateway;
   @Autowired private ApplicationMapper applicationMapper;
+  @Autowired private MeterRegistry meterRegistry;
   private Logger logger;
   private Level previousLogLevel;
   private ListAppender<ILoggingEvent> appender;
@@ -118,7 +121,40 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
     assertThat(events("datastore.token-exchange"))
         .extracting(event -> keyValue(event, "event.phase"))
         .containsExactly("start", "finish");
+    assertThat(events("datastore.operation"))
+        .extracting(event -> keyValue(event, "event.phase"))
+        .containsExactly("start", "finish", "start", "finish");
     assertNoSensitiveTokenInEvents();
+  }
+
+  @Test
+  void shouldRetryDatastore503ForReadRequests() {
+    authenticateRequest();
+    String path = "/api/v0/applications/" + APPLICATION_ID;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario("application read retries on 503")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(WireMock.aResponse().withStatus(503))
+            .willSetStateTo("retry succeeds"));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .inScenario("application read retries on 503")
+            .whenScenarioStateIs("retry succeeds")
+            .willReturn(
+                okJson(
+                    """
+                    {
+                      "id": "%s",
+                      "providerOfficeCode": "123456"
+                    }
+                    """
+                        .formatted(APPLICATION_ID))));
+
+    ApplicationResponse response = applicationGateway.fetchApplication(APPLICATION_ID);
+
+    assertThat(response.getProviderOfficeCode()).isEqualTo("123456");
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
   }
 
   @Test
@@ -172,6 +208,159 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
     assertThat(((Number) keyValue(exchangeFinished, "duration_ms")).doubleValue())
         .isGreaterThanOrEqualTo(150);
     assertNoSensitiveTokenInEvents();
+  }
+
+  @Test
+  void shouldReportOperationCompletionAfterDelayedResponseBody() {
+    authenticateRequest("delayed-body-user");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                okJson(
+                        """
+                        {
+                          "id": "%s",
+                          "providerOfficeCode": "123456"
+                        }
+                        """
+                            .formatted(APPLICATION_ID))
+                    .withChunkedDribbleDelay(2, 400)));
+
+    applicationGateway.fetchApplication(APPLICATION_ID);
+
+    List<ILoggingEvent> operationEvents = events("datastore.operation");
+    List<ILoggingEvent> transportEvents = events("datastore.transport");
+    ILoggingEvent operationFinished = operationEvents.getLast();
+    ILoggingEvent headersReceived = transportEvents.getLast();
+    double operationDuration = ((Number) keyValue(operationFinished, "duration_ms")).doubleValue();
+    double transportDuration = ((Number) keyValue(headersReceived, "duration_ms")).doubleValue();
+
+    assertThat(operationEvents)
+        .extracting(event -> keyValue(event, "event.phase"))
+        .containsExactly("start", "finish");
+    assertThat(transportEvents)
+        .extracting(event -> keyValue(event, "event.phase"))
+        .containsExactly("start", "finish");
+    assertThat(keyValue(operationFinished, "event.outcome")).isEqualTo("success");
+    assertThat(keyValue(headersReceived, "event.outcome")).isEqualTo("headers_received");
+    assertThat(keyValue(operationFinished, "datastore.operation")).isEqualTo("fetch_application");
+    assertThat(operationDuration).isGreaterThan(transportDuration + 150);
+    assertThat(((Number) keyValue(operationFinished, "pool.max_total")).intValue()).isPositive();
+    assertThat(((Number) keyValue(operationFinished, "pool.default_max_per_route")).intValue())
+        .isPositive();
+    assertThat(((Number) keyValue(operationFinished, "pool.leased")).intValue())
+        .isGreaterThanOrEqualTo(0);
+
+    var requestTimer =
+        meterRegistry
+            .find("http.client.requests")
+            .tag("operation", "fetch_application")
+            .tag("method", "GET")
+            .tag("status", "200")
+            .timer();
+    assertThat(requestTimer).isNotNull();
+    assertThat(requestTimer.getId().getTags().toString()).doesNotContain(APPLICATION_ID.toString());
+  }
+
+  @Test
+  void shouldReportDelayedHeadersAtTransportAndOperationBoundaries() {
+    authenticateRequest("delayed-headers-user");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                okJson(
+                        """
+                        {
+                          "id": "%s",
+                          "providerOfficeCode": "123456"
+                        }
+                        """
+                            .formatted(APPLICATION_ID))
+                    .withFixedDelay(250)));
+
+    applicationGateway.fetchApplication(APPLICATION_ID);
+
+    ILoggingEvent transportFinished = events("datastore.transport").getLast();
+    ILoggingEvent operationFinished = events("datastore.operation").getLast();
+    double transportDuration = ((Number) keyValue(transportFinished, "duration_ms")).doubleValue();
+    double operationDuration = ((Number) keyValue(operationFinished, "duration_ms")).doubleValue();
+    assertThat(transportDuration).isGreaterThanOrEqualTo(200);
+    assertThat(operationDuration).isGreaterThanOrEqualTo(transportDuration);
+    assertThat(keyValue(transportFinished, "event.outcome")).isEqualTo("headers_received");
+    assertThat(keyValue(operationFinished, "event.outcome")).isEqualTo("success");
+  }
+
+  @Test
+  void shouldReportDecodeFailureAfterHeadersAreReceived() {
+    authenticateRequest("decode-failure-user");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("decode-secret-sentinel")));
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
+        .isInstanceOf(RuntimeException.class);
+
+    assertThat(keyValue(events("datastore.transport").getLast(), "event.outcome"))
+        .isEqualTo("headers_received");
+    assertOperationFailure("decoding_failure", 200);
+    assertNoSensitiveValueInOperationEvents("decode-secret-sentinel");
+  }
+
+  @Test
+  void shouldReportTruncatedResponseBodyAsOperationFailure() {
+    authenticateRequest("truncated-body-user");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                okJson(
+                        """
+                        {
+                          "id": "%s",
+                          "providerOfficeCode": "123456"
+                        }
+                        """
+                            .formatted(APPLICATION_ID))
+                    .withFault(Fault.MALFORMED_RESPONSE_CHUNK)));
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
+        .isInstanceOf(RuntimeException.class);
+
+    assertOperationFailure("unknown", null);
+    assertThat(events("datastore.transport"))
+        .extracting(event -> keyValue(event, "event.outcome"))
+        .containsExactly("in_progress", "headers_received");
+  }
+
+  @Test
+  void shouldReportHttpRejectionStatusAsBoundedOperationFailure() {
+    authenticateRequest("http-rejection-user");
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID))
+            .willReturn(
+                WireMock.aResponse().withStatus(404).withBody("http-rejection-secret-sentinel")));
+
+    assertThatThrownBy(() -> applicationGateway.fetchApplication(APPLICATION_ID))
+        .isInstanceOf(RuntimeException.class);
+
+    assertOperationFailure("http_rejection", 404);
+    assertNoSensitiveValueInOperationEvents("http-rejection-secret-sentinel");
+
+    var rejectionTimer =
+        meterRegistry
+            .find("http.client.requests")
+            .tag("operation", "fetch_application")
+            .tag("method", "GET")
+            .tag("status", "404")
+            .timer();
+    assertThat(rejectionTimer).isNotNull();
+    assertThat(rejectionTimer.getId().getTags())
+        .extracting(tag -> tag.getKey())
+        .containsExactlyInAnyOrder("failure", "method", "operation", "phase", "status");
+    assertThat(rejectionTimer.getId().getTags().toString()).contains("failure=http_rejection");
   }
 
   @Test
@@ -241,6 +430,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
             APPLICATION_ID, applicationMapper.toEditApplicationCommand(detailsRequest(), 31L));
 
     assertThat(etag).isEqualTo("\"32\"");
+    assertThat(events("datastore.retry")).isEmpty();
     DATASTORE.verify(
         1,
         patchRequestedFor(
@@ -355,6 +545,30 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
         .map(pair -> pair.value)
         .findFirst()
         .orElse(null);
+  }
+
+  private void assertOperationFailure(String category, Integer statusCode) {
+    List<ILoggingEvent> operationEvents = events("datastore.operation");
+    assertThat(operationEvents)
+        .extracting(event -> keyValue(event, "event.phase"))
+        .containsExactly("start", "finish");
+    ILoggingEvent finished = operationEvents.getLast();
+    assertThat(keyValue(finished, "event.outcome")).isEqualTo("failure");
+    assertThat(keyValue(finished, "failure.category")).isEqualTo(category);
+    if (statusCode != null) {
+      assertThat(keyValue(finished, "http.response.status_code")).isEqualTo(statusCode);
+    }
+    assertThat(operationEvents).allSatisfy(event -> assertThat(event.getThrowableProxy()).isNull());
+  }
+
+  private void assertNoSensitiveValueInOperationEvents(String sentinel) {
+    assertThat(events("datastore.operation"))
+        .extracting(ILoggingEvent::getFormattedMessage)
+        .noneMatch(message -> message.contains(sentinel));
+    assertThat(events("datastore.operation"))
+        .flatExtracting(ILoggingEvent::getKeyValuePairs)
+        .extracting(pair -> String.valueOf(pair.value))
+        .noneMatch(value -> value.contains(sentinel));
   }
 
   private void assertTokenExchangeFailedWithoutLeak(String sentinel) {
