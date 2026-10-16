@@ -1004,7 +1004,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                 "country": "GB"
                             }
                         },
-                        "ufn": "123456/123",
+                        "ufn": "null",
                         "applicationType": "RCW",
                         "providerOfficeCode": "%s"
                     }
