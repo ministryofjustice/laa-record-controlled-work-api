@@ -27,8 +27,8 @@ import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.LaspoEvidenceScope;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
@@ -188,7 +188,7 @@ class ApplicationMapperTest {
                     false,
                     "needsProtectiveInjunction",
                     false,
-                    "privateFamilyCaseScope",
+                    "laspoEvidenceScope",
                     "domesticAbuse",
                     "caseMeetsMeritsCriteria",
                     false))
@@ -223,7 +223,7 @@ class ApplicationMapperTest {
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)
                 .needsProtectiveInjunction(false)
-                .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
+                .laspoEvidenceScope(LaspoEvidenceScope.DOMESTIC_ABUSE)
                 .caseMeetsMeritsCriteria(false));
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
@@ -372,7 +372,7 @@ class ApplicationMapperTest {
                 false,
                 "caseMeetsMeritsCriteria",
                 false));
-    expectedScopingQuestions.put("privateFamilyCaseScope", null);
+    expectedScopingQuestions.put("laspoEvidenceScope", null);
     expectedScopingQuestions.put("careProceedingsStarted", null);
     expectedScopingQuestions.put("careProceedingsParentalResponsibility", null);
     assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
@@ -426,7 +426,7 @@ class ApplicationMapperTest {
                     .familyLawClassification(FamilyLawClassification.PUBLIC)
                     .needsAdviceOnEUOrInternationalMaintenance(null)
                     .needsProtectiveInjunction(null)
-                    .privateFamilyCaseScope(null)
+                    .laspoEvidenceScope(null)
                     .careProceedingsStarted(false)
                     .careProceedingsParentalResponsibility(null)
                     .caseMeetsMeritsCriteria(false))
@@ -461,7 +461,7 @@ class ApplicationMapperTest {
                 false));
     expectedScopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", null);
     expectedScopingQuestions.put("needsProtectiveInjunction", null);
-    expectedScopingQuestions.put("privateFamilyCaseScope", null);
+    expectedScopingQuestions.put("laspoEvidenceScope", null);
     expectedScopingQuestions.put("careProceedingsParentalResponsibility", null);
     assertThat(result.getScopingQuestions_JsonNullable().get()).isEqualTo(expectedScopingQuestions);
     assertThat(result.getClientDetails().getNiNumber_JsonNullable().isPresent()).isTrue();
