@@ -72,6 +72,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
@@ -460,28 +461,9 @@ class ApplicationControllerTest {
     verify(mockApplicationDetailsService)
         .updateApplicationDetails(
             eq(UUID.fromString(DETAILS_APPLICATION_ID)), requestCaptor.capture(), eq(0L));
-    JsonNode expectedScope = mapper.readTree(scopingQuestions).get("laspoEvidenceScope");
-    String expectedScopeValue =
-        expectedScope == null || expectedScope.isNull() ? null : expectedScope.asText();
-    var actualScope = requestCaptor.getValue().getScopingQuestions().getLaspoEvidenceScope();
-    assertEquals(expectedScopeValue, actualScope == null ? null : actualScope.getValue());
-  }
-
-  @Test
-  void updateApplicationDetails_rejectsOldPrivateFamilyCaseScopeKey() throws Exception {
-    ObjectMapper mapper = createRequestMapper();
-    ObjectNode request = detailsRequest(VALID_DETAILS_REQUEST);
-    request.set(
-        "scopingQuestions",
-        mapper.readTree(
-            """
-            {"priorLegalAid":"no","familyLawClassification":"private",
-             "needsAdviceOnEUOrInternationalMaintenance":false,
-             "needsProtectiveInjunction":false,"privateFamilyCaseScope":"none",
-             "caseMeetsMeritsCriteria":true}
-            """));
-
-    assertInvalidDetails(request);
+    assertEquals(
+        mapper.readValue(scopingQuestions, ScopingQuestions.class),
+        requestCaptor.getValue().getScopingQuestions());
   }
 
   @ParameterizedTest
@@ -515,34 +497,9 @@ class ApplicationControllerTest {
     ArgumentCaptor<CreateApplicationRequestBody> requestCaptor =
         ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
     verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
-    JsonNode expectedScope = mapper.readTree(scopingQuestions).get("laspoEvidenceScope");
-    String expectedScopeValue =
-        expectedScope == null || expectedScope.isNull() ? null : expectedScope.asText();
-    var actualScope = requestCaptor.getValue().getScopingQuestions().getLaspoEvidenceScope();
-    assertEquals(expectedScopeValue, actualScope == null ? null : actualScope.getValue());
-  }
-
-  @Test
-  void createApplication_rejectsOldPrivateFamilyCaseScopeKey() throws Exception {
-    ObjectMapper mapper = createRequestMapper();
-    ObjectNode request = mapper.valueToTree(CreateApplicationRequestGenerator.createWithName(null));
-    request.set(
-        "scopingQuestions",
-        mapper.readTree(
-            """
-            {"priorLegalAid":"no","familyLawClassification":"private",
-             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":true}
-            """));
-
-    mockMvc
-        .perform(
-            post("/api/v1/applications")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(request.toString()))
-        .andExpect(status().isBadRequest());
-
-    verifyNoInteractions(mockApplicationCreationService);
+    assertEquals(
+        mapper.readValue(scopingQuestions, ScopingQuestions.class),
+        requestCaptor.getValue().getScopingQuestions());
   }
 
   @ParameterizedTest
