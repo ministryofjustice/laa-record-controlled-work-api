@@ -897,6 +897,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             builder ->
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
+                    .ufn("123456/123")
                     .scopingQuestions(
                         new CreateScopingQuestions()
                             .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
