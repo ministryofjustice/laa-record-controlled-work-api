@@ -124,7 +124,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse",
+                            "laspoEvidenceScope": "domesticAbuse",
                             "careProceedingsStarted": null,
                             "careProceedingsParentalResponsibility": null,
                             "caseMeetsMeritsCriteria": true
@@ -151,7 +151,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
         .familyLawClassification(FamilyLawClassification.PUBLIC)
         .needsAdviceOnEUOrInternationalMaintenance(null)
         .needsProtectiveInjunction(null)
-        .privateFamilyCaseScope(null)
+        .laspoEvidenceScope(null)
         .careProceedingsStarted(false)
         .careProceedingsParentalResponsibility(null)
         .caseMeetsMeritsCriteria(true);

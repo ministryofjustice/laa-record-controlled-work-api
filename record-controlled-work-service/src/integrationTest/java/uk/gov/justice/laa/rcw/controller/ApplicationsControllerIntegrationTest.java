@@ -352,7 +352,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 "familyLawClassification": "public",
                 "needsAdviceOnEUOrInternationalMaintenance": null,
                 "needsProtectiveInjunction": null,
-                "privateFamilyCaseScope": null,
+                "laspoEvidenceScope": null,
                 "careProceedingsStarted": false,
                 "careProceedingsParentalResponsibility": null,
                 "caseMeetsMeritsCriteria": true
@@ -430,7 +430,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
                             "needsProtectiveInjunction": null,
-                            "privateFamilyCaseScope": null,
+                            "laspoEvidenceScope": null,
                             "careProceedingsStarted": false,
                             "careProceedingsParentalResponsibility": null,
                             "caseMeetsMeritsCriteria": true
@@ -604,7 +604,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse"
+                            "laspoEvidenceScope": "domesticAbuse"
                         },
                         "applicationType": "CONTROLLED_WORK",
                         "declaration": {
@@ -633,7 +633,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(
             jsonPath("$.scopingQuestions.needsAdviceOnEUOrInternationalMaintenance").value(false))
         .andExpect(jsonPath("$.scopingQuestions.needsProtectiveInjunction").value(false))
-        .andExpect(jsonPath("$.scopingQuestions.privateFamilyCaseScope").value("domesticAbuse"))
+        .andExpect(jsonPath("$.scopingQuestions.laspoEvidenceScope").value("domesticAbuse"))
         .andExpect(jsonPath("$.scopingQuestions.careProceedingsStarted").doesNotExist())
         .andExpect(
             jsonPath("$.scopingQuestions.careProceedingsParentalResponsibility").doesNotExist())
@@ -1025,7 +1025,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse",
+                            "laspoEvidenceScope": "domesticAbuse",
                             "caseMeetsMeritsCriteria": true
                         }
                     }
@@ -1309,7 +1309,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                                 "familyLawClassification": "public",
                                                 "needsAdviceOnEUOrInternationalMaintenance": null,
                                                 "needsProtectiveInjunction": null,
-                                                "privateFamilyCaseScope": null,
+                                                "laspoEvidenceScope": null,
                                                 "careProceedingsStarted": false,
                                                 "careProceedingsParentalResponsibility": null,
                                                 "caseMeetsMeritsCriteria": true
@@ -1458,7 +1458,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             .familyLawClassification(FamilyLawClassification.PUBLIC)
             .needsAdviceOnEUOrInternationalMaintenance(null)
             .needsProtectiveInjunction(null)
-            .privateFamilyCaseScope(null)
+            .laspoEvidenceScope(null)
             .careProceedingsStarted(false)
             .careProceedingsParentalResponsibility(null)
             .caseMeetsMeritsCriteria(true));
