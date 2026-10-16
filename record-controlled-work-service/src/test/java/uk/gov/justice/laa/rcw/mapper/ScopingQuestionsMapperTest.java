@@ -9,8 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.LaspoEvidenceScope;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 
@@ -27,7 +27,7 @@ class ScopingQuestionsMapperTest {
                     .familyLawClassification(FamilyLawClassification.PRIVATE)
                     .needsAdviceOnEUOrInternationalMaintenance(false)
                     .needsProtectiveInjunction(false)
-                    .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
+                    .laspoEvidenceScope(LaspoEvidenceScope.DOMESTIC_ABUSE)
                     .caseMeetsMeritsCriteria(false)))
         .isEqualTo(
             Map.of(
@@ -39,7 +39,7 @@ class ScopingQuestionsMapperTest {
                 false,
                 "needsProtectiveInjunction",
                 false,
-                "privateFamilyCaseScope",
+                "laspoEvidenceScope",
                 "domesticAbuse",
                 "caseMeetsMeritsCriteria",
                 false));
@@ -63,7 +63,7 @@ class ScopingQuestionsMapperTest {
                 false));
     expected.put("needsAdviceOnEUOrInternationalMaintenance", null);
     expected.put("needsProtectiveInjunction", null);
-    expected.put("privateFamilyCaseScope", null);
+    expected.put("laspoEvidenceScope", null);
     expected.put("careProceedingsParentalResponsibility", null);
     UpdateApplicationDetailsRequestBody request =
         new UpdateApplicationDetailsRequestBody()
@@ -73,7 +73,7 @@ class ScopingQuestionsMapperTest {
                     .familyLawClassification(FamilyLawClassification.PUBLIC)
                     .needsAdviceOnEUOrInternationalMaintenance(null)
                     .needsProtectiveInjunction(null)
-                    .privateFamilyCaseScope(null)
+                    .laspoEvidenceScope(null)
                     .careProceedingsStarted(false)
                     .careProceedingsParentalResponsibility(null)
                     .caseMeetsMeritsCriteria(false));

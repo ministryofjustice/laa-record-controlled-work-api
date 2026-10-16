@@ -38,8 +38,8 @@ import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
 import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.LaspoEvidenceScope;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
@@ -160,7 +160,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse",
+                            "laspoEvidenceScope": "domesticAbuse",
                             "careProceedingsStarted": null,
                             "careProceedingsParentalResponsibility": null,
                             "caseMeetsMeritsCriteria": true
@@ -234,7 +234,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "private",
                             "needsAdviceOnEUOrInternationalMaintenance": false,
                             "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse",
+                            "laspoEvidenceScope": "domesticAbuse",
                             "careProceedingsStarted": null,
                             "careProceedingsParentalResponsibility": null,
                             "caseMeetsMeritsCriteria": true
@@ -261,7 +261,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             .familyLawClassification(FamilyLawClassification.PUBLIC)
             .needsAdviceOnEUOrInternationalMaintenance(null)
             .needsProtectiveInjunction(null)
-            .privateFamilyCaseScope(null)
+            .laspoEvidenceScope(null)
             .careProceedingsStarted(false)
             .careProceedingsParentalResponsibility(null)
             .caseMeetsMeritsCriteria(true));
@@ -323,7 +323,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                             "familyLawClassification": "public",
                             "needsAdviceOnEUOrInternationalMaintenance": null,
                             "needsProtectiveInjunction": null,
-                            "privateFamilyCaseScope": null,
+                            "laspoEvidenceScope": null,
                             "careProceedingsStarted": false,
                             "careProceedingsParentalResponsibility": null,
                             "caseMeetsMeritsCriteria": true
@@ -401,7 +401,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":true,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "laspoEvidenceScope":null,"careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """),
         Arguments.of(
@@ -415,7 +415,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "laspoEvidenceScope":null,"careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """),
         Arguments.of(
@@ -425,12 +425,12 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)
                 .needsProtectiveInjunction(false)
-                .privateFamilyCaseScope(PrivateFamilyCaseScope.NONE)
+                .laspoEvidenceScope(LaspoEvidenceScope.NONE)
                 .caseMeetsMeritsCriteria(true),
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","careProceedingsStarted":null,
+             "laspoEvidenceScope":"none","careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """),
         Arguments.of(
@@ -444,7 +444,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             """
             {"priorLegalAid":"no","familyLawClassification":"public",
              "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":true,
+             "laspoEvidenceScope":null,"careProceedingsStarted":true,
              "careProceedingsParentalResponsibility":true,"caseMeetsMeritsCriteria":true}
             """),
         Arguments.of(
@@ -457,7 +457,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             """
             {"priorLegalAid":"no","familyLawClassification":"public",
              "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":false,
+             "laspoEvidenceScope":null,"careProceedingsStarted":false,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """));
   }
@@ -782,7 +782,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                                                 "familyLawClassification": "private",
                                                 "needsAdviceOnEUOrInternationalMaintenance": false,
                                                 "needsProtectiveInjunction": false,
-                                                "privateFamilyCaseScope": "domesticAbuse",
+                                                "laspoEvidenceScope": "domesticAbuse",
                                                 "careProceedingsStarted": null,
                                                 "careProceedingsParentalResponsibility": null,
                                                 "caseMeetsMeritsCriteria": true
