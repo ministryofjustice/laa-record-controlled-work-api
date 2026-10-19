@@ -85,6 +85,34 @@ class ScopingQuestionsMapperTest {
   }
 
   @Test
+  void shouldPreservePrivateEditAnswerValues() {
+    ScopingQuestions answers =
+        new ScopingQuestions()
+            .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
+            .familyLawClassification(FamilyLawClassification.PRIVATE)
+            .needsAdviceOnEUOrInternationalMaintenance(false)
+            .needsProtectiveInjunction(false)
+            .privateFamilyCaseScope(PrivateFamilyCaseScope.NONE)
+            .caseMeetsMeritsCriteria(true);
+
+    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(answers))
+        .containsAllEntriesOf(
+            Map.of(
+                "priorLegalAid",
+                "yesSameMatter",
+                "familyLawClassification",
+                "private",
+                "needsAdviceOnEUOrInternationalMaintenance",
+                false,
+                "needsProtectiveInjunction",
+                false,
+                "privateFamilyCaseScope",
+                "none",
+                "caseMeetsMeritsCriteria",
+                true));
+  }
+
+  @Test
   void shouldOmitNullAnswersWhenCreatingScopingData() {
     assertThat(
             scopingQuestionsMapper.toDatastoreScopingQuestions(

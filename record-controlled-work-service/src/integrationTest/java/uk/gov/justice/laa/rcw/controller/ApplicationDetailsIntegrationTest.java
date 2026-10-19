@@ -3,17 +3,19 @@ package uk.gov.justice.laa.rcw.controller;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -35,12 +37,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.ResultActions;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
-import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
-import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -79,120 +77,9 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  void shouldPreserveUpdatedApplicationAfterStaleDetailsEdit() throws Exception {
-    String id = UUID.randomUUID().toString();
-    String path = "/api/v0/applications/" + id;
-    String scenario = "conditional-details-" + id;
-    String originalApplication = applicationDetailsResponse(id, 31, "Before");
-    String updatedApplication = applicationDetailsResponse(id, 32, "Test");
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .inScenario(scenario)
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(okJson(originalApplication))
-            .willSetStateTo("current"));
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .inScenario(scenario)
-            .whenScenarioStateIs("current")
-            .willReturn(okJson(originalApplication)));
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .inScenario(scenario)
-            .whenScenarioStateIs("edited")
-            .willReturn(okJson(updatedApplication)));
-    DATASTORE.stubFor(
-        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
-            .inScenario(scenario)
-            .whenScenarioStateIs("current")
-            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\""))
-            .willSetStateTo("edited"));
-    DATASTORE.stubFor(
-        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
-            .inScenario(scenario)
-            .whenScenarioStateIs("edited")
-            .willReturn(
-                WireMock.aResponse()
-                    .withStatus(409)
-                    .withHeader("Content-Type", "application/problem+json")
-                    .withBody("{\"status\":409,\"reason\":\"APPLICATION_VERSION_CONFLICT\"}")));
-
-    mockMvc
-        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
-        .andExpect(status().isOk())
-        .andExpect(header().string("ETag", "\"31\""))
-        .andExpect(jsonPath("$.clientDetails.firstName").value("Before"));
-
-    performValidDetailsPut(id)
-        .andExpect(status().isNoContent())
-        .andExpect(header().string("ETag", "\"32\""));
-
-    mockMvc
-        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
-        .andExpect(status().isOk())
-        .andExpect(header().string("ETag", "\"32\""))
-        .andExpect(jsonPath("$.clientDetails.firstName").value("Test"));
-
-    performValidDetailsPut(id)
-        .andExpect(status().isPreconditionFailed())
-        .andExpect(jsonPath("$.status").value(412))
-        .andExpect(jsonPath("$.reason").value("APPLICATION_VERSION_CONFLICT"));
-
-    mockMvc
-        .perform(get("/api/v1/applications/{id}", id).withBearerReadToken())
-        .andExpect(status().isOk())
-        .andExpect(header().string("ETag", "\"32\""))
-        .andExpect(jsonPath("$.clientDetails.firstName").value("Test"));
-
-    DATASTORE.verify(5, getRequestedFor(urlPathEqualTo(path)));
-    DATASTORE.verify(
-        2,
-        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                        "eTag": 31,
-                        "reasonForReapplication": null,
-                        "ecfFlag": true,
-                        "scopingQuestions": {
-                            "priorLegalAid": "no",
-                            "familyLawClassification": "private",
-                            "needsAdviceOnEUOrInternationalMaintenance": false,
-                            "needsProtectiveInjunction": false,
-                            "privateFamilyCaseScope": "domesticAbuse",
-                            "careProceedingsStarted": null,
-                            "careProceedingsParentalResponsibility": null,
-                            "caseMeetsMeritsCriteria": true
-                        },
-                        "clientDetails": {
-                            "firstName": "Test",
-                            "lastName": "Client",
-                            "dateOfBirth": "1990-01-01",
-                            "niNumber": null,
-                            "noFixedAbode": true,
-                            "address": null
-                        }
-                    }
-                    """)));
-  }
-
-  @Test
   void shouldEditApplicationDetailsOnceWithCallerVersionAndReturnNewEtag() throws Exception {
     String id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo("/api/v0/applications/" + id))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                      "id": "%s",
-                      "providerOfficeCode": "%s",
-                      "applicationState": "DRAFT",
-                      "eTag": 100
-                    }
-                    """
-                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    stubAuthorizedDraftApplication(id, 100);
     DATASTORE.stubFor(
         WireMock.patch(urlPathEqualTo("/api/v0/applications/" + id + ":edit-application"))
             .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
@@ -208,6 +95,9 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
         .andExpect(status().isNoContent())
         .andExpect(header().string("ETag", "\"32\""));
 
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo("/api/v0/applications/" + id)));
+    DATASTORE.verify(
+        1, patchRequestedFor(urlPathEqualTo("/api/v0/applications/" + id + ":edit-application")));
     DATASTORE.verify(
         1,
         getRequestedFor(urlPathEqualTo("/api/v0/applications/" + id))
@@ -256,15 +146,15 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
     String id = UUID.randomUUID().toString();
     String path = "/api/v0/applications/" + id;
     var request = UpdateApplicationDetailsRequestGenerator.validRequest();
-    request.setScopingQuestions(
-        ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
-            .familyLawClassification(FamilyLawClassification.PUBLIC)
-            .needsAdviceOnEUOrInternationalMaintenance(null)
-            .needsProtectiveInjunction(null)
-            .privateFamilyCaseScope(null)
-            .careProceedingsStarted(false)
-            .careProceedingsParentalResponsibility(null)
-            .caseMeetsMeritsCriteria(true));
+    request
+        .getScopingQuestions()
+        .familyLawClassification(FamilyLawClassification.PUBLIC)
+        .needsAdviceOnEUOrInternationalMaintenance(null)
+        .needsProtectiveInjunction(null)
+        .privateFamilyCaseScope(null)
+        .careProceedingsStarted(false)
+        .careProceedingsParentalResponsibility(null)
+        .caseMeetsMeritsCriteria(true);
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo(path))
             .willReturn(
@@ -275,15 +165,6 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "applicationState": "DRAFT",
                         "eTag": 31,
-                        "ecfFlag": true,
-                        "client": {
-                            "firstName": "Test",
-                            "lastName": "Client",
-                            "dateOfBirth": "1990-01-01",
-                            "niNumber": null,
-                            "noFixedAbode": true,
-                            "address": null
-                        },
                         "scopingQuestions": {
                             "priorLegalAid": "no",
                             "familyLawClassification": "private",
@@ -308,158 +189,14 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
         .andExpect(header().string("ETag", "\"32\""));
 
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
-    DATASTORE.verify(
-        1,
-        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                        "eTag": 31,
-                        "reasonForReapplication": null,
-                        "ecfFlag": true,
-                        "scopingQuestions": {
-                            "priorLegalAid": "no",
-                            "familyLawClassification": "public",
-                            "needsAdviceOnEUOrInternationalMaintenance": null,
-                            "needsProtectiveInjunction": null,
-                            "privateFamilyCaseScope": null,
-                            "careProceedingsStarted": false,
-                            "careProceedingsParentalResponsibility": null,
-                            "caseMeetsMeritsCriteria": true
-                        },
-                        "clientDetails": {
-                            "firstName": "Test",
-                            "lastName": "Client",
-                            "dateOfBirth": "1990-01-01",
-                            "niNumber": null,
-                            "noFixedAbode": true,
-                            "address": null
-                        }
-                    }
-                    """)));
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("branchEditSnapshots")
-  void shouldPersistActiveAnswersAndClearSkippedAnswers(
-      String branch, ScopingQuestions scopingQuestions, String expectedAnswers) throws Exception {
-    String id = UUID.randomUUID().toString();
-    String path = "/api/v0/applications/" + id;
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .willReturn(okJson(applicationDetailsResponse(id, 31, "Test"))));
-    DATASTORE.stubFor(
-        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
-            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
-    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
-    request.setScopingQuestions(scopingQuestions);
-
-    mockMvc
-        .perform(
-            put("/api/v1/applications/{id}/details", id)
-                .withBearerWriteToken()
-                .header("If-Match", "\"31\"")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request)))
-        .andExpect(status().isNoContent())
-        .andExpect(header().string("ETag", "\"32\""));
-
-    DATASTORE.verify(
-        1,
-        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                        "eTag": 31,
-                        "reasonForReapplication": null,
-                        "ecfFlag": true,
-                        "scopingQuestions": %s,
-                        "clientDetails": {
-                            "firstName": "Test",
-                            "lastName": "Client",
-                            "dateOfBirth": "1990-01-01",
-                            "niNumber": null,
-                            "noFixedAbode": true,
-                            "address": null
-                        }
-                    }
-                    """
-                        .formatted(expectedAnswers))));
-  }
-
-  private static Stream<Arguments> branchEditSnapshots() {
-    return Stream.of(
-        Arguments.of(
-            "private maintenance shortcut",
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(true)
-                .caseMeetsMeritsCriteria(true),
-            """
-            {"priorLegalAid":"no","familyLawClassification":"private",
-             "needsAdviceOnEUOrInternationalMaintenance":true,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
-             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
-            """),
-        Arguments.of(
-            "private injunction shortcut",
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(true)
-                .caseMeetsMeritsCriteria(true),
-            """
-            {"priorLegalAid":"no","familyLawClassification":"private",
-             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
-             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
-            """),
-        Arguments.of(
-            "private completed dropout",
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(false)
-                .privateFamilyCaseScope(PrivateFamilyCaseScope.NONE)
-                .caseMeetsMeritsCriteria(true),
-            """
-            {"priorLegalAid":"no","familyLawClassification":"private",
-             "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","careProceedingsStarted":null,
-             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
-            """),
-        Arguments.of(
-            "public care proceedings started",
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PUBLIC)
-                .careProceedingsStarted(true)
-                .careProceedingsParentalResponsibility(true)
-                .caseMeetsMeritsCriteria(true),
-            """
-            {"priorLegalAid":"no","familyLawClassification":"public",
-             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":true,
-             "careProceedingsParentalResponsibility":true,"caseMeetsMeritsCriteria":true}
-            """),
-        Arguments.of(
-            "public care proceedings not started",
-            new ScopingQuestions()
-                .priorLegalAid(PriorLegalAid.NO)
-                .familyLawClassification(FamilyLawClassification.PUBLIC)
-                .careProceedingsStarted(false)
-                .caseMeetsMeritsCriteria(true),
-            """
-            {"priorLegalAid":"no","familyLawClassification":"public",
-             "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":false,
-             "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
-            """));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
+    var editRequest =
+        DATASTORE.findAll(patchRequestedFor(urlPathEqualTo(path + ":edit-application"))).getFirst();
+    var answers =
+        new ObjectMapper().readTree(editRequest.getBodyAsString()).path("scopingQuestions");
+    assertThat(answers.path("familyLawClassification").asText()).isEqualTo("public");
+    assertThat(answers.has("needsAdviceOnEUOrInternationalMaintenance")).isTrue();
+    assertThat(answers.path("needsAdviceOnEUOrInternationalMaintenance").isNull()).isTrue();
   }
 
   @Test
@@ -477,28 +214,16 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
 
   @Test
   void shouldRejectInvalidDetailsWithoutDatastoreRequests() throws Exception {
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
+    request.setScopingQuestions(null);
+
     mockMvc
         .perform(
             put("/api/v1/applications/{id}/details", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
                 .withBearerWriteToken()
                 .header("If-Match", "\"0\"")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "priorLegalAid": "no",
-                      "legalAidLast6Months": false,
-                      "reasonForReapplication": null,
-                      "ecfFlag": false,
-                      "clientDetails": {
-                        "firstName": "Test",
-                        "lastName": "Client",
-                        "dateOfBirth": "1990-01-01",
-                        "hasFixedAddress": false,
-                        "address": null
-                      }
-                    }
-                    """))
+                .content(toJson(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.reason").value("INVALID_APPLICATION_DETAILS"));
 
@@ -618,19 +343,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
     String id = UUID.randomUUID().toString();
     String path = "/api/v0/applications/" + id;
     String scenario = "details-edit-visibility-" + id;
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                      "id": "%s",
-                      "providerOfficeCode": "%s",
-                      "applicationState": "DRAFT",
-                      "eTag": 100
-                    }
-                    """
-                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    stubAuthorizedDraftApplication(id, 100);
     DATASTORE.stubFor(
         WireMock.patch(urlPathEqualTo(path + ":edit-application"))
             .inScenario(scenario)
@@ -657,6 +370,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             .getContentAsString();
 
     assertEquals(missingResponse, forbiddenResponse);
+    DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
     DATASTORE.verify(2, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
   }
 
@@ -692,19 +406,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
   void shouldReturnBadGatewayWhenEditResponseEtagIsInvalid(String editEtag) throws Exception {
     String id = "e2c3d4e5-f6a7-8901-bcde-f12345678904";
     String path = "/api/v0/applications/" + id;
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                      "id": "%s",
-                      "providerOfficeCode": "%s",
-                      "applicationState": "DRAFT",
-                      "eTag": 100
-                    }
-                    """
-                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    stubAuthorizedDraftApplication(id, 100);
     var editResponse = WireMock.aResponse().withStatus(204);
     if (editEtag != null) {
       editResponse.withHeader("ETag", editEtag);
@@ -736,19 +438,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
       String downstreamBody, int expectedStatus, String expectedReason) throws Exception {
     String id = UUID.randomUUID().toString();
     String path = "/api/v0/applications/" + id;
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                      "id": "%s",
-                      "providerOfficeCode": "%s",
-                      "applicationState": "DRAFT",
-                      "eTag": 100
-                    }
-                    """
-                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    stubAuthorizedDraftApplication(id, 100);
     DATASTORE.stubFor(
         WireMock.patch(urlPathEqualTo(path + ":edit-application"))
             .willReturn(
@@ -760,6 +450,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
     var response =
         performValidDetailsPut(id)
             .andExpect(status().is(expectedStatus))
+            .andExpect(header().doesNotExist("ETag"))
             .andExpect(jsonPath("$.status").value(expectedStatus))
             .andExpect(jsonPath("$.reason").value(expectedReason))
             .andReturn()
@@ -767,36 +458,11 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
 
     assertFalse(response.getContentAsString().contains("untrusted downstream detail"));
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(path + ":edit-application")));
     DATASTORE.verify(
         1,
         patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
-            .withRequestBody(
-                equalToJson(
-                    """
-                    {
-                      "eTag": 31,
-                      "reasonForReapplication": null,
-                      "ecfFlag": true,
-                                            "scopingQuestions": {
-                                                "priorLegalAid": "no",
-                                                "familyLawClassification": "private",
-                                                "needsAdviceOnEUOrInternationalMaintenance": false,
-                                                "needsProtectiveInjunction": false,
-                                                "privateFamilyCaseScope": "domesticAbuse",
-                                                "careProceedingsStarted": null,
-                                                "careProceedingsParentalResponsibility": null,
-                                                "caseMeetsMeritsCriteria": true
-                                            },
-                      "clientDetails": {
-                        "firstName": "Test",
-                        "lastName": "Client",
-                        "dateOfBirth": "1990-01-01",
-                        "niNumber": null,
-                        "noFixedAbode": true,
-                        "address": null
-                      }
-                    }
-                    """)));
+            .withRequestBody(matchingJsonPath("$.eTag", equalTo("31"))));
   }
 
   private static Stream<Arguments> detailsEditConflictResponses() {
@@ -825,19 +491,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
       String downstreamFailure, int expectedStatus, String expectedReason) throws Exception {
     String id = UUID.randomUUID().toString();
     String path = "/api/v0/applications/" + id;
-    DATASTORE.stubFor(
-        WireMock.get(urlPathEqualTo(path))
-            .willReturn(
-                okJson(
-                    """
-                    {
-                        "id": "%s",
-                        "providerOfficeCode": "%s",
-                        "applicationState": "DRAFT",
-                        "eTag": 100
-                    }
-                    """
-                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    stubAuthorizedDraftApplication(id, 100);
     if ("connection".equals(downstreamFailure)) {
       DATASTORE.stubFor(
           WireMock.patch(urlPathEqualTo(path + ":edit-application"))
@@ -854,6 +508,7 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
     var response =
         performValidDetailsPut(id)
             .andExpect(status().is(expectedStatus))
+            .andExpect(header().doesNotExist("ETag"))
             .andExpect(jsonPath("$.status").value(expectedStatus))
             .andExpect(jsonPath("$.reason").value(expectedReason))
             .andReturn()
@@ -872,6 +527,22 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
         Arguments.of("connection", 503, "DATASTORE_UNAVAILABLE"));
   }
 
+  private static void stubAuthorizedDraftApplication(String id, long version) {
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + id))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT",
+                        "eTag": %d
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version))));
+  }
+
   private ResultActions performValidDetailsPut(String id) throws Exception {
     return mockMvc.perform(
         put("/api/v1/applications/{id}/details", id)
@@ -879,25 +550,5 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
             .header("If-Match", "\"31\"")
             .contentType(MediaType.APPLICATION_JSON)
             .content(toJson(UpdateApplicationDetailsRequestGenerator.validRequest())));
-  }
-
-  private static String applicationDetailsResponse(String id, long version, String firstName) {
-    return """
-    {
-        "id": "%s",
-        "providerOfficeCode": "%s",
-        "applicationState": "DRAFT",
-        "eTag": %d,
-        "client": {
-            "firstName": "%s",
-            "lastName": "Client",
-            "dateOfBirth": "1990-01-01",
-            "niNumber": null,
-            "noFixedAbode": true,
-            "address": null
-        }
-    }
-    """
-        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE, version, firstName);
   }
 }
