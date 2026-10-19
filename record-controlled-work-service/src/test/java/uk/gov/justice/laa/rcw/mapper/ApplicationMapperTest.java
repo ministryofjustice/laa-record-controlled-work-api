@@ -20,15 +20,12 @@ import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
-import uk.gov.justice.laa.rcw.model.ApplicationScopingQuestions;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
-import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
-import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateAddressRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.model.UpdateClientDetailsRequestBody;
@@ -177,18 +174,7 @@ class ApplicationMapperTest {
             .meansAssessmentRequired(true)
             .typeOfNonMeans(false)
             .contribution("100.00")
-            .scopingQuestions(
-                Map.of(
-                    "priorLegalAid",
-                    "yesSameMatter",
-                    "familyLawClassification",
-                    "private",
-                    "needsAdviceOnEUOrInternationalMaintenance",
-                    false,
-                    "needsProtectiveInjunction",
-                    false,
-                    "privateFamilyCaseScope",
-                    "domesticAbuse"))
+            .scopingQuestions(Map.of("priorLegalAid", "yesSameMatter"))
             .applicationType("CONTROLLED_WORK")
             .eligibilityResult(eligibilityResult)
             .evidence(evidence)
@@ -213,14 +199,7 @@ class ApplicationMapperTest {
     assertThat(result.getMeansAssessmentRequired()).isTrue();
     assertThat(result.getTypeOfNonMeans()).isFalse();
     assertThat(result.getContribution()).isEqualTo("100.00");
-    assertThat(result.getScopingQuestions())
-        .isEqualTo(
-            new ApplicationScopingQuestions()
-                .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(false)
-                .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE));
+    assertThat(result.getScopingQuestions()).isNotNull();
     assertThat(result.getApplicationType()).isEqualTo("CONTROLLED_WORK");
     assertThat(result.getCreatedAt()).isEqualTo(now);
     assertThat(result.getCreatedBy()).isEqualTo("Random User");
@@ -299,9 +278,6 @@ class ApplicationMapperTest {
     assertThat(result.getReasonForReapplication_JsonNullable().get()).isEqualTo("Reapplication");
     assertThat(result.getEcfFlag_JsonNullable().get()).isTrue();
     assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
-    assertThat(result.getScopingQuestions_JsonNullable().get())
-        .containsEntry("priorLegalAid", "yesSameMatter")
-        .containsEntry("privateFamilyCaseScope", null);
     assertThat(result.getUfn()).isNull();
     assertThat(result.getLaaReference()).isNull();
     assertThat(result.getMeansAssessmentRequired()).isNull();
@@ -384,12 +360,7 @@ class ApplicationMapperTest {
             .hasFixedAddress(true)
             .address(address);
     return new UpdateApplicationDetailsRequestBody()
-        .scopingQuestions(
-            new ScopingQuestions()
-                .priorLegalAid(priorLegalAid)
-                .familyLawClassification(FamilyLawClassification.PRIVATE)
-                .needsAdviceOnEUOrInternationalMaintenance(false)
-                .needsProtectiveInjunction(false))
+        .scopingQuestions(ScopingQuestionsGenerator.valid(priorLegalAid))
         .legalAidLast6Months(last6Months)
         .reasonForReapplication(reason)
         .ecfFlag(true)

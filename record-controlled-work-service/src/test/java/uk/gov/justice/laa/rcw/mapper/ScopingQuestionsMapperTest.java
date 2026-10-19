@@ -103,11 +103,13 @@ class ScopingQuestionsMapperTest {
                 Map.of(
                     "priorLegalAid", "yesSameMatter",
                     "familyLawClassification", value,
+                    "privateFamilyCaseScope", "domesticAbuse",
                     "futureQuestion", "value")))
         .isEqualTo(
             new ApplicationScopingQuestions()
                 .priorLegalAid(PriorLegalAid.YES_SAME_MATTER)
-                .familyLawClassification(classification));
+                .familyLawClassification(classification)
+                .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE));
   }
 
   @Test
@@ -138,8 +140,8 @@ class ScopingQuestionsMapperTest {
     ApplicationScopingQuestions legacyAnswers =
         scopingQuestionsMapper.toApplicationScopingQuestions(Map.of("priorLegalAid", "no"));
 
-    assertThat(legacyAnswers.getNeedsAdviceOnEUOrInternationalMaintenance()).isNull();
-    assertThat(legacyAnswers.getNeedsProtectiveInjunction()).isNull();
+    assertThat(legacyAnswers)
+        .isEqualTo(new ApplicationScopingQuestions().priorLegalAid(PriorLegalAid.NO));
 
     Map<String, Object> answers = new HashMap<>();
     answers.put("priorLegalAid", "no");
