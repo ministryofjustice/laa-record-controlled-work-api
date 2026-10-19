@@ -69,6 +69,11 @@ public class ApplicationGateway {
           command);
     } catch (HttpClientErrorException.BadRequest exception) {
       throw badRequestForOffice(providerOfficeCode, exception);
+    } catch (HttpClientErrorException.Conflict exception) {
+      throw new ApplicationConflictException(
+          "Application creation conflicted for office %s".formatted(providerOfficeCode),
+          "APPLICATION_CREATION_CONFLICT",
+          exception);
     } catch (HttpServerErrorException exception) {
       throw upstreamErrorForOffice(providerOfficeCode, exception);
     } catch (ResourceAccessException exception) {

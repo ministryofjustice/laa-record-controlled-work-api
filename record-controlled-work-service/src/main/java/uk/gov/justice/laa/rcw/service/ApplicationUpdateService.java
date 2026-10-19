@@ -96,8 +96,6 @@ public class ApplicationUpdateService {
     EditApplicationCommand command =
         EditApplicationCommand.builder()
             .eTag(application.geteTag())
-            // .declarationConfirmation(declarationConfirmation)
-            // .dateSigned(dateSigned)
             .ufn(ufn)
             .declaration(
                 PatchDeclarationData.builder()
