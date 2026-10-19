@@ -371,7 +371,7 @@ class ApplicationMapperTest {
                 "needsProtectiveInjunction",
                 false,
                 "caseMeetsMeritsCriteria",
-                false));
+                true));
     expectedScopingQuestions.put("privateFamilyCaseScope", null);
     expectedScopingQuestions.put("careProceedingsStarted", null);
     expectedScopingQuestions.put("careProceedingsParentalResponsibility", null);
@@ -429,7 +429,7 @@ class ApplicationMapperTest {
                     .privateFamilyCaseScope(null)
                     .careProceedingsStarted(false)
                     .careProceedingsParentalResponsibility(null)
-                    .caseMeetsMeritsCriteria(false))
+                    .caseMeetsMeritsCriteria(true))
             .legalAidLast6Months(false)
             .reasonForReapplication(null)
             .ecfFlag(false)
@@ -458,7 +458,7 @@ class ApplicationMapperTest {
                 "careProceedingsStarted",
                 false,
                 "caseMeetsMeritsCriteria",
-                false));
+                true));
     expectedScopingQuestions.put("needsAdviceOnEUOrInternationalMaintenance", null);
     expectedScopingQuestions.put("needsProtectiveInjunction", null);
     expectedScopingQuestions.put("privateFamilyCaseScope", null);
@@ -502,7 +502,7 @@ class ApplicationMapperTest {
                 .familyLawClassification(FamilyLawClassification.PRIVATE)
                 .needsAdviceOnEUOrInternationalMaintenance(false)
                 .needsProtectiveInjunction(false)
-                .caseMeetsMeritsCriteria(false))
+                .caseMeetsMeritsCriteria(true))
         .legalAidLast6Months(last6Months)
         .reasonForReapplication(reason)
         .ecfFlag(true)

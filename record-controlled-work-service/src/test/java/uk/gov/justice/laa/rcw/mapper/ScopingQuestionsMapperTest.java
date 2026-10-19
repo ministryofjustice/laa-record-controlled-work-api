@@ -28,7 +28,7 @@ class ScopingQuestionsMapperTest {
                     .needsAdviceOnEUOrInternationalMaintenance(false)
                     .needsProtectiveInjunction(false)
                     .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
-                    .caseMeetsMeritsCriteria(false)))
+                    .caseMeetsMeritsCriteria(true)))
         .isEqualTo(
             Map.of(
                 "priorLegalAid",
@@ -42,7 +42,7 @@ class ScopingQuestionsMapperTest {
                 "privateFamilyCaseScope",
                 "domesticAbuse",
                 "caseMeetsMeritsCriteria",
-                false));
+                true));
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(new ScopingQuestions()))
         .isEmpty();
     assertThat(scopingQuestionsMapper.toDatastoreScopingQuestions(null)).isEmpty();
@@ -60,7 +60,7 @@ class ScopingQuestionsMapperTest {
                 "careProceedingsStarted",
                 false,
                 "caseMeetsMeritsCriteria",
-                false));
+                true));
     expected.put("needsAdviceOnEUOrInternationalMaintenance", null);
     expected.put("needsProtectiveInjunction", null);
     expected.put("privateFamilyCaseScope", null);
@@ -76,7 +76,7 @@ class ScopingQuestionsMapperTest {
                     .privateFamilyCaseScope(null)
                     .careProceedingsStarted(false)
                     .careProceedingsParentalResponsibility(null)
-                    .caseMeetsMeritsCriteria(false));
+                    .caseMeetsMeritsCriteria(true));
 
     assertThat(
             scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(
