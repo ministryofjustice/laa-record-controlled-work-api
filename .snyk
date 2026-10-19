@@ -1,0 +1,10 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+ignore:
+  SNYK-JAVA-ORGAPACHETOMCATEMBED-21246252:
+    - '*':
+        reason: >-
+          Snyk flags Tomcat 11.0.27, but Apache lists versions through 11.0.25
+          as affected and 11.0.26 as fixed. Both RCW API modules resolve 11.0.27.
+          Reassess after the next scan.
+        expires: '2026-11-18T00:00:00.000Z'
