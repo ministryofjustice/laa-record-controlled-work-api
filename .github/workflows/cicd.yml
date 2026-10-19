@@ -70,7 +70,7 @@ jobs:
       - name: Run Snyk to check dependencies for vulnerabilities
         uses: snyk/actions/gradle@9adf32b1121593767fc3c057af55b55db032dc04 #v1.0.0
         with:
-          args: --severity-threshold=high --all-sub-projects
+          args: --severity-threshold=high --all-sub-projects --policy-path=.snyk
 
   snyk-docker-scan:
     name: Snyk Docker Scan
@@ -105,7 +105,7 @@ jobs:
         uses: snyk/actions/docker@11b673cfb4b0dc0d860a1323caa199d54950dcce # master
         with:
           image: record-controlled-work:scan
-          args: --file=Dockerfile --severity-threshold=high
+          args: --file=Dockerfile --severity-threshold=high --policy-path=.snyk
 
   snyk-report:
     name: Snyk Report
