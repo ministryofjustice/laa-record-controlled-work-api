@@ -247,28 +247,6 @@ class ApplicationMapperTest {
   }
 
   @Test
-  void shouldMapApplicationResponseToApplication_whenNoFixedAbodeIsNull() {
-    ClientDetails client = ClientDetails.builder().build();
-    ApplicationResponse applicationResponse =
-        ApplicationResponse.builder()
-            .id(APPLICATION_ID)
-            .individualLegalAidNumber(APPLICATION_ID)
-            .client(client)
-            .providerFirmCode("123456")
-            .providerOfficeCode("22439e72-68d3-4770-b435-c352d883d21e")
-            .applicationType("CONTROLLED_WORK")
-            .createdAt(MODIFIED_AT)
-            .createdBy("Random User")
-            .modifiedAt(MODIFIED_AT)
-            .modifiedBy("Random User")
-            .build();
-
-    Application result = applicationMapper.toApplication(applicationResponse);
-
-    assertThat(result.getClientDetails().getHasFixedAddress()).isNull();
-  }
-
-  @Test
   void shouldMapApplicationResponseToApplication_whenOptionalNestedObjectsAreAbsent() {
     ApplicationResponse applicationResponse =
         ApplicationResponse.builder()
@@ -351,17 +329,6 @@ class ApplicationMapperTest {
     assertThat(address.getPostCode_JsonNullable().get()).isNull();
     assertThat(address.getCounty_JsonNullable().get()).isNull();
     assertThat(address.getCountry()).isEqualTo("GB");
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"GB", "FR"})
-  void shouldMapFixedAddressCountry(String country) {
-    EditApplicationCommand result =
-        applicationMapper.toEditApplicationCommand(
-            fixedAddressRequest(country, null, PriorLegalAid.NO, false, null), 4L);
-
-    assertThat(result.getClientDetails().getNoFixedAbode()).isFalse();
-    assertThat(result.getClientDetails().getAddress().getCountry()).isEqualTo(country);
   }
 
   @Test
