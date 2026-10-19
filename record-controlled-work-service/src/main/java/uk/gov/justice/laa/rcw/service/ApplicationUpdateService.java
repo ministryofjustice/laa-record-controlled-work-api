@@ -8,7 +8,8 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.PatchDeclarationData;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
@@ -76,35 +77,46 @@ public class ApplicationUpdateService {
    * @param applicationId the application id
    * @param declarationConfirmation whether the declaration is confirmed
    * @param dateSigned the date the declaration was signed
+   * @param ufn the unique file number associated with the application
    */
   public void updateDeclaration(
-      UUID applicationId, Boolean declarationConfirmation, LocalDate dateSigned) {
-    updateDeclaration(applicationId, declarationConfirmation, dateSigned, true);
+      UUID applicationId, Boolean declarationConfirmation, LocalDate dateSigned, String ufn) {
+    updateDeclaration(applicationId, declarationConfirmation, dateSigned, ufn, true);
   }
 
   private void updateDeclaration(
       UUID applicationId,
       Boolean declarationConfirmation,
       LocalDate dateSigned,
+      String ufn,
       boolean retryOnConflict) {
     ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
     applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
-    DeclarationCommand command =
-        DeclarationCommand.builder()
+    EditApplicationCommand command =
+        EditApplicationCommand.builder()
             .eTag(application.geteTag())
-            .declarationConfirmation(declarationConfirmation)
-            .dateSigned(dateSigned)
+            // .declarationConfirmation(declarationConfirmation)
+            // .dateSigned(dateSigned)
+            .ufn(ufn)
+            .declaration(
+                PatchDeclarationData.builder()
+                    .declarationConfirmation(declarationConfirmation)
+                    .dateSigned(dateSigned)
+                    .build())
             .build();
 
     try {
-      applicationGateway.updateDeclarationData(applicationId, command);
+      applicationGateway.editApplication(applicationId, command);
     } catch (ApplicationConflictException exception) {
+      if (!"APPLICATION_VERSION_CONFLICT".equals(exception.getReason())) {
+        throw exception;
+      }
       if (!retryOnConflict) {
         throw new ApplicationConflictException(
             "Application %s was modified concurrently".formatted(applicationId), exception);
       }
-      updateDeclaration(applicationId, declarationConfirmation, dateSigned, false);
+      updateDeclaration(applicationId, declarationConfirmation, dateSigned, ufn, false);
       return;
     }
 

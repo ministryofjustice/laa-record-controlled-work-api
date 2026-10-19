@@ -179,7 +179,8 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateDeclaration_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
+  void
+shouldUpdateDeclaration_throwsApplicationConflictException_whenConflictPersistsAfterRetry() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
@@ -228,7 +229,8 @@ class ApplicationUpdateServiceTest {
         .updateApplication(eq(applicationId), any());
 
     assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
+            () -> applicationUpdateService.updateStatus(applicationId,
+ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString())
         .cause()
@@ -251,7 +253,8 @@ class ApplicationUpdateServiceTest {
                 .build());
 
     assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
+            () -> applicationUpdateService.updateStatus(applicationId,
+ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -259,7 +262,8 @@ class ApplicationUpdateServiceTest {
   }
 
   @Test
-  void shouldUpdateDeclaration_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
+  void
+shouldUpdateDeclaration_throwsApplicationConflictException_whenApplicationAlreadyRecorded() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
@@ -293,7 +297,8 @@ class ApplicationUpdateServiceTest {
                 .build());
 
     assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
+            () -> applicationUpdateService.updateStatus(applicationId,
+ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -314,7 +319,8 @@ class ApplicationUpdateServiceTest {
     when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes()).thenReturn(List.of());
 
     assertThatThrownBy(
-            () -> applicationUpdateService.updateStatus(applicationId, ApplicationState.COMPLETED))
+            () -> applicationUpdateService.updateStatus(applicationId,
+ApplicationState.COMPLETED))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 

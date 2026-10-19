@@ -107,7 +107,8 @@ public class ApplicationController implements ApplicationsApi {
     applicationUpdateService.updateDeclaration(
         id,
         updateDeclarationRequestBody.getDeclarationConfirmation(),
-        updateDeclarationRequestBody.getDateSigned());
+        updateDeclarationRequestBody.getDateSigned(),
+        updateDeclarationRequestBody.getUfn());
     return ResponseEntity.noContent().build();
   }
 

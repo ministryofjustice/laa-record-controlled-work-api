@@ -1645,7 +1645,7 @@ class ApplicationControllerTest {
         .andExpect(status().isNoContent());
 
     verify(mockApplicationUpdateService)
-        .updateDeclaration(applicationId, true, LocalDate.of(2026, 8, 14));
+        .updateDeclaration(applicationId, true, LocalDate.of(2026, 8, 14), null);
   }
 
   @Test
@@ -1684,7 +1684,7 @@ class ApplicationControllerTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     doThrow(new ApplicationNotFoundException("No application found with id: " + applicationId))
         .when(mockApplicationUpdateService)
-        .updateDeclaration(any(), any(), any());
+        .updateDeclaration(any(), any(), any(), any());
 
     mockMvc
         .perform(
@@ -1705,7 +1705,7 @@ class ApplicationControllerTest {
             new ApplicationConflictException(
                 "Application %s was modified concurrently".formatted(applicationId)))
         .when(mockApplicationUpdateService)
-        .updateDeclaration(any(), any(), any());
+        .updateDeclaration(any(), any(), any(), any());
 
     mockMvc
         .perform(

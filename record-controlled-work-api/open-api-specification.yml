@@ -768,6 +768,8 @@ components:
         - declarationConfirmation
         - dateSigned
       properties:
+        ufn:
+          type: string
         declarationConfirmation:
           type: boolean
         dateSigned:

@@ -269,7 +269,7 @@ class ApplicationMapperTest {
   }
 
   @Test
-  void shouldMapUfnWhenMappingToStartApplicationCommand() {
+  void shouldForwardUfnWhenMappingToStartApplicationCommand() {
     var request =
         CreateApplicationRequestGenerator.createWithName(builder -> builder.ufn("123456/123"));
 
