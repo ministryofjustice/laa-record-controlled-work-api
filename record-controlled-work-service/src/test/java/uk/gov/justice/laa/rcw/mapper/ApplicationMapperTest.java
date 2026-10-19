@@ -269,13 +269,13 @@ class ApplicationMapperTest {
   }
 
   @Test
-  void shouldIgnoreUfnWhenMappingToStartApplicationCommand() {
+  void shouldMapUfnWhenMappingToStartApplicationCommand() {
     var request =
         CreateApplicationRequestGenerator.createWithName(builder -> builder.ufn("123456/123"));
 
     StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
 
-    assertThat(result.getUfn()).isNull();
+    assertThat(result.getUfn()).isEqualTo("123456/123");
   }
 
   @Test
