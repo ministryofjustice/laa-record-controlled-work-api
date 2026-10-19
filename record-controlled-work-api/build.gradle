@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
 
 plugins {
-    id 'org.openapi.generator' version '7.25.0'
+    id 'org.openapi.generator' version '7.26.0'
     id 'uk.gov.justice.service.laa.laa-spring-boot-gradle-plugin'
 }
 
