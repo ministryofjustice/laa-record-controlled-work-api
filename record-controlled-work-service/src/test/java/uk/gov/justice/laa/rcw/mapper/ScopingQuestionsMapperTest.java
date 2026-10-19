@@ -85,6 +85,24 @@ class ScopingQuestionsMapperTest {
   }
 
   @Test
+  void shouldPreserveTrueAnswersWhenMappingEdits() {
+    ScopingQuestions answers =
+        new ScopingQuestions()
+            .needsAdviceOnEUOrInternationalMaintenance(true)
+            .needsProtectiveInjunction(true)
+            .careProceedingsStarted(true)
+            .careProceedingsParentalResponsibility(true);
+
+    assertThat(scopingQuestionsMapper.toDatastoreScopingQuestionsFromDetails(answers))
+        .containsAllEntriesOf(
+            Map.of(
+                "needsAdviceOnEUOrInternationalMaintenance", true,
+                "needsProtectiveInjunction", true,
+                "careProceedingsStarted", true,
+                "careProceedingsParentalResponsibility", true));
+  }
+
+  @Test
   void shouldPreservePrivateEditAnswerValues() {
     ScopingQuestions answers =
         new ScopingQuestions()
