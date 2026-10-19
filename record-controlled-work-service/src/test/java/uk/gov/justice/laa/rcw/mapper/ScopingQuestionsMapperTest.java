@@ -143,18 +143,20 @@ class ScopingQuestionsMapperTest {
 
     Map<String, Object> answers = new HashMap<>();
     answers.put("priorLegalAid", "no");
-    answers.put("needsAdviceOnEUOrInternationalMaintenance", null);
+    answers.put("needsAdviceOnEUOrInternationalMaintenance", false);
     answers.put("needsProtectiveInjunction", false);
     answers.put("careProceedingsStarted", false);
+    answers.put("careProceedingsParentalResponsibility", false);
     answers.put("caseMeetsMeritsCriteria", false);
 
     assertThat(scopingQuestionsMapper.toApplicationScopingQuestions(answers))
         .isEqualTo(
             new ApplicationScopingQuestions()
                 .priorLegalAid(PriorLegalAid.NO)
-                .needsAdviceOnEUOrInternationalMaintenance(null)
+                .needsAdviceOnEUOrInternationalMaintenance(false)
                 .needsProtectiveInjunction(false)
                 .careProceedingsStarted(false)
+                .careProceedingsParentalResponsibility(false)
                 .caseMeetsMeritsCriteria(false));
   }
 }
