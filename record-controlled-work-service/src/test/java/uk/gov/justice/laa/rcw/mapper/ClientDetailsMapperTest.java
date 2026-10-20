@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.ClientDetails;
@@ -108,8 +110,9 @@ class ClientDetailsMapperTest {
     assertThat(clientDetailsMapper.toCreateClientCommand(null)).isNull();
   }
 
-  @Test
-  void shouldMapEditableClientDetailsIncludingAddressAndBooleanAnswers() {
+  @ParameterizedTest
+  @ValueSource(strings = {"GB", "FR"})
+  void shouldMapEditableClientDetailsIncludingAddressAndBooleanAnswers(String country) {
     UpdateClientDetailsRequestBody client =
         new UpdateClientDetailsRequestBody()
             .firstName("Ada")
@@ -126,7 +129,7 @@ class ClientDetailsMapperTest {
                     .townOrCity("London")
                     .postCode(null)
                     .county(null)
-                    .country("GB"));
+                    .country(country));
 
     var result = clientDetailsMapper.toPatchClientDetailsData(client);
 
@@ -138,6 +141,7 @@ class ClientDetailsMapperTest {
     assertThat(result.getAddress_JsonNullable().isPresent()).isTrue();
     assertThat(result.getAddress().getAddressLine2_JsonNullable()).isEqualTo(JsonNullable.of(null));
     assertThat(result.getAddress().getAddressLine3_JsonNullable()).isEqualTo(JsonNullable.of(""));
+    assertThat(result.getAddress().getCountry()).isEqualTo(country);
 
     client.setHasFixedAddress(false);
     assertThat(clientDetailsMapper.toPatchClientDetailsData(client).getNoFixedAbode()).isTrue();
