@@ -72,6 +72,7 @@ import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
+import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.service.ApplicationCreationService;
 import uk.gov.justice.laa.rcw.service.ApplicationDetailsService;
@@ -455,8 +456,14 @@ class ApplicationControllerTest {
 
     performDetailsPut("\"0\"", request.toString()).andExpect(status().isNoContent());
 
+    ArgumentCaptor<UpdateApplicationDetailsRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(UpdateApplicationDetailsRequestBody.class);
     verify(mockApplicationDetailsService)
-        .updateApplicationDetails(eq(UUID.fromString(DETAILS_APPLICATION_ID)), any(), eq(0L));
+        .updateApplicationDetails(
+            eq(UUID.fromString(DETAILS_APPLICATION_ID)), requestCaptor.capture(), eq(0L));
+    assertEquals(
+        mapper.readValue(scopingQuestions, ScopingQuestions.class),
+        requestCaptor.getValue().getScopingQuestions());
   }
 
   @ParameterizedTest
@@ -487,7 +494,12 @@ class ApplicationControllerTest {
                 .content(request.toString()))
         .andExpect(status().isCreated());
 
-    verify(mockApplicationCreationService).createApplication(any());
+    ArgumentCaptor<CreateApplicationRequestBody> requestCaptor =
+        ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
+    verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
+    assertEquals(
+        mapper.readValue(scopingQuestions, ScopingQuestions.class),
+        requestCaptor.getValue().getScopingQuestions());
   }
 
   @ParameterizedTest
@@ -518,37 +530,37 @@ class ApplicationControllerTest {
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":true,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "laspoEvidenceScope":null,"careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
-             "privateFamilyCaseScope":null,"careProceedingsStarted":null,
+             "laspoEvidenceScope":null,"careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,
              "caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","careProceedingsStarted":null,
+             "laspoEvidenceScope":"none","careProceedingsStarted":null,
              "careProceedingsParentalResponsibility":null,"caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":true}
+             "laspoEvidenceScope":"none","caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-             "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":true}
+             "laspoEvidenceScope":"none","caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"public",
              "careProceedingsStarted":false,"careProceedingsParentalResponsibility":null,
              "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,
+             "laspoEvidenceScope":null,
              "caseMeetsMeritsCriteria":true}
             """,
             """
@@ -564,13 +576,13 @@ class ApplicationControllerTest {
             {"priorLegalAid":"no","familyLawClassification":"public",
              "careProceedingsStarted":true,"careProceedingsParentalResponsibility":true,
              "needsAdviceOnEUOrInternationalMaintenance":null,"needsProtectiveInjunction":null,
-             "privateFamilyCaseScope":null,
+             "laspoEvidenceScope":null,
              "caseMeetsMeritsCriteria":true}
             """,
             """
             {"priorLegalAid":"no","familyLawClassification":"private",
              "needsAdviceOnEUOrInternationalMaintenance":false,
-             "needsProtectiveInjunction":false,"privateFamilyCaseScope":"domesticAbuse",
+             "needsProtectiveInjunction":false,"laspoEvidenceScope":"domesticAbuse",
              "caseMeetsMeritsCriteria":true}
             """),
         Stream.of("domesticAbuse", "childAbuse", "under18", "parentOrGuardian")
@@ -579,7 +591,7 @@ class ApplicationControllerTest {
                     """
                     {"priorLegalAid":"no","familyLawClassification":"private",
                      "needsAdviceOnEUOrInternationalMaintenance":false,
-                     "needsProtectiveInjunction":false,"privateFamilyCaseScope":"%s",
+                     "needsProtectiveInjunction":false,"laspoEvidenceScope":"%s",
                      "caseMeetsMeritsCriteria":true}
                     """
                         .formatted(scope)));
@@ -610,17 +622,17 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":"none"}
+         "laspoEvidenceScope":"none"}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":null}
+         "laspoEvidenceScope":"none","caseMeetsMeritsCriteria":null}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":"none","caseMeetsMeritsCriteria":false}
+         "laspoEvidenceScope":"none","caseMeetsMeritsCriteria":false}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
@@ -634,7 +646,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":true,
-         "privateFamilyCaseScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
+         "laspoEvidenceScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
@@ -652,7 +664,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":"invalid","caseMeetsMeritsCriteria":true}
+         "laspoEvidenceScope":"invalid","caseMeetsMeritsCriteria":true}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
@@ -675,7 +687,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":"none","unexpected":true}
+         "laspoEvidenceScope":"none","unexpected":true}
         """,
         """
         {"familyLawClassification":"public","careProceedingsStarted":false,
@@ -693,7 +705,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":false,
-         "privateFamilyCaseScope":null,"caseMeetsMeritsCriteria":true}
+         "laspoEvidenceScope":null,"caseMeetsMeritsCriteria":true}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
@@ -715,13 +727,13 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":"false",
-         "needsProtectiveInjunction":false,"privateFamilyCaseScope":"domesticAbuse",
+         "needsProtectiveInjunction":false,"laspoEvidenceScope":"domesticAbuse",
          "caseMeetsMeritsCriteria":true}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
          "needsAdviceOnEUOrInternationalMaintenance":false,"needsProtectiveInjunction":"false",
-         "privateFamilyCaseScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
+         "laspoEvidenceScope":"domesticAbuse","caseMeetsMeritsCriteria":true}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"private",
@@ -741,7 +753,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
          "careProceedingsStarted":false,"caseMeetsMeritsCriteria":true,
-         "privateFamilyCaseScope":"none"}
+         "laspoEvidenceScope":"none"}
         """,
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
@@ -751,7 +763,7 @@ class ApplicationControllerTest {
         """
         {"priorLegalAid":"no","familyLawClassification":"public",
          "careProceedingsStarted":true,"careProceedingsParentalResponsibility":false,
-         "caseMeetsMeritsCriteria":true,"privateFamilyCaseScope":"none"}
+         "caseMeetsMeritsCriteria":true,"laspoEvidenceScope":"none"}
         """);
   }
 
@@ -1118,7 +1130,7 @@ class ApplicationControllerTest {
         .put("familyLawClassification", "public")
         .putNull("needsAdviceOnEUOrInternationalMaintenance")
         .putNull("needsProtectiveInjunction")
-        .putNull("privateFamilyCaseScope")
+        .putNull("laspoEvidenceScope")
         .put("careProceedingsStarted", false)
         .putNull("careProceedingsParentalResponsibility")
         .put("caseMeetsMeritsCriteria", true);
@@ -1144,7 +1156,7 @@ class ApplicationControllerTest {
             .getScopingQuestions()
             .getNeedsAdviceOnEUOrInternationalMaintenance());
     assertNull(requestCaptor.getValue().getScopingQuestions().getNeedsProtectiveInjunction());
-    assertNull(requestCaptor.getValue().getScopingQuestions().getPrivateFamilyCaseScope());
+    assertNull(requestCaptor.getValue().getScopingQuestions().getLaspoEvidenceScope());
     assertEquals(
         Boolean.FALSE, requestCaptor.getValue().getScopingQuestions().getCareProceedingsStarted());
     assertNull(

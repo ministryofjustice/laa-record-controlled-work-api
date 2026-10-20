@@ -1,8 +1,8 @@
 package uk.gov.justice.laa.rcw.generator;
 
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.LaspoEvidenceScope;
 import uk.gov.justice.laa.rcw.model.PriorLegalAid;
-import uk.gov.justice.laa.rcw.model.PrivateFamilyCaseScope;
 import uk.gov.justice.laa.rcw.model.ScopingQuestions;
 
 /** Generator for scoping-question models used by tests. */
@@ -22,7 +22,7 @@ public final class ScopingQuestionsGenerator {
         .familyLawClassification(FamilyLawClassification.PRIVATE)
         .needsAdviceOnEUOrInternationalMaintenance(false)
         .needsProtectiveInjunction(false)
-        .privateFamilyCaseScope(PrivateFamilyCaseScope.DOMESTIC_ABUSE)
+        .laspoEvidenceScope(LaspoEvidenceScope.DOMESTIC_ABUSE)
         .caseMeetsMeritsCriteria(true);
   }
 }

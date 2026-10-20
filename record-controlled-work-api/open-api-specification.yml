@@ -407,10 +407,10 @@ components:
         needsProtectiveInjunction:
           nullable: true
           type: boolean
-        privateFamilyCaseScope:
+        laspoEvidenceScope:
           nullable: true
           allOf:
-            - $ref: "#/components/schemas/privateFamilyCaseScope"
+            - $ref: "#/components/schemas/laspoEvidenceScope"
         careProceedingsStarted:
           nullable: true
           type: boolean
@@ -440,10 +440,10 @@ components:
         needsProtectiveInjunction:
           nullable: true
           type: boolean
-        privateFamilyCaseScope:
+        laspoEvidenceScope:
           nullable: true
           allOf:
-            - $ref: "#/components/schemas/privateFamilyCaseScope"
+            - $ref: "#/components/schemas/laspoEvidenceScope"
         careProceedingsStarted:
           nullable: true
           type: boolean
@@ -957,7 +957,7 @@ components:
         - public
         - private
 
-    privateFamilyCaseScope:
+    laspoEvidenceScope:
       type: string
       enum:
         - none

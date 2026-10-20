@@ -18,7 +18,7 @@ http:
           "familyLawClassification": "private"
           "needsAdviceOnEUOrInternationalMaintenance": false
           "needsProtectiveInjunction": false
-          "privateFamilyCaseScope": "domesticAbuse"
+          "laspoEvidenceScope": "domesticAbuse"
         },
         "clientDetails": {
           "firstName": "Joe",
@@ -94,7 +94,7 @@ examples:
               "familyLawClassification": "private"
               "needsAdviceOnEUOrInternationalMaintenance": false
               "needsProtectiveInjunction": false
-              "privateFamilyCaseScope": "domesticAbuse"
+              "laspoEvidenceScope": "domesticAbuse"
             },
             "clientDetails": {
               "firstName": "Joe",

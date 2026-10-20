@@ -18,7 +18,7 @@ components:
             needsAdviceOnEUOrInternationalMaintenance:
               enum: [true, false]
         - $ref: "#/components/schemas/ProtectiveInjunctionRule"
-        - $ref: "#/components/schemas/PrivateFamilyCaseScopeRule"
+        - $ref: "#/components/schemas/LaspoEvidenceScopeRule"
         - $ref: "#/components/schemas/PublicBranchIsNullRule"
 
     # In private cases, public-branch answers must be null or absent.
@@ -48,7 +48,7 @@ components:
           enum: [null]
         needsProtectiveInjunction:
           enum: [null]
-        privateFamilyCaseScope:
+        laspoEvidenceScope:
           enum: [null]
 
     # The injunction question is reached only for private cases answering false to maintenance advice.
@@ -78,25 +78,25 @@ components:
           enum: [false]
 
     # The private-case scope question is reached only when the injunction answer is false.
-    PrivateFamilyCaseScopeRule:
+    LaspoEvidenceScopeRule:
       oneOf:
         # When reached, require a non-null scope.
         - allOf:
-            - $ref: "#/components/schemas/PrivateFamilyCaseScopeReached"
-          required: [privateFamilyCaseScope]
+            - $ref: "#/components/schemas/LaspoEvidenceScopeReached"
+          required: [laspoEvidenceScope]
           properties:
-            privateFamilyCaseScope:
+            laspoEvidenceScope:
               not:
                 enum: [null]
         # Otherwise, the skipped answer must be null or absent.
         - not:
-            $ref: "#/components/schemas/PrivateFamilyCaseScopeReached"
+            $ref: "#/components/schemas/LaspoEvidenceScopeReached"
           properties:
-            privateFamilyCaseScope:
+            laspoEvidenceScope:
               enum: [null]
 
-    # Prerequisite for private-case scope: private, maintenance advice=false, and injunction=false.
-    PrivateFamilyCaseScopeReached:
+    # Prerequisite for LASPO evidence scope: private, maintenance advice=false, and injunction=false.
+    LaspoEvidenceScopeReached:
       allOf:
         - $ref: "#/components/schemas/ProtectiveInjunctionReached"
       required: [needsProtectiveInjunction]
