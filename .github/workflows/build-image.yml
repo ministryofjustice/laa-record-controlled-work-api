@@ -33,7 +33,7 @@ jobs:
 
       - name: ECR auth
         id: ecr
-        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@336eeed8a4efcd278f28a2fed6dd2120180ecbf2 # main
+        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@29411bff7835740bdb7005f64b73f05f8a2ffd10 # main
         with:
           ecr_region: ${{ vars.ECR_REGION }}
           ecr_role: ${{ secrets.ECR_ROLE_TO_ASSUME }}
