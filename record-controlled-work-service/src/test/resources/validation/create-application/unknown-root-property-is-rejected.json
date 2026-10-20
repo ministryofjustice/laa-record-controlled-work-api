@@ -2,11 +2,9 @@
   "id": "unknown-root-property-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "extra": "not allowed",
     "clientDetails": {
       "firstName": "Ada",

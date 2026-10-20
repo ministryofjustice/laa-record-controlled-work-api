@@ -2,11 +2,9 @@
   "id": "no-fixed-address-rejects-address-object",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

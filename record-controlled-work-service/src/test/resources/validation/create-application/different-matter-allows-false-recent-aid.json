@@ -2,11 +2,11 @@
   "id": "different-matter-allows-false-recent-aid",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {
+    "priorLegalAid": "yesDifferentMatter"
+  },
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "yesDifferentMatter"
-    },
     "legalAidLast6Months": false,
     "reasonForReapplication": "",
     "clientDetails": {

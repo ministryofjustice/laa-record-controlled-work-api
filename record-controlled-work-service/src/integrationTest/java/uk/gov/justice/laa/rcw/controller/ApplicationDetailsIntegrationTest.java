@@ -35,7 +35,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.ResultActions;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
+import uk.gov.justice.laa.rcw.generator.ScopingQuestionsGenerator;
 import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator;
+import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
+import uk.gov.justice.laa.rcw.model.PriorLegalAid;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
@@ -150,7 +153,13 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                         "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -215,7 +224,94 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                         "eTag": 31,
                         "reasonForReapplication": null,
                         "ecfFlag": true,
-                        "scopingQuestions": {"priorLegalAid": "no"},
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": false,
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
+                        },
+                        "clientDetails": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "noFixedAbode": true,
+                            "address": null
+                        }
+                    }
+                    """)));
+  }
+
+  @Test
+  void shouldClearMaintenanceAnswerWhenChangingPrivateApplicationToPublic() throws Exception {
+    String id = UUID.randomUUID().toString();
+    String path = "/api/v0/applications/" + id;
+    var request = UpdateApplicationDetailsRequestGenerator.validRequest();
+    request.setScopingQuestions(
+        ScopingQuestionsGenerator.valid(PriorLegalAid.NO)
+            .familyLawClassification(FamilyLawClassification.PUBLIC)
+            .needsAdviceOnEUOrInternationalMaintenance(null));
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(path))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT",
+                        "eTag": 31,
+                        "ecfFlag": true,
+                        "client": {
+                            "firstName": "Test",
+                            "lastName": "Client",
+                            "dateOfBirth": "1990-01-01",
+                            "niNumber": null,
+                            "noFixedAbode": true,
+                            "address": null
+                        },
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "private",
+                            "needsAdviceOnEUOrInternationalMaintenance": true,
+                            "needsProtectiveInjunction": false
+                        }
+                    }
+                    """
+                        .formatted(id, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(path + ":edit-application"))
+            .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/details", id)
+                .withBearerWriteToken()
+                .header("If-Match", "\"31\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(toJson(request)))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string("ETag", "\"32\""));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(path)));
+    DATASTORE.verify(
+        1,
+        patchRequestedFor(urlPathEqualTo(path + ":edit-application"))
+            .withRequestBody(
+                equalToJson(
+                    """
+                    {
+                        "eTag": 31,
+                        "reasonForReapplication": null,
+                        "ecfFlag": true,
+                        "scopingQuestions": {
+                            "priorLegalAid": "no",
+                            "familyLawClassification": "public",
+                            "needsAdviceOnEUOrInternationalMaintenance": null,
+                            "needsProtectiveInjunction": false,
+                            "privateFamilyCaseScope": "domesticAbuse"
+                        },
                         "clientDetails": {
                             "firstName": "Test",
                             "lastName": "Client",
@@ -543,7 +639,13 @@ class ApplicationDetailsIntegrationTest extends BaseIntegrationTest {
                       "eTag": 31,
                       "reasonForReapplication": null,
                       "ecfFlag": true,
-                      "scopingQuestions": {"priorLegalAid": "no"},
+                                            "scopingQuestions": {
+                                                "priorLegalAid": "no",
+                                                "familyLawClassification": "private",
+                                                "needsAdviceOnEUOrInternationalMaintenance": false,
+                                                "needsProtectiveInjunction": false,
+                                                "privateFamilyCaseScope": "domesticAbuse"
+                                            },
                       "clientDetails": {
                         "firstName": "Test",
                         "lastName": "Client",

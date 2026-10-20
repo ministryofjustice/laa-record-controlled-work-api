@@ -2,13 +2,13 @@
   "id": "whitespace-only-active-reason-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {
+    "priorLegalAid": "yesSameMatter"
+  },
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "yesSameMatter"
-    },
     "legalAidLast6Months": true,
-    "reasonForReapplication": "\u2003",
+    "reasonForReapplication": " ",
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

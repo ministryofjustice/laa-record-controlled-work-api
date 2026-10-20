@@ -108,7 +108,8 @@ public class UpdateApplicationDetailsRequestBodyValidator extends RequestBodyAdv
 
   private void validateBusinessRules(UpdateApplicationDetailsRequestBody request) {
     boolean legalAidLast6Months = request.getLegalAidLast6Months();
-    boolean sameMatter = request.getPriorLegalAid() == PriorLegalAid.YES_SAME_MATTER;
+    boolean sameMatter =
+        request.getScopingQuestions().getPriorLegalAid() == PriorLegalAid.YES_SAME_MATTER;
     String reason = request.getReasonForReapplication();
     if (legalAidLast6Months && !sameMatter) {
       invalid();

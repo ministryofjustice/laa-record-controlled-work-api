@@ -2,11 +2,9 @@
   "id": "null-create-reason-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "reasonForReapplication": null,
     "clientDetails": {
       "firstName": "Ada",

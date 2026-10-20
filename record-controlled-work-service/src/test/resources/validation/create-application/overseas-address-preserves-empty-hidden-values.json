@@ -2,11 +2,9 @@
   "id": "overseas-address-preserves-empty-hidden-values",
   "operation": "createApplication",
   "accepted": true,
+  "scopingQuestionOverrides": {},
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "no"
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",

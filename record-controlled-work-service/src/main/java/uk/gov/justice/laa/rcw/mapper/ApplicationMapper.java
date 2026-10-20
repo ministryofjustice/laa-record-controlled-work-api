@@ -101,7 +101,7 @@ public interface ApplicationMapper {
       qualifiedByName = "toPresentJsonNullable")
   @Mapping(
       target = "scopingQuestions",
-      source = "request",
+      source = "request.scopingQuestions",
       qualifiedByName = "toDatastoreScopingQuestionsFromDetails")
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);

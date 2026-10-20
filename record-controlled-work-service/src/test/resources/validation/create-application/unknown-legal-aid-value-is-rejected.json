@@ -2,11 +2,11 @@
   "id": "unknown-legal-aid-value-is-rejected",
   "operation": "createApplication",
   "accepted": false,
+  "scopingQuestionOverrides": {
+    "priorLegalAid": "unknown"
+  },
   "request": {
     "providerOfficeCode": "office",
-    "scopingQuestions": {
-      "priorLegalAid": "unknown"
-    },
     "clientDetails": {
       "firstName": "Ada",
       "lastName": "Lovelace",
