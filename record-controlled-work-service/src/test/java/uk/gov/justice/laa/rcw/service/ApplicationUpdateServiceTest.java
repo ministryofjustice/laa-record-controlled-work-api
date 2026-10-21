@@ -175,6 +175,14 @@ class ApplicationUpdateServiceTest {
     assertThat(commandCaptor.getAllValues())
         .extracting(EditApplicationCommand::geteTag)
         .containsExactly(1L, 2L);
+    assertThat(commandCaptor.getAllValues())
+        .allSatisfy(
+            command -> {
+              assertThat(command.getDeclaration().getDateSigned())
+                  .isEqualTo(LocalDate.of(2026, 8, 14));
+              assertThat(command.getDeclaration().getDeclarationConfirmation()).isTrue();
+              assertThat(command.getUfn()).isEqualTo("123456/123");
+            });
   }
 
   @Test

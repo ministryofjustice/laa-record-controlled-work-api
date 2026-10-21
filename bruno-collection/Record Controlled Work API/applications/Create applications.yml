@@ -13,7 +13,6 @@ http:
     data: |-
       {
         "providerOfficeCode": "R1XEVG",
-        "ufn": "123456/123",
         "scopingQuestions": {
           "priorLegalAid": "yesSameMatter"
           "familyLawClassification": "private"
@@ -90,7 +89,6 @@ examples:
           {
             "legalAidBefore": "false",
             "providerOfficeCode": "R1XEVG",
-            "ufn": "123456/123",
             "scopingQuestions": {
               "priorLegalAid": "yesSameMatter"
               "familyLawClassification": "private"

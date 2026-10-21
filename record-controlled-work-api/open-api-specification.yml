@@ -379,8 +379,6 @@ components:
           type: string
         providerOfficeCode:
           type: string
-        ufn:
-          type: string
         scopingQuestions:
           $ref: '#/components/schemas/ScopingQuestions'
         clientDetails:

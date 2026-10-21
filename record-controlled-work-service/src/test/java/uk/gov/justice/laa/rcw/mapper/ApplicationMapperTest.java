@@ -269,16 +269,6 @@ class ApplicationMapperTest {
   }
 
   @Test
-  void shouldForwardUfnWhenMappingToStartApplicationCommand() {
-    var request =
-        CreateApplicationRequestGenerator.createWithName(builder -> builder.ufn("123456/123"));
-
-    StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
-
-    assertThat(result.getUfn()).isEqualTo("123456/123");
-  }
-
-  @Test
   void shouldMapDetailsSnapshotToSparseEditCommand() {
     UpdateApplicationDetailsRequestBody request =
         fixedAddressRequest("GB", "", PriorLegalAid.YES_SAME_MATTER, true, "Reapplication");

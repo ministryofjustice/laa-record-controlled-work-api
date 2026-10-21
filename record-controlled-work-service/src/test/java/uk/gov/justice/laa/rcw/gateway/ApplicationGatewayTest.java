@@ -121,28 +121,6 @@ class ApplicationGatewayTest {
   }
 
   @Test
-  void shouldStartApplication_shouldMapDatastoreConflict() {
-    String officeCode = "AB12CD";
-    StartApplicationCommand command =
-        StartApplicationCommand.builder().providerOfficeCode(officeCode).ufn("123456/1").build();
-    HttpClientErrorException.Conflict datastoreException = conflict();
-    when(mockApplicationApi.startApplication(
-            BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME, command))
-        .thenThrow(datastoreException);
-
-    assertThatThrownBy(() -> applicationGateway.startApplication(officeCode, command))
-        .isExactlyInstanceOf(ApplicationConflictException.class)
-        .hasMessage("Application creation conflicted for office AB12CD")
-        .hasCause(datastoreException)
-        .isInstanceOfSatisfying(
-            ApplicationConflictException.class,
-            exception ->
-                assertThat(exception.getReason()).isEqualTo("APPLICATION_CREATION_CONFLICT"));
-    verify(mockApplicationApi)
-        .startApplication(BEARER_TOKEN, CORRELATION_ID, ServiceNameConstants.SERVICE_NAME, command);
-  }
-
-  @Test
   void shouldUpdateScopingData() {
     UpdateScopingDataCommand command = scopingDataCommand();
 

@@ -860,69 +860,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     DATASTORE.verify(2, getRequestedFor(urlPathEqualTo(path)));
   }
 
-  @Test
-  void shouldReturnConflict_whenCreatingApplicationWithDuplicateUfn() throws Exception {
-    CreateApplicationRequestBody request =
-        CreateApplicationRequestGenerator.createWithName(
-            builder ->
-                builder.providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE).ufn("123456/1"));
-    request.setReasonForReapplication("");
-    request.getClientDetails().getAddress().setAddressLine3("");
-    request.getClientDetails().getAddress().setAddressLine4("");
-    request.getClientDetails().getAddress().setCounty("");
-    String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
-    String startPath = "/api/v0/applications:start-application";
-    String scopingPath = "/api/v0/applications/" + applicationId + ":update-scoping-data";
-    String scenario = "duplicate-ufn";
-    DATASTORE.stubFor(
-        WireMock.post(urlPathEqualTo(startPath))
-            .inScenario(scenario)
-            .whenScenarioStateIs(Scenario.STARTED)
-            .willReturn(
-                okJson(
-                    """
-                    {"id": "%s", "eTag": 0, "ufn": "123456/1", "providerOfficeCode": "%s"}
-                    """
-                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE)))
-            .willSetStateTo("created"));
-    DATASTORE.stubFor(
-        WireMock.post(urlPathEqualTo(startPath))
-            .inScenario(scenario)
-            .whenScenarioStateIs("created")
-            .willReturn(
-                WireMock.aResponse()
-                    .withStatus(409)
-                    .withHeader("Content-Type", "application/problem+json")
-                    .withBody("{\"status\":409,\"detail\":\"Duplicate UFN\"}")));
-    DATASTORE.stubFor(WireMock.patch(urlPathEqualTo(scopingPath)).willReturn(WireMock.noContent()));
-
-    mockMvc
-        .perform(
-            post("/api/v1/applications")
-                .withBearerWriteToken()
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request)))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").value(applicationId));
-
-    mockMvc
-        .perform(
-            post("/api/v1/applications")
-                .withBearerWriteToken()
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request)))
-        .andExpect(status().isConflict())
-        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-        .andExpect(jsonPath("$.reason").value("APPLICATION_CREATION_CONFLICT"))
-        .andExpect(header().doesNotExist("Location"));
-
-    DATASTORE.verify(
-        2,
-        postRequestedFor(urlPathEqualTo(startPath))
-            .withRequestBody(equalToJson("{\"ufn\":\"123456/1\"}", false, true)));
-    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(scopingPath)));
-  }
-
   @ParameterizedTest
   @ValueSource(strings = {"BG123456C", "AO123456C", "AB123456s"})
   void shouldReturnBadRequest_whenNiNumberDoesNotMatchUkFormat(String niNumber) throws Exception {
@@ -965,7 +902,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             builder ->
                 builder
                     .providerOfficeCode(TestJwtConfig.AUTHORIZED_OFFICE_CODE)
-                    .ufn("123456/123")
                     .scopingQuestions(
                         ScopingQuestionsGenerator.valid(PriorLegalAid.YES_SAME_MATTER)));
     request.getClientDetails().setNiNumber(niNumber);
@@ -1067,7 +1003,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                 "country": "GB"
                             }
                         },
-                        "ufn": "123456/123",
+                        "ufn": null,
                         "applicationType": "RCW",
                         "providerOfficeCode": "%s"
                     }
@@ -2078,6 +2014,52 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
     DATASTORE.verify(0, patchRequestedFor(urlPathEqualTo(declarationPath)));
+  }
+
+  @Test
+  void shouldReturnConflictWithoutRetry_whenDeclarationUfnConflicts() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String applicationPath = "/api/v0/applications/" + applicationId;
+    String editPath = applicationPath + ":edit-application";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(applicationPath))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(editPath))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(409)
+                    .withHeader("Content-Type", "application/problem+json")
+                    .withBody("{\"status\":409,\"detail\":\"Duplicate UFN\"}")));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/declaration", applicationId)
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                        "declarationConfirmation": true,
+                        "dateSigned": "2026-08-14",
+                        "ufn": "123456/123"
+                    }
+                    """))
+        .andExpect(status().isConflict())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(editPath)));
   }
 
   @Test
