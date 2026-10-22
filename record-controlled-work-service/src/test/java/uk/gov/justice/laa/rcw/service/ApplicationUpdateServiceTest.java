@@ -21,7 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.UpdateApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -129,16 +129,16 @@ class ApplicationUpdateServiceTest {
                     uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
 
-    applicationUpdateService.updateDeclaration(applicationId, true, dateSigned);
+    applicationUpdateService.updateDeclaration(applicationId, true, dateSigned, "123456/123");
 
     verify(mockApplicationGateway).fetchApplication(eq(applicationId));
-    ArgumentCaptor<DeclarationCommand> commandCaptor =
-        ArgumentCaptor.forClass(DeclarationCommand.class);
-    verify(mockApplicationGateway)
-        .updateDeclarationData(eq(applicationId), commandCaptor.capture());
+    ArgumentCaptor<EditApplicationCommand> commandCaptor =
+        ArgumentCaptor.forClass(EditApplicationCommand.class);
+    verify(mockApplicationGateway).editApplication(eq(applicationId), commandCaptor.capture());
     assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
-    assertThat(commandCaptor.getValue().getDeclarationConfirmation()).isTrue();
-    assertThat(commandCaptor.getValue().getDateSigned()).isEqualTo(dateSigned);
+    assertThat(commandCaptor.getValue().getUfn()).isEqualTo("123456/123");
+    assertThat(commandCaptor.getValue().getDeclaration().getDeclarationConfirmation()).isTrue();
+    assertThat(commandCaptor.getValue().getDeclaration().getDateSigned()).isEqualTo(dateSigned);
   }
 
   @Test
@@ -159,23 +159,30 @@ class ApplicationUpdateServiceTest {
                 .applicationState(
                     uk.gov.justice.laa.ia.datastore.client.model.ApplicationState.DRAFT)
                 .build());
-    doThrow(
-            new ApplicationConflictException(
-                "Application %s was modified concurrently".formatted(applicationId)))
-        .doNothing()
-        .when(mockApplicationGateway)
-        .updateDeclarationData(eq(applicationId), any());
+    when(mockApplicationGateway.editApplication(eq(applicationId), any()))
+        .thenThrow(
+            new ApplicationConflictException("Version conflict", "APPLICATION_VERSION_CONFLICT"))
+        .thenReturn("\"3\"");
 
-    applicationUpdateService.updateDeclaration(applicationId, true, LocalDate.of(2026, 8, 14));
+    applicationUpdateService.updateDeclaration(
+        applicationId, true, LocalDate.of(2026, 8, 14), "123456/123");
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
-    ArgumentCaptor<DeclarationCommand> commandCaptor =
-        ArgumentCaptor.forClass(DeclarationCommand.class);
+    ArgumentCaptor<EditApplicationCommand> commandCaptor =
+        ArgumentCaptor.forClass(EditApplicationCommand.class);
     verify(mockApplicationGateway, times(2))
-        .updateDeclarationData(eq(applicationId), commandCaptor.capture());
+        .editApplication(eq(applicationId), commandCaptor.capture());
     assertThat(commandCaptor.getAllValues())
-        .extracting(DeclarationCommand::geteTag)
+        .extracting(EditApplicationCommand::geteTag)
         .containsExactly(1L, 2L);
+    assertThat(commandCaptor.getAllValues())
+        .allSatisfy(
+            command -> {
+              assertThat(command.getDeclaration().getDateSigned())
+                  .isEqualTo(LocalDate.of(2026, 8, 14));
+              assertThat(command.getDeclaration().getDeclarationConfirmation()).isTrue();
+              assertThat(command.getUfn()).isEqualTo("123456/123");
+            });
   }
 
   @Test
@@ -191,22 +198,23 @@ class ApplicationUpdateServiceTest {
                 .build());
     ApplicationConflictException datastoreFailure =
         new ApplicationConflictException(
-            "Application %s was modified concurrently".formatted(applicationId));
+            "Application %s was modified concurrently".formatted(applicationId),
+            "APPLICATION_VERSION_CONFLICT");
     doThrow(datastoreFailure)
         .when(mockApplicationGateway)
-        .updateDeclarationData(eq(applicationId), any());
+        .editApplication(eq(applicationId), any());
 
     assertThatThrownBy(
             () ->
                 applicationUpdateService.updateDeclaration(
-                    applicationId, true, LocalDate.of(2026, 8, 14)))
+                    applicationId, true, LocalDate.of(2026, 8, 14), "123456/123"))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString())
         .cause()
         .isSameAs(datastoreFailure);
 
     verify(mockApplicationGateway, times(2)).fetchApplication(eq(applicationId));
-    verify(mockApplicationGateway, times(2)).updateDeclarationData(eq(applicationId), any());
+    verify(mockApplicationGateway, times(2)).editApplication(eq(applicationId), any());
   }
 
   @Test
@@ -273,11 +281,11 @@ class ApplicationUpdateServiceTest {
     assertThatThrownBy(
             () ->
                 applicationUpdateService.updateDeclaration(
-                    applicationId, true, LocalDate.of(2026, 8, 14)))
+                    applicationId, true, LocalDate.of(2026, 8, 14), "123456/123"))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
-    verify(mockApplicationGateway, never()).updateDeclarationData(any(), any());
+    verify(mockApplicationGateway, never()).editApplication(any(), any());
   }
 
   @Test

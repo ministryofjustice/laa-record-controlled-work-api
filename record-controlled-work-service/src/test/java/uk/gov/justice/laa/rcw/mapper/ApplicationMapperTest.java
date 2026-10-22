@@ -259,6 +259,7 @@ class ApplicationMapperTest {
     assertThat(result.getApplicationType())
         .isEqualTo(StartApplicationCommand.ApplicationTypeEnum.RCW);
     assertThat(result.getProviderOfficeCode()).isEqualTo(request.getProviderOfficeCode());
+    assertThat(result.getUfn()).isNull();
     assertThat(result.getClient()).isNotNull();
     assertThat(result.getClient().getFirstName())
         .isEqualTo(request.getClientDetails().getFirstName());

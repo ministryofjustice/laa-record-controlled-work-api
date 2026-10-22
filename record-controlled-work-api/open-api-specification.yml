@@ -766,6 +766,9 @@ components:
         - declarationConfirmation
         - dateSigned
       properties:
+        ufn:
+          type: string
+          pattern: '^\d{6}\/\d{3}$'
         declarationConfirmation:
           type: boolean
         dateSigned:

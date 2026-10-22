@@ -1930,11 +1930,12 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
             urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-evidence")));
   }
 
-  @Test
-  void shouldUpdateApplicationDeclaration_fetchesETagAndPersistsDeclarationData() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldUpdateApplicationDeclaration_fetchesETagAndPersistsDeclarationData(boolean includeUfn)
+      throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-    String updateDeclarationPath =
-        "/api/v0/applications/" + applicationId + ":update-declaration-data";
+    String updateDeclarationPath = "/api/v0/applications/" + applicationId + ":edit-application";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
             .willReturn(
@@ -1949,7 +1950,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                         .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
-        WireMock.patch(urlPathEqualTo(updateDeclarationPath)).willReturn(WireMock.noContent()));
+        WireMock.patch(urlPathEqualTo(updateDeclarationPath))
+            .willReturn(WireMock.noContent().withHeader("ETag", "\"6\"")));
 
     mockMvc
         .perform(
@@ -1958,8 +1960,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"}
-                    """))
+                    {"declarationConfirmation": true, "dateSigned": "2026-08-14"%s}
+                    """
+                        .formatted(includeUfn ? ",\"ufn\":\"123456/123\"" : "")))
         .andExpect(status().isNoContent());
 
     DATASTORE.verify(
@@ -1971,10 +1974,14 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                     {
                         "eTag": 5,
-                        "declarationConfirmation": true,
-                        "dateSigned": "2026-08-14"
+                        %s
+                        "declaration": {
+                          "declarationConfirmation": true,
+                          "dateSigned": "2026-08-14"
+                        }
                     }
-                    """)));
+                    """
+                        .formatted(includeUfn ? "\"ufn\":\"123456/123\"," : ""))));
   }
 
   @Test
@@ -1982,7 +1989,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
       throws Exception {
     String applicationId = java.util.UUID.randomUUID().toString();
     String applicationPath = "/api/v0/applications/" + applicationId;
-    final String declarationPath = applicationPath + ":update-declaration-data";
+    final String declarationPath = applicationPath + ":edit-application";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo(applicationPath))
             .willReturn(
@@ -2010,11 +2017,56 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldReturnConflictWithoutRetry_whenDeclarationUfnConflicts() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String applicationPath = "/api/v0/applications/" + applicationId;
+    String editPath = applicationPath + ":edit-application";
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo(applicationPath))
+            .willReturn(
+                okJson(
+                    """
+                    {
+                        "id": "%s",
+                        "eTag": 5,
+                        "providerOfficeCode": "%s",
+                        "applicationState": "DRAFT"
+                    }
+                    """
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.patch(urlPathEqualTo(editPath))
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(409)
+                    .withHeader("Content-Type", "application/problem+json")
+                    .withBody("{\"status\":409,\"detail\":\"Duplicate UFN\"}")));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/{id}/declaration", applicationId)
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                        "declarationConfirmation": true,
+                        "dateSigned": "2026-08-14",
+                        "ufn": "123456/123"
+                    }
+                    """))
+        .andExpect(status().isConflict())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+
+    DATASTORE.verify(1, getRequestedFor(urlPathEqualTo(applicationPath)));
+    DATASTORE.verify(1, patchRequestedFor(urlPathEqualTo(editPath)));
+  }
+
+  @Test
   void shouldRetryOnceThenReturnConflict_whenDeclarationUpdateEtagMismatchPersists()
       throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-    String updateDeclarationPath =
-        "/api/v0/applications/" + applicationId + ":update-declaration-data";
+    String updateDeclarationPath = "/api/v0/applications/" + applicationId + ":edit-application";
     DATASTORE.stubFor(
         WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
             .willReturn(
@@ -2030,7 +2082,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
     DATASTORE.stubFor(
         WireMock.patch(urlPathEqualTo(updateDeclarationPath))
-            .willReturn(WireMock.aResponse().withStatus(409)));
+            .willReturn(
+                WireMock.aResponse()
+                    .withStatus(409)
+                    .withHeader("Content-Type", "application/problem+json")
+                    .withBody("{\"reason\":\"APPLICATION_VERSION_CONFLICT\"}")));
 
     mockMvc
         .perform(
