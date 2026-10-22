@@ -6,7 +6,7 @@ import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservabili
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.recordDistribution;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.recordPoolStats;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.responseStatusCode;
-import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethod;
+import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethodName;
 import static uk.gov.justice.laa.rcw.logging.LogAction.DATASTORE_OPERATION;
 
 import io.micrometer.observation.Observation;
@@ -38,9 +38,8 @@ final class DatastoreOperationObservationHandler
     try {
       context.put(OPERATION_START_NANOS, System.nanoTime());
       HttpRequest request = context.getCarrier();
-      String method = request == null ? "OTHER" : safeMethod(request.getMethod().name());
-      String operation =
-          request == null ? "unknown" : datastoreOperation(method, request.getURI().getPath());
+      String method = safeMethodName(request);
+      String operation = datastoreOperation(method, request);
       logDatastoreEvent(
           DATASTORE_OPERATION,
           "start",
@@ -62,9 +61,8 @@ final class DatastoreOperationObservationHandler
   public void onStop(ClientRequestObservationContext context) {
     try {
       HttpRequest request = context.getCarrier();
-      String method = request == null ? "OTHER" : safeMethod(request.getMethod().name());
-      String operation =
-          request == null ? "unknown" : datastoreOperation(method, request.getURI().getPath());
+      String method = safeMethodName(request);
+      String operation = datastoreOperation(method, request);
       Integer statusCode = responseStatusCode(context);
       Throwable failure = context.getError();
       String failureCategory = failureCategory(failure, statusCode);

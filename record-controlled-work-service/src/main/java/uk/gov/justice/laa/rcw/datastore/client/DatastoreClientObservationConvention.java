@@ -3,7 +3,7 @@ package uk.gov.justice.laa.rcw.datastore.client;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.datastoreOperation;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.failureCategory;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.responseStatusCode;
-import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethod;
+import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethodName;
 
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
@@ -16,9 +16,8 @@ final class DatastoreClientObservationConvention extends DefaultClientRequestObs
   @Override
   public KeyValues getLowCardinalityKeyValues(ClientRequestObservationContext context) {
     HttpRequest request = context.getCarrier();
-    String method = request == null ? "OTHER" : safeMethod(request.getMethod().name());
-    String operation =
-        request == null ? "unknown" : datastoreOperation(method, request.getURI().getPath());
+    String method = safeMethodName(request);
+    String operation = datastoreOperation(method, request);
     Integer statusCode = responseStatusCode(context);
     String status =
         statusCode == null
@@ -41,11 +40,7 @@ final class DatastoreClientObservationConvention extends DefaultClientRequestObs
   @Override
   public String getContextualName(ClientRequestObservationContext context) {
     HttpRequest request = context.getCarrier();
-    String operation =
-        request == null
-            ? "unknown"
-            : datastoreOperation(
-                safeMethod(request.getMethod().name()), request.getURI().getPath());
+    String operation = datastoreOperation(safeMethodName(request), request);
     return "datastore " + operation;
   }
 }

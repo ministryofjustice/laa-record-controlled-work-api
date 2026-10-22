@@ -197,6 +197,25 @@ class DatastoreClientConfigurationTest {
     assertThat(convention.getHighCardinalityKeyValues(context).toString()).isEqualTo("[]");
   }
 
+  @Test
+  void shouldReturnOther_whenRequestOrMethodIsNull() {
+    assertThat(DatastoreClientObservability.safeMethodName(null)).isEqualTo("OTHER");
+
+    when(mockRequest.getMethod()).thenReturn(null);
+
+    assertThat(DatastoreClientObservability.safeMethodName(mockRequest)).isEqualTo("OTHER");
+  }
+
+  @Test
+  void shouldReturnUnknownOperation_whenRequestOrUriIsNull() {
+    assertThat(DatastoreClientObservability.datastoreOperation("GET", null)).isEqualTo("unknown");
+
+    when(mockRequest.getURI()).thenReturn(null);
+
+    assertThat(DatastoreClientObservability.datastoreOperation("GET", mockRequest))
+        .isEqualTo("unknown");
+  }
+
   private void verifyRequestDurationMetric() {
     ArgumentCaptor<Double> durationCaptor = ArgumentCaptor.forClass(Double.class);
     ArgumentCaptor<SentryMetricsParameters> parametersCaptor =

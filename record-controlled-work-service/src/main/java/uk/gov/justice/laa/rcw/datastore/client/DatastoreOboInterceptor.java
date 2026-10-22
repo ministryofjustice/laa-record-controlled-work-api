@@ -5,7 +5,7 @@ import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservabili
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.logOAuthEvent;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.recordDatastoreRequestDuration;
 import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.responseStatusCode;
-import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethod;
+import static uk.gov.justice.laa.rcw.datastore.client.DatastoreClientObservability.safeMethodName;
 import static uk.gov.justice.laa.rcw.logging.LogAction.DATASTORE_AUTHORIZATION;
 import static uk.gov.justice.laa.rcw.logging.LogAction.DATASTORE_TRANSPORT;
 
@@ -31,8 +31,8 @@ record DatastoreOboInterceptor(
     OAuth2AccessToken accessToken = authorize();
     request.getHeaders().setBearerAuth(accessToken.getTokenValue());
     long startTimeNanos = System.nanoTime();
-    String method = safeMethod(request.getMethod().name());
-    String operation = datastoreOperation(method, request.getURI().getPath());
+    String method = safeMethodName(request);
+    String operation = datastoreOperation(method, request);
     logDatastoreEvent(
         DATASTORE_TRANSPORT,
         "start",
@@ -76,7 +76,7 @@ record DatastoreOboInterceptor(
       throw failure;
     } finally {
       double durationMillis = (System.nanoTime() - startTimeNanos) / 1_000_000.0;
-      recordDatastoreRequestDuration(durationMillis, request.getMethod().name());
+      recordDatastoreRequestDuration(durationMillis, safeMethodName(request));
     }
   }
 

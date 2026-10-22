@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import org.apache.hc.core5.pool.PoolStats;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.observation.ClientRequestObservationContext;
 import uk.gov.justice.laa.rcw.logging.SafeFailureDiagnostics;
@@ -53,26 +54,26 @@ final class DatastoreClientObservability {
     return statusCode != null && statusCode >= 400 ? "http_rejection" : "none";
   }
 
-  static String safeMethod(String method) {
-    if (method == null) {
+  static String safeMethodName(HttpRequest request) {
+    if (request == null || request.getMethod() == null) {
       return "OTHER";
     }
+    String method = request.getMethod().name();
     return switch (method) {
       case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS" -> method;
       default -> "OTHER";
     };
   }
 
-  static String datastoreOperation(String method, String requestUri) {
+  static String datastoreOperation(String method, HttpRequest request) {
+    if (request == null) {
+      return "unknown";
+    }
+    URI requestUri = request.getURI();
     if (requestUri == null) {
       return "unknown";
     }
-    String path;
-    try {
-      path = URI.create(requestUri).getPath();
-    } catch (IllegalArgumentException ignored) {
-      return "unknown";
-    }
+    String path = requestUri.getPath();
     if (path == null) {
       return "unknown";
     }
