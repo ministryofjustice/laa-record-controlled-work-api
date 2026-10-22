@@ -86,7 +86,7 @@ class ApplicationGatewayIntegrationTest extends BaseIntegrationTest {
   void captureOAuthEvents() {
     logger = (Logger) LoggerFactory.getLogger(DatastoreClientConfiguration.class);
     previousLogLevel = logger.getLevel();
-    logger.setLevel(Level.INFO);
+    logger.setLevel(Level.DEBUG);
     appender = new ListAppender<>();
     appender.start();
     logger.addAppender(appender);
