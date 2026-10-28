@@ -21,6 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -914,8 +916,10 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
-                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
-            .willReturn(WireMock.noContent()));
+                urlPathEqualTo(
+                    "/api/v0/applications/" + applicationId + ":edit-application"))
+            .willReturn(
+                WireMock.noContent().withHeader("ETag", "\"1\"")));
 
     DATASTORE.stubFor(
         WireMock.post(urlPathEqualTo("/api/v0/applications:start-application"))
@@ -959,13 +963,19 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             TestJwtConfig.AUTHORIZED_OFFICE_CODE,
                             applicationId,
                             normalizedNiNumber))));
+    
+    ObjectNode requestBody =
+        (ObjectNode) new ObjectMapper().readTree(toJson(request));
+        if (request.getEcfFlag() == null) {
+            requestBody.remove("ecfFlag");
+        }
 
     mockMvc
         .perform(
             post("/api/v1/applications")
                 .withBearerReadToken()
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(toJson(request))
+                .content(requestBody.toString())
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
         .andExpect(
@@ -1012,7 +1022,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     DATASTORE.verify(
         patchRequestedFor(
-                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":edit-application"))
             .withHeader("Authorization", equalTo("Bearer obo-access-token"))
             .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
             .withRequestBody(
@@ -1020,6 +1030,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                     {
                         "eTag": 0,
+                        "reasonForReapplication": "",
+                        "ecfFlag": null,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
