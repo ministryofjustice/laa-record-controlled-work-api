@@ -5,12 +5,11 @@ import static uk.gov.justice.laa.rcw.logging.LogAction.APPLICATION_CREATE;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
-import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
@@ -23,7 +22,6 @@ public class ApplicationCreationService {
 
   private final ApplicationGateway applicationGateway;
   private final ApplicationMapper applicationMapper;
-  private final ScopingQuestionsMapper scopingQuestionsMapper;
   private final AuthorizedOfficesProvider authorizedOfficesProvider;
 
   /**
@@ -38,14 +36,11 @@ public class ApplicationCreationService {
             applicationRequestBody.getProviderOfficeCode(),
             applicationMapper.toStartApplicationCommand(applicationRequestBody));
 
-    applicationGateway.updateScopingData(
-        applicationResponse.getId(),
-        UpdateScopingDataCommand.builder()
-            .eTag(applicationResponse.geteTag())
-            .scopingQuestions(
-                scopingQuestionsMapper.toDatastoreScopingQuestions(
-                    applicationRequestBody.getScopingQuestions()))
-            .build());
+    EditApplicationCommand command =
+    applicationMapper.toEditApplicationCommandFromCreate(
+        applicationRequestBody, applicationResponse.geteTag());
+
+applicationGateway.editApplication(applicationResponse.getId(), command);
 
     Application application = applicationMapper.toApplication(applicationResponse);
 
