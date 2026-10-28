@@ -11,7 +11,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import org.openapitools.jackson.nullable.JsonNullable;
-
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
@@ -67,17 +66,16 @@ public interface ApplicationMapper {
         .collect(Collectors.joining(" "));
   }
 
-
   /**
    * Returns a JsonNullable containing true if the given ECF flag is true, otherwise false.
+   *
    * @param ecfFlag the ECF flag
    * @return a JsonNullable containing true if the ECF flag is true, otherwise false
    */
   @Named("defaultCreateEcfFlag")
-    default JsonNullable<Boolean> defaultCreateEcfFlag(Boolean ecfFlag) {
+  default JsonNullable<Boolean> defaultCreateEcfFlag(Boolean ecfFlag) {
     return JsonNullable.of(Boolean.TRUE.equals(ecfFlag));
-    }
-
+  }
 
   /** Maps the RCW application status to the datastore's equivalent enum. */
   uk.gov.justice.laa.ia.datastore.client.model.ApplicationState toDatastoreApplicationState(
@@ -121,14 +119,13 @@ public interface ApplicationMapper {
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);
 
-
-      /**
-       * Maps the RCW create request to a sparse datastore edit command.
-       * 
-       * @param request the RCW create request
-       * @param version the caller's version precondition
-       * @return the sparse datastore edit command
-       */
+  /**
+   * Maps the RCW create request to a sparse datastore edit command.
+   *
+   * @param request the RCW create request
+   * @param version the caller's version precondition
+   * @return the sparse datastore edit command
+   */
   @BeanMapping(
       ignoreByDefault = true,
       builder = @Builder(disableBuilder = true),
@@ -153,8 +150,6 @@ public interface ApplicationMapper {
       qualifiedByName = "defaultCreateEcfFlag")
   EditApplicationCommand toEditApplicationCommandFromCreate(
       CreateApplicationRequestBody request, long version);
-
-
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(
