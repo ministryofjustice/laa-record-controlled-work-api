@@ -21,8 +21,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -963,7 +961,6 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             TestJwtConfig.AUTHORIZED_OFFICE_CODE,
                             applicationId,
                             normalizedNiNumber))));
-
 
     mockMvc
         .perform(
