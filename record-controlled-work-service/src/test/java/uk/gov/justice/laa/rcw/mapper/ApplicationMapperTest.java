@@ -271,22 +271,23 @@ class ApplicationMapperTest {
   @ParameterizedTest
   @NullSource
   @ValueSource(strings = "Change in circumstances")
-void shouldMapCreateRequestToSparseEditCommand(String reason) {
-  var request = CreateApplicationRequestGenerator.createWithName(
-      builder -> builder.legalAidLast6Months(reason != null).reasonForReapplication(reason));
-  EditApplicationCommand result =
-      applicationMapper.toEditApplicationCommandFromCreate(request, 5L);
-  assertThat(result.geteTag()).isEqualTo(5L);
-  assertThat(result.getReasonForReapplication_JsonNullable().isPresent()).isTrue();
-  assertThat(result.getReasonForReapplication_JsonNullable().get()).isEqualTo(reason);
-  assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
-  assertThat(result.getScopingQuestions())
-      .containsEntry("priorLegalAid", "yesSameMatter")
-      .containsEntry("familyLawClassification", "private")
-      .containsEntry("needsAdviceOnEUOrInternationalMaintenance", false)
-      .containsEntry("needsProtectiveInjunction", false);
-  assertThat(result.getClientDetails()).isNull();
-}
+  void shouldMapCreateRequestToSparseEditCommand(String reason) {
+    var request =
+        CreateApplicationRequestGenerator.createWithName(
+            builder -> builder.legalAidLast6Months(reason != null).reasonForReapplication(reason));
+    EditApplicationCommand result =
+        applicationMapper.toEditApplicationCommandFromCreate(request, 5L);
+    assertThat(result.geteTag()).isEqualTo(5L);
+    assertThat(result.getReasonForReapplication_JsonNullable().isPresent()).isTrue();
+    assertThat(result.getReasonForReapplication_JsonNullable().get()).isEqualTo(reason);
+    assertThat(result.getScopingQuestions_JsonNullable().isPresent()).isTrue();
+    assertThat(result.getScopingQuestions())
+        .containsEntry("priorLegalAid", "yesSameMatter")
+        .containsEntry("familyLawClassification", "private")
+        .containsEntry("needsAdviceOnEUOrInternationalMaintenance", false)
+        .containsEntry("needsProtectiveInjunction", false);
+    assertThat(result.getClientDetails()).isNull();
+  }
 
   @Test
   void shouldMapDetailsSnapshotToSparseEditCommand() {
@@ -389,15 +390,14 @@ void shouldMapCreateRequestToSparseEditCommand(String reason) {
   }
 
   @ParameterizedTest
-    @NullSource
-    @ValueSource(booleans = {true, false})
-    void shouldMapEcfFromCreateRequest(Boolean ecf) {
-    var request = CreateApplicationRequestGenerator.createWithName(
-        builder -> builder.ecfFlag(ecf));
+  @NullSource
+  @ValueSource(booleans = {true, false})
+  void shouldMapEcfFromCreateRequest(Boolean ecf) {
+    var request = CreateApplicationRequestGenerator.createWithName(builder -> builder.ecfFlag(ecf));
     var result = applicationMapper.toEditApplicationCommandFromCreate(request, 5L);
     assertThat(result.getEcfFlag_JsonNullable().isPresent()).isTrue();
     assertThat(result.getEcfFlag_JsonNullable().get()).isEqualTo(ecf);
-    }
+  }
 
   @Test
   void shouldMapNullApplicationResponseToNull() {

@@ -32,9 +32,6 @@ public interface ScopingQuestionsMapper {
     return jsonMapper().convertValue(questions, new TypeReference<>() {});
   }
 
-  
-
-
   /** Converts editable scoping answers into the datastore map, retaining explicit null answers. */
   @Named("toDatastoreScopingQuestionsFromDetails")
   default Map<String, Object> toDatastoreScopingQuestionsFromDetails(ScopingQuestions questions) {

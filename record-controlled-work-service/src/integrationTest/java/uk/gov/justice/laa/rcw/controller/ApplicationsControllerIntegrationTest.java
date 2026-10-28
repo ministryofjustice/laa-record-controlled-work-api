@@ -916,10 +916,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
-                urlPathEqualTo(
-                    "/api/v0/applications/" + applicationId + ":edit-application"))
-            .willReturn(
-                WireMock.noContent().withHeader("ETag", "\"1\"")));
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":edit-application"))
+            .willReturn(WireMock.noContent().withHeader("ETag", "\"1\"")));
 
     DATASTORE.stubFor(
         WireMock.post(urlPathEqualTo("/api/v0/applications:start-application"))
@@ -963,12 +961,11 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             TestJwtConfig.AUTHORIZED_OFFICE_CODE,
                             applicationId,
                             normalizedNiNumber))));
-    
-    ObjectNode requestBody =
-        (ObjectNode) new ObjectMapper().readTree(toJson(request));
-        if (request.getEcfFlag() == null) {
-            requestBody.remove("ecfFlag");
-        }
+
+    ObjectNode requestBody = (ObjectNode) new ObjectMapper().readTree(toJson(request));
+    if (request.getEcfFlag() == null) {
+      requestBody.remove("ecfFlag");
+    }
 
     mockMvc
         .perform(

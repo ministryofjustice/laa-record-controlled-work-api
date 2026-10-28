@@ -106,27 +106,30 @@ public interface ApplicationMapper {
   EditApplicationCommand toEditApplicationCommand(
       UpdateApplicationDetailsRequestBody request, long version);
 
-
-  @BeanMapping(ignoreByDefault = true, 
-    builder = @Builder(disableBuilder = true), 
-    unmappedSourcePolicy = ReportingPolicy.ERROR, 
-    ignoreUnmappedSourceProperties = {
-          "clientDetails", "providerOfficeCode", "legalAidLast6Months"
-  })
-  @Mapping(target = "eTag", 
-    source = "version")
-  @Mapping(target = "reasonForReapplication_JsonNullable", 
-    source = "request.reasonForReapplication", 
-    qualifiedByName = "toPresentJsonNullable")
-  @Mapping(target = "scopingQuestions", 
-    source = "request.scopingQuestions", 
-    qualifiedByName = "toDatastoreScopingQuestions")
-  @Mapping(target = "ecfFlag_JsonNullable", 
-    source = "request.ecfFlag", 
-    qualifiedByName = "toPresentJsonNullable")
+  @BeanMapping(
+      ignoreByDefault = true,
+      builder = @Builder(disableBuilder = true),
+      unmappedSourcePolicy = ReportingPolicy.ERROR,
+      ignoreUnmappedSourceProperties = {
+        "clientDetails",
+        "providerOfficeCode",
+        "legalAidLast6Months"
+      })
+  @Mapping(target = "eTag", source = "version")
+  @Mapping(
+      target = "reasonForReapplication_JsonNullable",
+      source = "request.reasonForReapplication",
+      qualifiedByName = "toPresentJsonNullable")
+  @Mapping(
+      target = "scopingQuestions",
+      source = "request.scopingQuestions",
+      qualifiedByName = "toDatastoreScopingQuestions")
+  @Mapping(
+      target = "ecfFlag_JsonNullable",
+      source = "request.ecfFlag",
+      qualifiedByName = "toPresentJsonNullable")
   EditApplicationCommand toEditApplicationCommandFromCreate(
-          CreateApplicationRequestBody request, long version);
-
+      CreateApplicationRequestBody request, long version);
 
   /** Maps datastore application state back to the RCW application state. */
   ApplicationState toApplicationState(

@@ -37,10 +37,10 @@ public class ApplicationCreationService {
             applicationMapper.toStartApplicationCommand(applicationRequestBody));
 
     EditApplicationCommand command =
-    applicationMapper.toEditApplicationCommandFromCreate(
-        applicationRequestBody, applicationResponse.geteTag());
+        applicationMapper.toEditApplicationCommandFromCreate(
+            applicationRequestBody, applicationResponse.geteTag());
 
-applicationGateway.editApplication(applicationResponse.getId(), command);
+    applicationGateway.editApplication(applicationResponse.getId(), command);
 
     Application application = applicationMapper.toApplication(applicationResponse);
 
