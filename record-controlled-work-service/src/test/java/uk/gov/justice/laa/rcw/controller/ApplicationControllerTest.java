@@ -1235,7 +1235,7 @@ class ApplicationControllerTest {
     JsonNode actual = createRequestMapper().valueToTree(requestCaptor.getValue());
     ObjectNode expectedRequest = ((ObjectNode) request).deepCopy();
     if (!expectedRequest.has("ecfFlag")) {
-        expectedRequest.put("ecfFlag", false);
+      expectedRequest.put("ecfFlag", false);
     }
     assertEquals(expectedRequest, actual, caseId + " should preserve the complete request");
     preserves
