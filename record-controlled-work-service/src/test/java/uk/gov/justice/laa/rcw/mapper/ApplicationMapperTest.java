@@ -389,15 +389,18 @@ class ApplicationMapperTest {
         .clientDetails(clientDetails);
   }
 
-  @ParameterizedTest
-  @NullSource
-  @ValueSource(booleans = {true, false})
-  void shouldMapEcfFromCreateRequest(Boolean ecf) {
+  
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(booleans = {true, false})
+    void shouldMapEcfFromCreateRequest(Boolean ecf) {
     var request = CreateApplicationRequestGenerator.createWithName(builder -> builder.ecfFlag(ecf));
     var result = applicationMapper.toEditApplicationCommandFromCreate(request, 5L);
+
     assertThat(result.getEcfFlag_JsonNullable().isPresent()).isTrue();
-    assertThat(result.getEcfFlag_JsonNullable().get()).isEqualTo(ecf);
-  }
+    assertThat(result.getEcfFlag_JsonNullable().get())
+        .isEqualTo(Boolean.TRUE.equals(ecf));
+    }
 
   @Test
   void shouldMapNullApplicationResponseToNull() {

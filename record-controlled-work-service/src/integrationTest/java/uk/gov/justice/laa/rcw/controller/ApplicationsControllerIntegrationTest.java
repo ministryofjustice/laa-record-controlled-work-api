@@ -873,6 +873,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     request.getClientDetails().getAddress().setCounty("");
     request.getClientDetails().getAddress().setPostCode("SW1A 2AA");
     request.getClientDetails().setNiNumber(niNumber);
+    request.setEcfFlag(false);
 
     mockMvc
         .perform(
@@ -912,6 +913,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     request.getClientDetails().getAddress().setCounty("");
     request.getClientDetails().getAddress().setPostCode(" s.w.1a - 2aa ");
     request.setReasonForReapplication("");
+    request.setEcfFlag(false);
     String normalizedNiNumber = niNumber.replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
@@ -962,17 +964,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             applicationId,
                             normalizedNiNumber))));
 
-    ObjectNode requestBody = (ObjectNode) new ObjectMapper().readTree(toJson(request));
-    if (request.getEcfFlag() == null) {
-      requestBody.remove("ecfFlag");
-    }
 
     mockMvc
         .perform(
             post("/api/v1/applications")
                 .withBearerReadToken()
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody.toString())
+                .content(toJson(request))
                 .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isCreated())
         .andExpect(
@@ -1028,7 +1026,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     {
                         "eTag": 0,
                         "reasonForReapplication": "",
-                        "ecfFlag": null,
+                        "ecfFlag": false,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",

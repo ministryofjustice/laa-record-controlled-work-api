@@ -379,6 +379,7 @@ components:
           type: string
         ecfFlag:
           type: boolean
+          default: false
         providerOfficeCode:
           type: string
         scopingQuestions:
