@@ -1233,7 +1233,11 @@ class ApplicationControllerTest {
         ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
     verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
     JsonNode actual = createRequestMapper().valueToTree(requestCaptor.getValue());
-    assertEquals(request, actual, caseId + " should preserve the complete request");
+    ObjectNode expectedRequest = ((ObjectNode) request).deepCopy();
+    if (!expectedRequest.has("ecfFlag")) {
+      expectedRequest.put("ecfFlag", false);
+    }
+    assertEquals(expectedRequest, actual, caseId + " should preserve the complete request");
     preserves
         .fields()
         .forEachRemaining(

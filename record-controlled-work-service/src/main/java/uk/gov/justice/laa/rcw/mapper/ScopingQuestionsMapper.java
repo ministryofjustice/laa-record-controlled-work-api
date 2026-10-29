@@ -24,6 +24,7 @@ public interface ScopingQuestionsMapper {
   }
 
   /** Serializes the RCW model to a map without null-valued answers. */
+  @Named("toDatastoreScopingQuestions")
   default Map<String, Object> toDatastoreScopingQuestions(ScopingQuestions questions) {
     if (questions == null) {
       return Map.of();

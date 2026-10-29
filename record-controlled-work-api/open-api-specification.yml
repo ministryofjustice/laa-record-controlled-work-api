@@ -377,6 +377,9 @@ components:
           type: boolean
         reasonForReapplication:
           type: string
+        ecfFlag:
+          type: boolean
+          default: false
         providerOfficeCode:
           type: string
         scopingQuestions:

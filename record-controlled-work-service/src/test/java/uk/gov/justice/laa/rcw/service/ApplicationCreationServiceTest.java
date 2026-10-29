@@ -5,24 +5,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponse;
+import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
-import uk.gov.justice.laa.ia.datastore.client.model.UpdateScopingDataCommand;
 import uk.gov.justice.laa.rcw.exception.ApplicationBadRequestException;
 import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
@@ -30,7 +28,6 @@ import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.mapper.ApplicationMapper;
-import uk.gov.justice.laa.rcw.mapper.ScopingQuestionsMapper;
 import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
 
@@ -41,7 +38,6 @@ class ApplicationCreationServiceTest {
 
   @Mock private ApplicationGateway mockApplicationGateway;
   @Mock private ApplicationMapper mockApplicationMapper;
-  @Mock private ScopingQuestionsMapper mockScopingQuestionsMapper;
   @Mock private AuthorizedOfficesProvider mockAuthorizedOfficesProvider;
 
   private ApplicationCreationService applicationCreationService;
@@ -50,10 +46,7 @@ class ApplicationCreationServiceTest {
   void setUp() {
     applicationCreationService =
         new ApplicationCreationService(
-            mockApplicationGateway,
-            mockApplicationMapper,
-            mockScopingQuestionsMapper,
-            mockAuthorizedOfficesProvider);
+            mockApplicationGateway, mockApplicationMapper, mockAuthorizedOfficesProvider);
     lenient()
         .when(mockAuthorizedOfficesProvider.currentAuthorizedOfficeCodes())
         .thenReturn(List.of(AUTHORIZED_OFFICE_CODE));
@@ -75,19 +68,16 @@ class ApplicationCreationServiceTest {
     when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
         .thenReturn(datastoreResponse);
     when(mockApplicationMapper.toApplication(datastoreResponse)).thenReturn(expectedApplication);
-    when(mockScopingQuestionsMapper.toDatastoreScopingQuestions(request.getScopingQuestions()))
-        .thenReturn(Map.of("priorLegalAid", "yesSameMatter"));
+    EditApplicationCommand editCommand = EditApplicationCommand.builder().eTag(5L).build();
+    when(mockApplicationMapper.toEditApplicationCommandFromCreate(request, 5L))
+        .thenReturn(editCommand);
 
     Application result = applicationCreationService.createApplication(request);
 
-    ArgumentCaptor<UpdateScopingDataCommand> scopingCommandCaptor =
-        ArgumentCaptor.forClass(UpdateScopingDataCommand.class);
-    verify(mockApplicationGateway).startApplication(eq(AUTHORIZED_OFFICE_CODE), eq(startCommand));
-    verify(mockApplicationGateway)
-        .updateScopingData(eq(applicationId), scopingCommandCaptor.capture());
-    assertThat(scopingCommandCaptor.getValue().geteTag()).isEqualTo(5L);
-    assertThat(scopingCommandCaptor.getValue().getScopingQuestions())
-        .isEqualTo(Map.of("priorLegalAid", "yesSameMatter"));
+    verify(mockApplicationGateway).startApplication(AUTHORIZED_OFFICE_CODE, startCommand);
+    verify(mockApplicationMapper).toEditApplicationCommandFromCreate(request, 5L);
+    verify(mockApplicationGateway).editApplication(eq(applicationId), same(editCommand));
+    verify(mockApplicationGateway, never()).updateScopingData(any(), any());
     assertThat(result).isEqualTo(expectedApplication);
   }
 
@@ -137,7 +127,7 @@ class ApplicationCreationServiceTest {
   }
 
   @Test
-  void shouldCreateApplication_propagatesException_whenScopingUpdateFails() {
+  void shouldCreateApplication_propagatesException_whenScopingUpdateFails_whenEditFails() {
     CreateApplicationRequestBody request =
         CreateApplicationRequestGenerator.createWithName(
             builder -> builder.providerOfficeCode(AUTHORIZED_OFFICE_CODE));
@@ -150,11 +140,14 @@ class ApplicationCreationServiceTest {
     when(mockApplicationMapper.toStartApplicationCommand(request)).thenReturn(startCommand);
     when(mockApplicationGateway.startApplication(AUTHORIZED_OFFICE_CODE, startCommand))
         .thenReturn(datastoreResponse);
-    doThrow(new ApplicationConflictException("Application %s was modified concurrently"))
-        .when(mockApplicationGateway)
-        .updateScopingData(eq(applicationId), any());
+    EditApplicationCommand editCommand = EditApplicationCommand.builder().eTag(5L).build();
+    when(mockApplicationMapper.toEditApplicationCommandFromCreate(request, 5L))
+        .thenReturn(editCommand);
+    ApplicationConflictException failure =
+        new ApplicationConflictException("Application was modified concurrently");
+    when(mockApplicationGateway.editApplication(applicationId, editCommand)).thenThrow(failure);
 
     assertThatThrownBy(() -> applicationCreationService.createApplication(request))
-        .isInstanceOf(ApplicationConflictException.class);
+        .isSameAs(failure);
   }
 }

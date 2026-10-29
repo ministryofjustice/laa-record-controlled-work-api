@@ -871,6 +871,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     request.getClientDetails().getAddress().setCounty("");
     request.getClientDetails().getAddress().setPostCode("SW1A 2AA");
     request.getClientDetails().setNiNumber(niNumber);
+    request.setEcfFlag(false);
 
     mockMvc
         .perform(
@@ -910,12 +911,13 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     request.getClientDetails().getAddress().setCounty("");
     request.getClientDetails().getAddress().setPostCode(" s.w.1a - 2aa ");
     request.setReasonForReapplication("");
+    request.setEcfFlag(false);
     String normalizedNiNumber = niNumber.replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
     String applicationId = "b2c3d4e5-f6a7-8901-bcde-f12345678901";
     DATASTORE.stubFor(
         WireMock.patch(
-                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
-            .willReturn(WireMock.noContent()));
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":edit-application"))
+            .willReturn(WireMock.noContent().withHeader("ETag", "\"1\"")));
 
     DATASTORE.stubFor(
         WireMock.post(urlPathEqualTo("/api/v0/applications:start-application"))
@@ -1012,7 +1014,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
 
     DATASTORE.verify(
         patchRequestedFor(
-                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-scoping-data"))
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":edit-application"))
             .withHeader("Authorization", equalTo("Bearer obo-access-token"))
             .withHeader("X-Authorization", equalTo("Bearer " + TestJwtConfig.ACCESS_TOKEN))
             .withRequestBody(
@@ -1020,6 +1022,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                     """
                     {
                         "eTag": 0,
+                        "reasonForReapplication": "",
+                        "ecfFlag": false,
                         "scopingQuestions": {
                             "priorLegalAid": "yesSameMatter",
                             "familyLawClassification": "private",
