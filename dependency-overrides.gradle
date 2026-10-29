@@ -36,6 +36,10 @@ dependencies {
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHETOMCATEMBED-20304748
     implementation 'org.apache.tomcat.embed:tomcat-embed-websocket:11.0.27'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-21761837
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.22'
+    // MoJ's laa-spring-boot-gradle-plugin imports Spring Boot's BOM through
+    // laa-spring-boot-dependencies, which still manages Jackson 2.21/3.1 and annotations 2.21.
+    // Keep above pin until that BOM supplies the same or newer patched versions.
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.4'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-20059179
     // fix https://security.snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONCORE-19778370
