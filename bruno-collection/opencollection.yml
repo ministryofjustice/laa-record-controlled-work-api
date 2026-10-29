@@ -2,6 +2,38 @@ opencollection: 1.0.0
 
 info:
   name: Record Controlled Work API
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  auth:
+    type: oauth2
+    flow: authorization_code
+    authorizationUrl: "{{oauthAuthorizeUrl}}"
+    accessTokenUrl: "{{oauthTokenUrl}}"
+    callbackUrl: https://oauth.usebruno.com/callback
+    credentials:
+      clientId: "{{oauthClientId}}"
+      clientSecret: "{{oauthClientSecret}}"
+    scope: "{{oauthScope}}"
+    pkce: {}
+    tokenConfig:
+      id: applications-token
+      placement:
+        header: Bearer
+      source: access_token
+    settings:
+      autoFetchToken: true
+      autoRefreshToken: true
 bundled: false
 extensions:
   bruno:
