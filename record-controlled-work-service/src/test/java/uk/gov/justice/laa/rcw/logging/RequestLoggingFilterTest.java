@@ -22,6 +22,7 @@ class RequestLoggingFilterTest {
   @BeforeEach
   void attachAppender() {
     logger = (Logger) LoggerFactory.getLogger(RequestLoggingFilter.class);
+    logger.setLevel(ch.qos.logback.classic.Level.DEBUG);
     appender = new ListAppender<>();
     appender.start();
     logger.addAppender(appender);
@@ -83,6 +84,16 @@ class RequestLoggingFilterTest {
     filter.doFilterInternal(request, response, (req, res) -> {});
 
     assertThat(appender.list.getFirst().getFormattedMessage()).isEqualTo("Request handled");
+  }
+
+  @Test
+  void logsAtDebugLevel() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/applications");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, (req, res) -> {});
+
+    assertThat(appender.list.getFirst().getLevel().toString()).isEqualTo("DEBUG");
   }
 
   @Test

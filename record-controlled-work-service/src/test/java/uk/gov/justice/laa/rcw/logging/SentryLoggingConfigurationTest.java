@@ -44,7 +44,7 @@ class SentryLoggingConfigurationTest {
       })
   void shouldRedactSensitiveSentryAttributes(String field) {
     SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.INFO);
+        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.ERROR);
     event.setAttributes(
         Map.of(
             field,
@@ -104,9 +104,45 @@ class SentryLoggingConfigurationTest {
   @Test
   void shouldPreserveLogsWithoutAttributes() {
     SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.INFO);
+        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.ERROR);
 
     assertThat(configuration.sentryLogRedaction().execute(event)).isSameAs(event);
     assertThat(event.getAttributes()).isNull();
+  }
+
+  @Test
+  void shouldAlwaysSendErrorLogs() {
+    SentryLogEvent event =
+        new SentryLogEvent(new SentryId(), 0.0, "Error event", SentryLogLevel.ERROR);
+
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
+
+    assertThat(result).isSameAs(event);
+  }
+
+  @Test
+  void shouldAlwaysSendWarningLogs() {
+    SentryLogEvent event =
+        new SentryLogEvent(new SentryId(), 0.0, "Warning event", SentryLogLevel.WARN);
+
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
+
+    assertThat(result).isSameAs(event);
+  }
+
+  @Test
+  void shouldNotSendNullEvent() {
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(null);
+
+    assertThat(result).isNull();
+  }
+
+  @Test
+  void shouldNotSendEventWithoutLevel() {
+    SentryLogEvent event = new SentryLogEvent(new SentryId(), 0.0, "No level event", null);
+
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
+
+    assertThat(result).isNull();
   }
 }

@@ -34,7 +34,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
       chain.doFilter(request, response);
     } finally {
       long duration = System.currentTimeMillis() - startTime;
-      log.info()
+      log.debug()
           .action(LogAction.REQUEST_RECEIVED)
           .outcome("success")
           .with("http.request.method", method)
