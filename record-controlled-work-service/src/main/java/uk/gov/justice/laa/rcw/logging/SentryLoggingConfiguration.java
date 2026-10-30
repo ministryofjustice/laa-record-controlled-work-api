@@ -49,10 +49,10 @@ public class SentryLoggingConfiguration {
   }
 
   /**
-   * Creates the callback used by Sentry to redact and sample log attributes before upload.
-   * Redacts sensitive data and applies sampling based on severity: ERROR and WARN levels are
-   * always sent, INFO logs are sampled at 10% to reduce quota consumption while maintaining
-   * visibility into application health.
+   * Creates the callback used by Sentry to redact and sample log attributes before upload. Redacts
+   * sensitive data and applies sampling based on severity: ERROR and WARN levels are always sent,
+   * INFO logs are sampled at 10% to reduce quota consumption while maintaining visibility into
+   * application health.
    *
    * @return the Sentry Logs redaction and sampling callback
    */
