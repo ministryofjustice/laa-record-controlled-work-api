@@ -86,6 +86,16 @@ class RequestLoggingFilterTest {
   }
 
   @Test
+  void logsAtDebugLevel() throws Exception {
+    MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/applications");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, (req, res) -> {});
+
+    assertThat(appender.list.getFirst().getLevel()).isDebugLevel();
+  }
+
+  @Test
   void suppressesActuatorRequests() {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health");
 
