@@ -92,7 +92,7 @@ class RequestLoggingFilterTest {
 
     filter.doFilterInternal(request, response, (req, res) -> {});
 
-    assertThat(appender.list.getFirst().getLevel()).isDebugLevel();
+    assertThat(appender.list.getFirst().getLevel().toString()).isEqualTo("DEBUG");
   }
 
   @Test
