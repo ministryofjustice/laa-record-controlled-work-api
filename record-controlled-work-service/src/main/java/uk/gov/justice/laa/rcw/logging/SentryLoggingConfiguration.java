@@ -49,13 +49,34 @@ public class SentryLoggingConfiguration {
   }
 
   /**
-   * Creates the callback used by Sentry to redact log attributes before upload.
+   * Creates the callback used by Sentry to redact and sample log attributes before upload.
+   * Redacts sensitive data and applies sampling based on severity: ERROR and WARN levels are
+   * always sent, INFO logs are sampled at 10% to reduce quota consumption while maintaining
+   * visibility into application health.
    *
-   * @return the Sentry Logs redaction callback
+   * @return the Sentry Logs redaction and sampling callback
    */
   @Bean
   public SentryOptions.Logs.BeforeSendLogCallback sentryLogRedaction() {
     return event -> {
+      if (event == null) {
+        return null;
+      }
+
+      // Apply sampling based on log level
+      SentryLogLevel level = event.getLevel();
+      if (level == null) {
+        return null;
+      }
+
+      // Always send errors and warnings; sample info logs at 10%
+      if (SentryLogLevel.ERROR != level && SentryLogLevel.WARN != level) {
+        if (Math.random() >= 0.1) {
+          return null;
+        }
+      }
+
+      // Apply redaction to log attributes
       if (event.getAttributes() != null) {
         Map<String, SentryLogEventAttributeValue> attributes = new LinkedHashMap<>();
         event
@@ -72,34 +93,8 @@ public class SentryLoggingConfiguration {
                 });
         event.setAttributes(attributes);
       }
+
       return event;
-    };
-  }
-
-  /**
-   * Creates the callback used by Sentry to sample logs based on severity and cardinality to reduce
-   * quota consumption. ERROR and WARN levels are always sent. INFO logs are sampled at 10% to keep
-   * quota available for actual issues while still maintaining visibility into application health.
-   *
-   * @return the Sentry log sampling callback
-   */
-  @Bean
-  public SentryOptions.Logs.BeforeSendLogCallback sentryLogSampling() {
-    return event -> {
-      if (event == null) {
-        return null;
-      }
-
-      SentryLogLevel level = event.getLevel();
-      if (level == null) {
-        return null;
-      }
-
-      if (SentryLogLevel.ERROR == level || SentryLogLevel.WARN == level) {
-        return event;
-      }
-
-      return Math.random() < 0.1 ? event : null;
     };
   }
 }

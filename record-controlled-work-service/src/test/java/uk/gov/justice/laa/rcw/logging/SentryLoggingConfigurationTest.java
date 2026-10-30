@@ -115,7 +115,7 @@ class SentryLoggingConfigurationTest {
     SentryLogEvent event =
         new SentryLogEvent(new SentryId(), 0.0, "Error event", SentryLogLevel.ERROR);
 
-    SentryLogEvent result = configuration.sentryLogSampling().execute(event);
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
 
     assertThat(result).isSameAs(event);
   }
@@ -125,14 +125,14 @@ class SentryLoggingConfigurationTest {
     SentryLogEvent event =
         new SentryLogEvent(new SentryId(), 0.0, "Warning event", SentryLogLevel.WARN);
 
-    SentryLogEvent result = configuration.sentryLogSampling().execute(event);
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
 
     assertThat(result).isSameAs(event);
   }
 
   @Test
   void shouldNotSendNullEvent() {
-    SentryLogEvent result = configuration.sentryLogSampling().execute(null);
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(null);
 
     assertThat(result).isNull();
   }
@@ -141,7 +141,7 @@ class SentryLoggingConfigurationTest {
   void shouldNotSendEventWithoutLevel() {
     SentryLogEvent event = new SentryLogEvent(new SentryId(), 0.0, "No level event", null);
 
-    SentryLogEvent result = configuration.sentryLogSampling().execute(event);
+    SentryLogEvent result = configuration.sentryLogRedaction().execute(event);
 
     assertThat(result).isNull();
   }
