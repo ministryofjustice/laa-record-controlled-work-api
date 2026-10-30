@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.logging;
 
 import io.sentry.SentryLogEventAttributeValue;
+import io.sentry.SentryLogLevel;
 import io.sentry.SentryOptions;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -72,6 +73,34 @@ public class SentryLoggingConfiguration {
         event.setAttributes(attributes);
       }
       return event;
+    };
+  }
+
+  /**
+   * Creates the callback used by Sentry to sample logs based on severity and cardinality to
+   * reduce quota consumption. ERROR and WARN levels are always sent. INFO logs are sampled at
+   * 10% to keep quota available for actual issues while still maintaining visibility into
+   * application health.
+   *
+   * @return the Sentry log sampling callback
+   */
+  @Bean
+  public SentryOptions.Logs.BeforeSendLogCallback sentryLogSampling() {
+    return event -> {
+      if (event == null) {
+        return null;
+      }
+
+      SentryLogLevel level = event.getLevel();
+      if (level == null) {
+        return null;
+      }
+
+      if (SentryLogLevel.ERROR == level || SentryLogLevel.WARNING == level) {
+        return event;
+      }
+
+      return Math.random() < 0.1 ? event : null;
     };
   }
 }
