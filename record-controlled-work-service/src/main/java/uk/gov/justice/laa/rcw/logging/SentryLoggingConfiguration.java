@@ -77,10 +77,9 @@ public class SentryLoggingConfiguration {
   }
 
   /**
-   * Creates the callback used by Sentry to sample logs based on severity and cardinality to
-   * reduce quota consumption. ERROR and WARN levels are always sent. INFO logs are sampled at
-   * 10% to keep quota available for actual issues while still maintaining visibility into
-   * application health.
+   * Creates the callback used by Sentry to sample logs based on severity and cardinality to reduce
+   * quota consumption. ERROR and WARN levels are always sent. INFO logs are sampled at 10% to keep
+   * quota available for actual issues while still maintaining visibility into application health.
    *
    * @return the Sentry log sampling callback
    */
@@ -96,7 +95,7 @@ public class SentryLoggingConfiguration {
         return null;
       }
 
-      if (SentryLogLevel.ERROR == level || SentryLogLevel.WARNING == level) {
+      if (SentryLogLevel.ERROR == level || SentryLogLevel.WARN == level) {
         return event;
       }
 

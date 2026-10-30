@@ -123,7 +123,7 @@ class SentryLoggingConfigurationTest {
   @Test
   void shouldAlwaysSendWarningLogs() {
     SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "Warning event", SentryLogLevel.WARNING);
+        new SentryLogEvent(new SentryId(), 0.0, "Warning event", SentryLogLevel.WARN);
 
     SentryLogEvent result = configuration.sentryLogSampling().execute(event);
 
@@ -139,8 +139,7 @@ class SentryLoggingConfigurationTest {
 
   @Test
   void shouldNotSendEventWithoutLevel() {
-    SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "No level event", null);
+    SentryLogEvent event = new SentryLogEvent(new SentryId(), 0.0, "No level event", null);
 
     SentryLogEvent result = configuration.sentryLogSampling().execute(event);
 
