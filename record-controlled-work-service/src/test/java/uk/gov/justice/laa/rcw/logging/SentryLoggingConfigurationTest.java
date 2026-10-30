@@ -44,7 +44,7 @@ class SentryLoggingConfigurationTest {
       })
   void shouldRedactSensitiveSentryAttributes(String field) {
     SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.INFO);
+        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.ERROR);
     event.setAttributes(
         Map.of(
             field,
@@ -104,7 +104,7 @@ class SentryLoggingConfigurationTest {
   @Test
   void shouldPreserveLogsWithoutAttributes() {
     SentryLogEvent event =
-        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.INFO);
+        new SentryLogEvent(new SentryId(), 0.0, "Test event", SentryLogLevel.ERROR);
 
     assertThat(configuration.sentryLogRedaction().execute(event)).isSameAs(event);
     assertThat(event.getAttributes()).isNull();
