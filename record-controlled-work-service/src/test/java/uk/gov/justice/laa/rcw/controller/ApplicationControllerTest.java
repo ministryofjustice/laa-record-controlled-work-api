@@ -32,6 +32,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -95,7 +96,7 @@ class ApplicationControllerTest {
   @MockitoBean private ApplicationCreationService mockApplicationCreationService;
 
   @Test
-  void getApplications_returnsOkStatusAndAllApplications() throws Exception {
+  void getApplications_returnsApplicationsAndForwardsDefaultPagination() throws Exception {
     List<ApplicationOverview> applications =
         List.of(
             ApplicationOverviewGenerator.create(null),
@@ -122,6 +123,7 @@ class ApplicationControllerTest {
         .andExpect(jsonPath("$[1].name").value("Other Random Name"))
         .andExpect(jsonPath("$[1].modifiedAt").exists())
         .andExpect(jsonPath("$[1].applicationRefNumber").value("CW-222222"));
+    verify(mockApplicationQueryService).getApplications(0, 25, null, null, null);
   }
 
   @Test
@@ -150,6 +152,38 @@ class ApplicationControllerTest {
 
     verify(mockApplicationQueryService)
         .getApplications(0, 25, null, ApplicationState.COMPLETED, EligibilityIndication.INELIGIBLE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {1, 25})
+  void getApplications_acceptsPaginationBoundariesAndForwardsFilters(int size) throws Exception {
+    when(mockApplicationQueryService.getApplications(any(), any(), any(), any(), any()))
+        .thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            get("/api/v1/applications")
+                .param("page", "0")
+                .param("size", String.valueOf(size))
+                .param("officeId", "office-123")
+                .param("status", "COMPLETED")
+                .param("eligibilityIndication", "INELIGIBLE"))
+        .andExpect(status().isOk());
+
+    verify(mockApplicationQueryService)
+        .getApplications(
+            0, size, "office-123", ApplicationState.COMPLETED, EligibilityIndication.INELIGIBLE);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"page, -1", "size, 0", "size, -1", "size, 26", "size, 2147483647"})
+  void getApplications_rejectsInvalidPaginationBeforeQuerying(String parameter, String value)
+      throws Exception {
+    mockMvc
+        .perform(get("/api/v1/applications").param(parameter, value))
+        .andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationQueryService);
   }
 
   @ParameterizedTest
