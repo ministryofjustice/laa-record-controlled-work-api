@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.rcw.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.justice.laa.rcw.controller.ApplicationRequestFixtures.createRequestObjectMapper;
@@ -18,10 +20,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -35,19 +41,26 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import uk.gov.justice.laa.rcw.config.schemas.ApplicationRequestSchemaConfiguration;
+import uk.gov.justice.laa.rcw.exception.ApplicationRequestTooLargeException;
 import uk.gov.justice.laa.rcw.generator.ApplicationGenerator;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
@@ -64,6 +77,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 @Import(ApplicationRequestSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
+      "spring.jackson.factory.constraints.read.max-string-length=60000",
       "spring.autoconfigure.exclude="
           + "org.springframework.boot.security.oauth2.server.resource"
           + ".autoconfigure.OAuth2ResourceServerAutoConfiguration,"
@@ -74,7 +88,10 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
     })
 class CreateApplicationRequestContractTest {
 
+  private static final int MAX_CREATE_BODY_BYTES = 65_536;
+
   @Autowired private MockMvc mockMvc;
+  @Autowired private CreateApplicationRequestBodyValidator createApplicationRequestBodyValidator;
 
   @MockitoBean private Clock mockClock;
   @MockitoBean private ApplicationQueryService mockApplicationQueryService;
@@ -87,6 +104,164 @@ class CreateApplicationRequestContractTest {
   @BeforeEach
   void setUp() {
     useFixedInstant("2026-10-20T12:00:00Z");
+  }
+
+  @Test
+  void createApplication_acceptsBodyAtConfiguredByteLimit() throws Exception {
+    when(mockApplicationCreationService.createApplication(any()))
+        .thenReturn(ApplicationGenerator.create(null));
+    String request = ApplicationRequestFixtures.createApplicationRequestBody().toString();
+    String paddedRequest =
+        request
+            + " ".repeat(MAX_CREATE_BODY_BYTES - request.getBytes(StandardCharsets.UTF_8).length);
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(paddedRequest))
+        .andExpect(status().isCreated());
+
+    verify(mockApplicationCreationService).createApplication(any());
+  }
+
+  @Test
+  void createApplication_rejectsOversizedMalformedBodyBeforeParsing() throws Exception {
+    String request =
+        "{\"private\":\"PrivateValueForOversizedBody\",\"data\":\""
+            + "x".repeat(MAX_CREATE_BODY_BYTES)
+            + "\"";
+
+    mockMvc
+        .perform(
+            post("/api/v1/applications").contentType(MediaType.APPLICATION_JSON).content(request))
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(jsonPath("$.reason").value("REQUEST_BODY_TOO_LARGE"))
+        .andExpect(jsonPath("$.detail").value("Request body exceeds the configured size limit."))
+        .andExpect(
+            content()
+                .string(
+                    org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("PrivateValueForOversizedBody"))));
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsStringExceedingParserConstraint() throws Exception {
+    ObjectNode request = ApplicationRequestFixtures.createApplicationRequestBody();
+    request.with("clientDetails").put("firstName", "n".repeat(60_001));
+
+    performCreate(request).andExpect(status().isBadRequest());
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @Test
+  void createApplication_rejectsExcessiveNestingAsBadRequest() throws Exception {
+    ObjectMapper mapper = createRequestObjectMapper();
+    ObjectNode request = ApplicationRequestFixtures.createApplicationRequestBody();
+    ArrayNode nested = mapper.createArrayNode();
+    ArrayNode current = nested;
+    for (int depth = 0; depth < 21; depth++) {
+      ArrayNode child = mapper.createArrayNode();
+      current.add(child);
+      current = child;
+    }
+    current.add("value");
+    request.set("unexpected", nested);
+
+    performCreate(request)
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("Invalid request content."));
+
+    verifyNoInteractions(mockApplicationCreationService);
+  }
+
+  @ParameterizedTest
+  @NullSource
+  @ValueSource(longs = {1L})
+  @SuppressWarnings("removal")
+  void createApplication_boundsReadWhenContentLengthIsAbsentOrTooSmall(Long contentLength)
+      throws Exception {
+    GuardedInputStream body = new GuardedInputStream(MAX_CREATE_BODY_BYTES + 1);
+    HttpInputMessage inputMessage = inputMessage(body, contentLength);
+    MethodParameter parameter = createApplicationBodyParameter();
+
+    assertThrows(
+        ApplicationRequestTooLargeException.class,
+        () ->
+            createApplicationRequestBodyValidator.beforeBodyRead(
+                inputMessage,
+                parameter,
+                parameter.getGenericParameterType(),
+                MappingJackson2HttpMessageConverter.class));
+
+    assertEquals(MAX_CREATE_BODY_BYTES + 1, body.bytesRead());
+  }
+
+  @SuppressWarnings("removal")
+  private static MethodParameter createApplicationBodyParameter() throws NoSuchMethodException {
+    Method method =
+        ApplicationController.class.getMethod(
+            "createApplication", CreateApplicationRequestBody.class);
+    return new MethodParameter(method, 0);
+  }
+
+  private static HttpInputMessage inputMessage(InputStream body, Long contentLength) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    if (contentLength != null) {
+      headers.setContentLength(contentLength);
+    }
+    return new HttpInputMessage() {
+      @Override
+      public InputStream getBody() {
+        return body;
+      }
+
+      @Override
+      public HttpHeaders getHeaders() {
+        return headers;
+      }
+    };
+  }
+
+  private static final class GuardedInputStream extends InputStream {
+
+    private final int maxBytes;
+    private int bytesRead;
+
+    private GuardedInputStream(int maxBytes) {
+      this.maxBytes = maxBytes;
+    }
+
+    @Override
+    public int read() throws IOException {
+      if (bytesRead == maxBytes) {
+        throw new IOException("guarded stream read limit exceeded");
+      }
+      bytesRead++;
+      return ' ';
+    }
+
+    @Override
+    public int read(byte[] bytes, int offset, int length) throws IOException {
+      if (length == 0) {
+        return 0;
+      }
+      if (bytesRead == maxBytes) {
+        throw new IOException("guarded stream read limit exceeded");
+      }
+      int count = Math.min(length, maxBytes - bytesRead);
+      Arrays.fill(bytes, offset, offset + count, (byte) ' ');
+      bytesRead += count;
+      return count;
+    }
+
+    private int bytesRead() {
+      return bytesRead;
+    }
   }
 
   @ParameterizedTest(name = "{0}")

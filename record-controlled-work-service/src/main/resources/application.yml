@@ -83,6 +83,8 @@ laa:
     body:
       # Maximum application details JSON size in bytes.
       max-size-bytes: ${EDIT_APPLICATION_MAX_BODY_BYTES:65536}
+      # Maximum application creation JSON size in bytes.
+      create-max-size-bytes: ${CREATE_APPLICATION_MAX_BODY_BYTES:65536}
   datastore:
     client:
       base-url: ${DATASTORE_URL:http://localhost:8080}

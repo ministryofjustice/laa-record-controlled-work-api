@@ -62,7 +62,9 @@ paths:
       summary: Create an application
       operationId: createApplication
       requestBody:
-        description: create an application
+        description: >
+          Creates an application. Request bodies are limited to 65,536 bytes by
+          default; oversized bodies return 413.
         content:
           application/json:
             schema:
@@ -87,6 +89,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
