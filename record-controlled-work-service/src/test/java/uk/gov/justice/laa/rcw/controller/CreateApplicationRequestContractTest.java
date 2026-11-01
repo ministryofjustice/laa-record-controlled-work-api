@@ -50,7 +50,7 @@ import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -135,7 +135,7 @@ class CreateApplicationRequestContractTest {
     mockMvc
         .perform(
             post("/api/v1/applications").contentType(MediaType.APPLICATION_JSON).content(request))
-        .andExpect(status().isPayloadTooLarge())
+        .andExpect(status().isContentTooLarge())
         .andExpect(jsonPath("$.reason").value("REQUEST_BODY_TOO_LARGE"))
         .andExpect(jsonPath("$.detail").value("Request body exceeds the configured size limit."))
         .andExpect(
@@ -150,7 +150,7 @@ class CreateApplicationRequestContractTest {
   @Test
   void createApplication_rejectsStringExceedingParserConstraint() throws Exception {
     ObjectNode request = ApplicationRequestFixtures.createApplicationRequestBody();
-    request.with("clientDetails").put("firstName", "n".repeat(60_001));
+    request.withObject("clientDetails").put("firstName", "n".repeat(60_001));
 
     performCreate(request).andExpect(status().isBadRequest());
 
@@ -181,7 +181,6 @@ class CreateApplicationRequestContractTest {
   @ParameterizedTest
   @NullSource
   @ValueSource(longs = {1L})
-  @SuppressWarnings("removal")
   void createApplication_boundsReadWhenContentLengthIsAbsentOrTooSmall(Long contentLength)
       throws Exception {
     GuardedInputStream body = new GuardedInputStream(MAX_CREATE_BODY_BYTES + 1);
@@ -199,7 +198,7 @@ class CreateApplicationRequestContractTest {
                 inputMessage,
                 parameter,
                 parameter.getGenericParameterType(),
-                MappingJackson2HttpMessageConverter.class));
+                JacksonJsonHttpMessageConverter.class));
 
     assertEquals(MAX_CREATE_BODY_BYTES + 1, body.bytesRead());
   }

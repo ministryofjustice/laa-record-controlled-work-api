@@ -32,7 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -117,7 +117,6 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   @ParameterizedTest
   @NullSource
   @ValueSource(longs = {1L, 131_072L})
-  @SuppressWarnings("removal")
   void shouldBoundReadsWhenContentLengthIsAbsentOrMisleading(Long contentLength) throws Exception {
     GuardedInputStream body = new GuardedInputStream(MAX_BODY_BYTES + 1);
     MockHttpInputMessage inputMessage = new MockHttpInputMessage(body);
@@ -133,7 +132,7 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
                     inputMessage,
                     parameter,
                     parameter.getGenericParameterType(),
-                    MappingJackson2HttpMessageConverter.class))
+                    JacksonJsonHttpMessageConverter.class))
         .isInstanceOf(ApplicationRequestTooLargeException.class);
 
     assertThat(body.bytesRead()).isEqualTo(MAX_BODY_BYTES + 1);
