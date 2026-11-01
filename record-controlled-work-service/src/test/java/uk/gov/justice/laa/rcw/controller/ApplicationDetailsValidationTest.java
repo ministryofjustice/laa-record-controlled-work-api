@@ -153,8 +153,7 @@ class ApplicationDetailsValidationTest {
   @ParameterizedTest
   @EnumSource(FamilyLawClassification.class)
   void updateApplicationDetails_acceptsBranchConsistentScopingQuestions(
-      FamilyLawClassification classification)
-      throws Exception {
+      FamilyLawClassification classification) throws Exception {
     ObjectNode request = detailsRequest();
     request.set("scopingQuestions", scopingQuestions(classification));
     stubSuccessfulDetailsEdit();
