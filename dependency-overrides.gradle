@@ -1,7 +1,7 @@
 // Transitive dependency overrides for temporary CVE fixes
 
 dependencies {
-    implementation 'io.micrometer:micrometer-core:1.17.1'
+    implementation 'io.micrometer:micrometer-core:1.17.2'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-IOMICROMETER-19233327
     implementation 'org.springframework.security:spring-security-core:7.1.1'
     // fix https://security.snyk.io/vuln/SNYK-JAVA-ORGSPRINGFRAMEWORKSECURITY-19267441
