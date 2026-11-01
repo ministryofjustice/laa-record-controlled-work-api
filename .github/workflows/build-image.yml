@@ -33,14 +33,14 @@ jobs:
 
       - name: ECR auth
         id: ecr
-        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@29411bff7835740bdb7005f64b73f05f8a2ffd10 # main
+        uses: ministryofjustice/laa-reusable-github-actions/.github/actions/ecr-auth@2de58a96f8d9b9ae158d69ea13d553921406aa2b # main
         with:
           ecr_region: ${{ vars.ECR_REGION }}
           ecr_role: ${{ secrets.ECR_ROLE_TO_ASSUME }}
           role-session-name: github-cicd-build-image-${{ github.run_number }}
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
