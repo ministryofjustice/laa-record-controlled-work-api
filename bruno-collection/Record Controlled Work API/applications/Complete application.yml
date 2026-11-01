@@ -1,8 +1,8 @@
 info:
   name: Complete application
-  description: Completes the selected application after its means, evidence, and declaration updates.
+  description: Marks the selected application as completed.
   type: http
-  seq: 2
+  seq: 8
   tags:
     - applications
 
@@ -34,7 +34,7 @@ runtime:
 
 examples:
   - name: 204 Response
-    description: Success
+    description: Application completed
     request:
       url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH

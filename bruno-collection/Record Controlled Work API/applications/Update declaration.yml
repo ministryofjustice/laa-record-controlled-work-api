@@ -1,8 +1,8 @@
 info:
   name: Update declaration
-  description: Saves a synthetic signed declaration for the selected application.
+  description: Saves a signed declaration for the selected application.
   type: http
-  seq: 1
+  seq: 7
   tags:
     - applications
 
@@ -35,7 +35,7 @@ settings:
 
 examples:
   - name: 204 Response
-    description: Synthetic signed declaration saved
+    description: Declaration saved
     request:
       url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/declaration"
       method: PUT

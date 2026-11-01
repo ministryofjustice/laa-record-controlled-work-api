@@ -43,8 +43,8 @@ and an authorized non-production office, never live office codes or real client 
 This example reuses the core requests rather than duplicating them. Create or select a synthetic
 application, then send [Update means](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20means.yml)
 and [Update evidence](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20evidence.yml).
-Then send [Update declaration](../bruno-collection/Record%20Controlled%20Work%20API/applications/Completed%20application/Update%20declaration.yml)
-and [Complete application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Completed%20application/Complete%20application.yml)
+Then send [Update declaration](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20declaration.yml)
+and [Complete application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Complete%20application.yml)
 in that order. All requests use the selected `applicationId`.
 
 After completing it, retrieve it with [Get application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20application.yml)
