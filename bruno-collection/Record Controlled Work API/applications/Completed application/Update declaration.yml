@@ -1,13 +1,14 @@
 info:
   name: Update declaration
+  description: Saves a synthetic signed declaration for the selected application.
   type: http
-  seq: 4
+  seq: 1
   tags:
     - applications
 
 http:
   method: PUT
-  url: "{{baseUrl}}/api/v1/applications/{{completedApplicationId}}/declaration"
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/declaration"
   body:
     type: json
     data: |-
@@ -20,22 +21,10 @@ http:
 
 runtime:
   scripts:
-    - type: before-request
-      code: |-
-        if (!bru.getVar("completedApplicationId")) {
-          throw new Error("Create the completed application fixture before updating its declaration.");
-        }
-    - type: after-response
-      code: |-
-        if (res.getStatus() === 204) {
-          bru.setVar("completedDeclarationApplicationId", bru.getVar("completedApplicationId"));
-        }
     - type: tests
       code: |-
         test("should update the signed declaration", function () {
           expect(res.getStatus()).to.equal(204);
-          expect(bru.getVar("completedDeclarationApplicationId"))
-            .to.equal(bru.getVar("completedApplicationId"));
         });
 
 settings:
@@ -48,7 +37,7 @@ examples:
   - name: 204 Response
     description: Synthetic signed declaration saved
     request:
-      url: "{{baseUrl}}/api/v1/applications/{{completedApplicationId}}/declaration"
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/declaration"
       method: PUT
       body:
         type: json
