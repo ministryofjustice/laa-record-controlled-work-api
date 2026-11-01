@@ -95,7 +95,7 @@ examples:
             "clientDetails": {
               "id": "33333333-4444-4555-8666-777777777777",
               "firstName": "Synthetic",
-              "lastName": "PenTest",
+              "lastName": "Client",
               "dateOfBirth": "1990-01-01",
               "hasFixedAddress": false,
               "address": null,
@@ -125,9 +125,9 @@ examples:
             "applicationType": "RCW",
             "ecfFlag": false,
             "createdAt": "2026-01-01T12:00:00Z",
-            "createdBy": "synthetic-pen-test-user",
+            "createdBy": "synthetic-user",
             "modifiedAt": "2026-01-01T12:00:00Z",
-            "modifiedBy": "synthetic-pen-test-user"
+            "modifiedBy": "synthetic-user"
           }
   - name: 401 Response
     description: Unauthorized

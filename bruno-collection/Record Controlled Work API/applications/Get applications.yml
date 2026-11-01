@@ -88,7 +88,7 @@ examples:
           [
             {
               "id": "11111111-2222-4333-8444-555555555555",
-              "name": "Synthetic PenTest",
+              "name": "Synthetic Client",
               "modifiedAt": "2026-01-01T12:00:00Z",
               "applicationRefNumber": "CW-111111",
               "eligibilityIndication": null
