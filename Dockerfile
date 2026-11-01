@@ -1,5 +1,5 @@
 # Build stage
-FROM amazoncorretto:25.0.4-alpine@sha256:19f1e2198abaaf201f5b9faa39222412da3fad66415e9dfe253bd6763415097e AS builder
+FROM amazoncorretto:25.0.5-alpine@sha256:e3ec06bdc025f54f1dbeeb92a8cc537665371badec999ce832c1cb6c00a2c828 AS builder
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     chmod +x gradlew && ./gradlew -PgitHubPackagesUsername=$GITHUB_ACTOR -PgitHubPackagesPassword=$GITHUB_TOKEN :record-controlled-work-service:bootJar --no-daemon
 
 # Runtime stage
-FROM amazoncorretto:25.0.4-alpine@sha256:19f1e2198abaaf201f5b9faa39222412da3fad66415e9dfe253bd6763415097e
+FROM amazoncorretto:25.0.5-alpine@sha256:e3ec06bdc025f54f1dbeeb92a8cc537665371badec999ce832c1cb6c00a2c828
 
 RUN apk upgrade --no-cache zlib
 
