@@ -18,29 +18,32 @@ runtime:
           expect(res.getStatus()).to.equal(200);
         });
 
-        test("application should have correct properties", function(){
+        test("should return an application object", function () {
           const application = res.getBody();
+          expect(application).to.be.an("object");
+          expect(application).not.to.be.an("array");
+        });
 
-          expect(application).to.have.property("id");
-          expect(application).to.have.property("applicationRefNumber");
-          expect(application).to.have.property("individualLegalAidNumber");
-          expect(application).to.have.property("providerFirmCode");
-          expect(application).to.have.property("providerOfficeCode");
-          expect(application).to.have.property("clientDetails");
-          expect(application).to.have.property("applicationType");
-          expect(application).to.have.property("createdAt");
-          expect(application).to.have.property("createdBy");
-          expect(application).to.have.property("modifiedAt");
-          expect(application).to.have.property("modifiedBy");
-          expect(application).to.have.property("applicationState");
-          expect(application).to.have.property("contribution");
-          expect(application).to.have.property("declaration");
-          expect(application).to.have.property("evidence");
-          expect(application).to.have.property("meansAssessmentId");
-          expect(application).to.have.property("meansAssessmentRequired");
-          expect(application).to.have.property("reasonForReapplication");
-          expect(application).to.have.property("typeOfNonMeans");
-          
+        test("should include the required application fields", function () {
+          const application = res.getBody();
+          [
+            "id",
+            "individualLegalAidNumber",
+            "providerFirmCode",
+            "providerOfficeCode",
+            "clientDetails",
+            "applicationState",
+            "declaration",
+            "evidence",
+            "eligibility",
+            "scopingQuestions",
+            "applicationType",
+            "ecfFlag",
+            "createdAt",
+            "createdBy",
+            "modifiedAt",
+            "modifiedBy"
+          ].forEach(property => expect(application).to.have.property(property));
         });
 
 settings:
@@ -64,64 +67,48 @@ examples:
       body:
         type: json
         data: |-
-          [  
-            {
-              "id": "",
-              "applicationRefNumber": "",
-              "ufn": "",
-              "individualLegalAidNumber": "",
-              "providerFirmCode": "",
-              "providerOfficeCode": "",
-              "clientDetails": {
-                "address": {
-                  "addressLine1": "",
-                  "addressLine2": "",
-                  "addressLine3": "",
-                  "addressLine4": "",
-                  "country": "",
-                  "county": "",
-                  "createdAt": "",
-                  "id": "",
-                  "modifiedAt": "",
-                  "postCode": "",
-                  "townOrCity": ""
-                },
-                "createdAt": "",
-                "dateOfBirth": "",
-                "firstName" : "",
-                "lastName" : "",
-                "hasFixedAddress": "",
-                "id": "",
-                "modifiedAt": "",
-                "niNumber": ""
-              },
-              "applicationType": "",
-              "createdAt": "",
-              "createdBy": "",
-              "modifiedAt": "",
-              "modifiedBy": "",
-              "applicationState": "",
-              "contribution": "",
-              "declaration": {
-                "createdAt": "",
-                "createdBy": "",
-                "declarationConfirmation": false,
-                "id": "",
-                "modifiedAt": "",
-                "modifiedBy": ""
-              },
-              "evidence": {
-                "evidenceExemptionCode": "",
-                "evidenceExemptionReason": "",
-                "incomeEvidenceChecklist": {},
-                "expenditureCapitalEvidenceChecklist": {}
-              },
-              "meansAssessmentId": "",
-              "meansAssessmentRequired": "",
-              "reasonForReapplication": "",
-              "typeOfNonMeans": ""
-            }
-          ] 
+          {
+            "id": "11111111-2222-4333-8444-555555555555",
+            "individualLegalAidNumber": "22222222-3333-4444-8555-666666666666",
+            "providerFirmCode": "123456",
+            "providerOfficeCode": "AB12CD",
+            "clientDetails": {
+              "id": "33333333-4444-4555-8666-777777777777",
+              "firstName": "Synthetic",
+              "lastName": "PenTest",
+              "dateOfBirth": "1990-01-01",
+              "hasFixedAddress": false,
+              "address": null,
+              "createdAt": "2026-01-01T12:00:00Z",
+              "modifiedAt": "2026-01-01T12:00:00Z"
+            },
+            "applicationState": "DRAFT",
+            "declaration": null,
+            "evidence": {
+              "evidenceExemptionCode": null,
+              "evidenceExemptionReason": null,
+              "incomeEvidenceChecklist": null,
+              "expenditureCapitalEvidenceChecklist": null
+            },
+            "eligibility": {
+              "data": null,
+              "result": null
+            },
+            "scopingQuestions": {
+              "priorLegalAid": "yesSameMatter",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false,
+              "laspoEvidenceScope": "domesticAbuse",
+              "caseMeetsMeritsCriteria": true
+            },
+            "applicationType": "RCW",
+            "ecfFlag": false,
+            "createdAt": "2026-01-01T12:00:00Z",
+            "createdBy": "synthetic-pen-test-user",
+            "modifiedAt": "2026-01-01T12:00:00Z",
+            "modifiedBy": "synthetic-pen-test-user"
+          }
   - name: 401 Response
     description: Unauthorized
     request:
@@ -156,7 +143,7 @@ examples:
         type: text
         data: ""
   - name: 404 Response
-    description: Forbidden
+    description: Not found
     request:
       url: "{{baseUrl}}/api/v1/applications/{{applicationId}}"
       method: GET

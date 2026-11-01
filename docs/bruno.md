@@ -13,9 +13,10 @@ in the top-right of the Bruno window before sending any request:
 - `local` - targets the app running locally (`http://localhost:8081`) and signs in against the
   [mock-oauth2-server](https://github.com/navikt/mock-oauth2-server) started by `make docker-up`.
 - `local-https` - targets the app running locally (`http://localhost:8081`) but signs in against the
-   UI repo's SSL-enabled `mock-oauth2-server` (`https://host.docker.internal:9090`). Use this when the
-   UI stack is the one hosting mock OAuth2 and HTTP endpoints are unavailable.
-- `uat` - targets the deployed UAT environment and signs in against the real Entra ID (Azure AD) dev tenant.
+  UI repo's SSL-enabled `mock-oauth2-server` (`https://host.docker.internal:9090`). Use this when that
+  HTTPS mock server is the selected issuer.
+- `uat` - targets the deployed UAT environment over HTTPS and signs in against the real Entra ID
+  (Azure AD) dev tenant.
 - `local-entra` - targets the app running locally (`http://localhost:8081`), same as `local`, but signs in
   against the real Entra dev tenant, same as `uat`. Use this to test the local Docker stack (including the
   real datastore OBO exchange) with real Entra-issued tokens instead of the mock OAuth2 server. Requires
@@ -32,12 +33,23 @@ are two ways to set it:
 
 1. To use an application created by the UI, open the selected environment in Bruno and paste its UUID into
    `applicationId`.
-2. To create an application in Bruno, send **Create applications**. A successful response captures the UUID
-   from the `Location` header and subsequent application requests use it automatically.
+2. To create an application in Bruno, send **Create applications**. A successful response captures its
+   `id` and subsequent application requests use it automatically.
 
 An explicitly entered `applicationId` takes precedence over the UUID captured by **Create applications**.
 Clear its environment value to resume using the most recently created application. The applications list
-uses the separate `officeId` environment variable for its office filter.
+uses the separate `officeId` environment variable for its office filter. `officeId` is not the same as the
+`providerOfficeCode` used when creating a draft.
+
+### Synthetic drafts and test offices
+
+Creating a draft is explicit. Only **Create applications** sends a `POST` and creates a record. Listing,
+retrieving, and selecting an application do not create or complete records. Created records persist and
+cannot be deleted through this API.
+
+Use synthetic client values only. The local mock-auth setup authorizes `AB12CD` for this workflow. For
+`uat` and `local-entra`, set `providerOfficeCode` to a designated non-production test office that is
+authorized for the signed-in identity. Do not use a live office code or real client details.
 
 ## How authentication works
 
@@ -63,8 +75,9 @@ system's default browser, enable it once in **Preferences** (bottom of Bruno's l
 **Use System Browser for OAuth2**. This is a global Bruno app preference (not stored in the collection), and
 works with our existing `callbackUrl` without any other changes.
 3. A login window opens against the environment's IdP:
-   - `local`: the mock OAuth2 server's debugger login page. You can type any username and set arbitrary
-     claims (e.g. `scp`) directly on that page to simulate claim enrichment.
+   - `local`: the mock OAuth2 server's debugger login page. Its default `oid`, `tid`, and
+     `LAA_ACCOUNTS` claims are configured for local datastore OBO. Keep them unchanged for this workflow.
+     You can change `scp` to test authorization boundaries.
    - `uat`: the real Entra sign-in page for the dev tenant (`devlexternal.onmicrosoft.com`). Sign in with an
      account that has the required role assignment.
 4. Once signed in, Bruno stores the token against the folder and automatically attaches it (as an
@@ -160,9 +173,9 @@ The `uat` and `local-entra` environments need tenant/client credentials that mus
 are loaded from a `.env` file at the root of the collection (`bruno-collection/.env`, git-ignored) via
 Bruno's built-in DotEnv support:
 
-1. Copy `bruno-collection/.env.sample` to `bruno-collection/.env`.
+1. Copy `bruno-collection/.env.example` to `bruno-collection/.env`.
 2. Fill in `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` and `ENTRA_CLIENT_SECRET` from the UI app registration in
-   the dev Entra tenant.
+   the dev Entra tenant. Obtain these credentials separately. Never commit them.
 
 Bruno loads this file automatically and both environments' secret variables reference it via
 `{{process.env.<NAME>}}`. Note this is a separate `.env` from the repo root one used to switch
