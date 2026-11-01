@@ -17,6 +17,12 @@ Select an environment from Bruno's dropdown before sending requests:
 The `applications` folder provides shared authentication for its requests. Start the API before using
 `local` or `local-entra` (see [Docker setup](../README.md#run-application-via-docker)).
 
+For `uat` and `local-entra`, copy
+[`.env.example`](../bruno-collection/.env.example) to `bruno-collection/.env` and fill in
+`ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, and `ENTRA_CLIENT_SECRET` for the UI app registration. Bruno loads
+these values automatically. Do not commit the `.env` file. It is separate from the repository-root `.env`
+used for Docker configuration.
+
 ### Selecting an application
 
 Set `applicationId` to a UI-created application's UUID, or use
