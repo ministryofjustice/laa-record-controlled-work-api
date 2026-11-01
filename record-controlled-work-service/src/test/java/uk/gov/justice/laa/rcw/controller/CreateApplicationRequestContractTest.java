@@ -200,7 +200,6 @@ class CreateApplicationRequestContractTest {
     assertEquals(MAX_CREATE_BODY_BYTES + 1, body.bytesRead());
   }
 
-  @SuppressWarnings("removal")
   private static MethodParameter createApplicationBodyParameter() throws NoSuchMethodException {
     Method method =
         ApplicationController.class.getMethod(

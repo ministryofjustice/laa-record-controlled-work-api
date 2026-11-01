@@ -63,8 +63,7 @@ paths:
       operationId: createApplication
       requestBody:
         description: >
-          Creates an application. Request bodies are limited to 65,536 bytes by
-          default; oversized bodies return 413.
+          Creates an application. Request bodies are limited to 65,536 bytes.
         content:
           application/json:
             schema:
