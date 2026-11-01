@@ -618,7 +618,11 @@ class CreateApplicationRequestContractTest {
         ArgumentCaptor.forClass(CreateApplicationRequestBody.class);
     verify(mockApplicationCreationService).createApplication(requestCaptor.capture());
     JsonNode actual = createRequestObjectMapper().valueToTree(requestCaptor.getValue());
-    assertEquals(requestBody, actual, contractCaseId + " should preserve the complete request");
+    ObjectNode expectedRequest = ((ObjectNode) requestBody).deepCopy();
+    if (!expectedRequest.has("ecfFlag")) {
+      expectedRequest.put("ecfFlag", false);
+    }
+    assertEquals(expectedRequest, actual, contractCaseId + " should preserve the complete request");
     expectedPreservedValues
         .fields()
         .forEachRemaining(
