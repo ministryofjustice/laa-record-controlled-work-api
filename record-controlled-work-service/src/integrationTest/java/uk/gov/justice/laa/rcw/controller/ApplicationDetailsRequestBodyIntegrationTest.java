@@ -13,15 +13,12 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -34,10 +31,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.MethodParameter;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import uk.gov.justice.laa.rcw.SpringBootMicroserviceApplication;
@@ -46,6 +42,7 @@ import uk.gov.justice.laa.rcw.generator.UpdateApplicationDetailsRequestGenerator
 import uk.gov.justice.laa.rcw.model.UpdateApplicationDetailsRequestBody;
 import uk.gov.justice.laa.rcw.utils.BaseIntegrationTest;
 import uk.gov.justice.laa.rcw.utils.DatastoreTestSupport;
+import uk.gov.justice.laa.rcw.utils.GuardedInputStream;
 import uk.gov.justice.laa.rcw.utils.TestJwtConfig;
 
 @SpringBootTest(
@@ -123,7 +120,11 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
   @SuppressWarnings("removal")
   void shouldBoundReadsWhenContentLengthIsAbsentOrMisleading(Long contentLength) throws Exception {
     GuardedInputStream body = new GuardedInputStream(MAX_BODY_BYTES + 1);
-    HttpInputMessage inputMessage = inputMessage(body, contentLength);
+    MockHttpInputMessage inputMessage = new MockHttpInputMessage(body);
+    inputMessage.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+    if (contentLength != null) {
+      inputMessage.getHeaders().setContentLength(contentLength);
+    }
     MethodParameter parameter = detailsBodyParameter();
 
     assertThatThrownBy(
@@ -163,25 +164,6 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
     return body + " ".repeat(MAX_BODY_BYTES - body.getBytes(StandardCharsets.UTF_8).length);
   }
 
-  private static HttpInputMessage inputMessage(InputStream body, Long contentLength) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    if (contentLength != null) {
-      headers.setContentLength(contentLength);
-    }
-    return new HttpInputMessage() {
-      @Override
-      public InputStream getBody() {
-        return body;
-      }
-
-      @Override
-      public HttpHeaders getHeaders() {
-        return headers;
-      }
-    };
-  }
-
   private static MethodParameter detailsBodyParameter() throws NoSuchMethodException {
     Method method =
         ApplicationController.class.getMethod(
@@ -210,42 +192,5 @@ class ApplicationDetailsRequestBodyIntegrationTest extends BaseIntegrationTest {
         WireMock.patch(
                 urlPathEqualTo("/api/v0/applications/" + APPLICATION_ID + ":edit-application"))
             .willReturn(WireMock.aResponse().withStatus(204).withHeader("ETag", "\"32\"")));
-  }
-
-  private static final class GuardedInputStream extends InputStream {
-
-    private final int maxBytes;
-    private int bytesRead;
-
-    private GuardedInputStream(int maxBytes) {
-      this.maxBytes = maxBytes;
-    }
-
-    @Override
-    public int read() throws IOException {
-      if (bytesRead == maxBytes) {
-        throw new IOException("guarded stream read limit exceeded");
-      }
-      bytesRead++;
-      return ' ';
-    }
-
-    @Override
-    public int read(byte[] bytes, int offset, int length) throws IOException {
-      if (length == 0) {
-        return 0;
-      }
-      if (bytesRead == maxBytes) {
-        throw new IOException("guarded stream read limit exceeded");
-      }
-      int count = Math.min(length, maxBytes - bytesRead);
-      Arrays.fill(bytes, offset, offset + count, (byte) ' ');
-      bytesRead += count;
-      return count;
-    }
-
-    private int bytesRead() {
-      return bytesRead;
-    }
   }
 }

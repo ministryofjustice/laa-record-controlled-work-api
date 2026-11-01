@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -50,10 +49,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,6 +70,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationEvidenceService;
 import uk.gov.justice.laa.rcw.service.ApplicationMeansService;
 import uk.gov.justice.laa.rcw.service.ApplicationQueryService;
 import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
+import uk.gov.justice.laa.rcw.utils.GuardedInputStream;
 
 @WebMvcTest(ApplicationController.class)
 @Import(ApplicationRequestSchemaConfiguration.class)
@@ -186,7 +185,11 @@ class CreateApplicationRequestContractTest {
   void createApplication_boundsReadWhenContentLengthIsAbsentOrTooSmall(Long contentLength)
       throws Exception {
     GuardedInputStream body = new GuardedInputStream(MAX_CREATE_BODY_BYTES + 1);
-    HttpInputMessage inputMessage = inputMessage(body, contentLength);
+    MockHttpInputMessage inputMessage = new MockHttpInputMessage(body);
+    inputMessage.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+    if (contentLength != null) {
+      inputMessage.getHeaders().setContentLength(contentLength);
+    }
     MethodParameter parameter = createApplicationBodyParameter();
 
     assertThrows(
@@ -206,62 +209,6 @@ class CreateApplicationRequestContractTest {
         ApplicationController.class.getMethod(
             "createApplication", CreateApplicationRequestBody.class);
     return new MethodParameter(method, 0);
-  }
-
-  private static HttpInputMessage inputMessage(InputStream body, Long contentLength) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    if (contentLength != null) {
-      headers.setContentLength(contentLength);
-    }
-    return new HttpInputMessage() {
-      @Override
-      public InputStream getBody() {
-        return body;
-      }
-
-      @Override
-      public HttpHeaders getHeaders() {
-        return headers;
-      }
-    };
-  }
-
-  private static final class GuardedInputStream extends InputStream {
-
-    private final int maxBytes;
-    private int bytesRead;
-
-    private GuardedInputStream(int maxBytes) {
-      this.maxBytes = maxBytes;
-    }
-
-    @Override
-    public int read() throws IOException {
-      if (bytesRead == maxBytes) {
-        throw new IOException("guarded stream read limit exceeded");
-      }
-      bytesRead++;
-      return ' ';
-    }
-
-    @Override
-    public int read(byte[] bytes, int offset, int length) throws IOException {
-      if (length == 0) {
-        return 0;
-      }
-      if (bytesRead == maxBytes) {
-        throw new IOException("guarded stream read limit exceeded");
-      }
-      int count = Math.min(length, maxBytes - bytesRead);
-      Arrays.fill(bytes, offset, offset + count, (byte) ' ');
-      bytesRead += count;
-      return count;
-    }
-
-    private int bytesRead() {
-      return bytesRead;
-    }
   }
 
   @ParameterizedTest(name = "{0}")
