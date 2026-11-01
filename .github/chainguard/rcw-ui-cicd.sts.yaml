@@ -1,0 +1,7 @@
+issuer: https://token.actions.githubusercontent.com
+subject_pattern: 'repo:ministryofjustice/laa-record-controlled-work:.*'
+claim_pattern:
+  workflow_ref: 'ministryofjustice/laa-record-controlled-work/\.github/workflows/cicd\.yml@.*'
+
+permissions:
+  contents: read
