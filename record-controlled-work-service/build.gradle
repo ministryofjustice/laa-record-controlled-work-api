@@ -102,7 +102,7 @@ dependencies {
 
     implementation 'uk.gov.justice.laa.ia.datastore:info-and-advice-datastore-client:0.13.0'
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 
     // Required for tracing information
     implementation 'org.springframework.boot:spring-boot-micrometer-tracing-brave'
