@@ -33,7 +33,8 @@ are two ways to set it:
 
 1. To use an application created by the UI, open the selected environment in Bruno and paste its UUID into
    `applicationId`.
-2. To create an application in Bruno, send **Create applications**. A successful response captures its
+2. To create an application in Bruno, send
+   [**Create applications**](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml). A successful response captures its
    `id` and subsequent application requests use it automatically.
 
 An explicitly entered `applicationId` takes precedence over the UUID captured by **Create applications**.
@@ -43,7 +44,9 @@ uses the separate `officeId` environment variable for its office filter. `office
 
 ### Synthetic drafts and test offices
 
-Creating a draft is explicit. Only **Create applications** sends a `POST` and creates a record. Listing,
+Creating a draft is explicit. Only
+[**Create applications**](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml)
+sends a `POST` and creates a record. Listing,
 retrieving, and selecting an application do not create or complete records. Created records persist and
 cannot be deleted through this API.
 
@@ -53,31 +56,37 @@ authorized for the signed-in identity. Do not use a live office code or real cli
 
 ### Editing a draft application's details
 
-Select a synthetic draft in `applicationId`, then send **Get application**. A successful response with a
-strong quoted integer `ETag` stores that version alongside the selected application ID. **Update application
-details** sends this value as `If-Match` only while it belongs to the selected application. If you switch
+Select a synthetic draft in `applicationId`, then send
+[**Get application**](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20application.yml).
+A successful response with a strong quoted integer `ETag` stores that version alongside the selected
+application ID. [**Update application details**](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20application%20details.yml)
+sends this value as `If-Match` only while it belongs to the selected application. If you switch
 applications, retrieve the newly selected application first. Retrieval clears the previous version before
 sending, so an unsuccessful lookup cannot leave a stale version available. After any update response,
 retrieve the application again before another normal update.
 
-The details request replaces the complete editable details snapshot. A shared generator in
-`bruno-collection/scripts/application-details.js` supplies the create request, normal details update, and
-valid variations. Update the generator once when shared request properties change. Requests pass partial
+The details request replaces the complete editable details snapshot. The shared
+[application-details.js](../bruno-collection/scripts/application-details.js) generator supplies the create
+request, normal details update, and valid variations. Update the generator once when shared request
+properties change. Requests pass partial
 property overrides for schema-specific values, merged into the generated defaults. It uses Bruno Faker
 variables for synthetic client names and does not create or complete an application beyond the explicit
 create request. Developer Mode is required for importing this script. When using Bruno CLI, pass
 `--sandbox developer`. Variations are grouped under the
 `Variations/Update application details` folder in the applications collection. Use the separate requests
-deliberately. Run `node bruno-collection/scripts/application-details.test.js` to check the generator.
+deliberately. Run `node bruno-collection/scripts/application-details.test.js` to check the generator
+([self-check](../bruno-collection/scripts/application-details.test.js)).
 
-- **Update application details - invalid input** sends an empty body with the current ETag. Retrieve the
-  selected application first. Expect `400` with reason `INVALID_APPLICATION_DETAILS`.
-- **Update application details - missing ETag** sends a valid body without `If-Match`. Expect `428` with
-  reason `IF_MATCH_REQUIRED`.
-- **Update application details - stale ETag** sends `If-Match: "0"`. First retrieve the selected draft and
-  complete one successful normal details update so its version is newer than zero. Then expect `412` with
-  reason `APPLICATION_VERSION_CONFLICT`.
-- **Get missing application** retrieves a fixed, nonexistent UUID. Run it after a successful retrieval to
+- [Update application details/Invalid input](../bruno-collection/Record%20Controlled%20Work%20API/applications/Variations/Update%20application%20details/Invalid%20input.yml)
+  sends an empty body with the current ETag. Retrieve the selected application first. Expect `400` with
+  reason `INVALID_APPLICATION_DETAILS`.
+- [Update application details/Missing ETag](../bruno-collection/Record%20Controlled%20Work%20API/applications/Variations/Update%20application%20details/Missing%20ETag.yml)
+  sends a valid body without `If-Match`. Expect `428` with reason `IF_MATCH_REQUIRED`.
+- [Update application details/Stale ETag](../bruno-collection/Record%20Controlled%20Work%20API/applications/Variations/Update%20application%20details/Stale%20ETag.yml)
+  sends `If-Match: "0"`. First retrieve the selected draft and complete one successful normal details update
+  so its version is newer than zero. Then expect `412` with reason `APPLICATION_VERSION_CONFLICT`.
+- [**Get missing application**](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20missing%20application.yml)
+  retrieves a fixed, nonexistent UUID. Run it after a successful retrieval to
   confirm the failed lookup leaves no captured details version. It does not change the selected ID.
 
 If you change `applicationId` and send the normal update before retrieving that application, Bruno stops the
