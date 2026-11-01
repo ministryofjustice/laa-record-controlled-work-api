@@ -150,6 +150,27 @@ make dev
 
 This application uses **ECS (Elastic Common Schema) structured logging** for production environments and console logging for local development.
 
+#### Security Logging Defaults
+
+Spring Security, its OAuth2/JWT/resource-server loggers and the LAA OAuth2 starter
+default to INFO outside the `local` profile. Local defaults remain DEBUG, including
+the Docker Compose stack. WARN/ERROR signals and application INFO audit logging
+remain enabled. Redaction and safe-error handling are unchanged.
+
+For approved, temporary diagnostics, the existing `SPRING_SECURITY_LOGGING_LEVEL`,
+`SPRING_SECURITY_OAUTH2_LOGGING_LEVEL`, `SPRING_SECURITY_OAUTH2_JWT_LOGGING_LEVEL`,
+`SPRING_SECURITY_OAUTH2_SERVER_RESOURCE_LOGGING_LEVEL` and
+`LAA_SPRINGBOOT_OAUTH2_LOGGING_LEVEL` overrides remain available. Spring Boot
+`logging.level.*` overrides can also supersede these defaults. Remove diagnostic
+overrides after use and do not log tokens, credentials, bodies or client data.
+
+Release verification must check effective security logger levels, active profiles
+and deployment overrides. Checked-in UAT Helm values still contain `LOG_LEVEL: debug`
+and `DEBUG_MODE: "true"`: neither is referenced by this application's logging
+configuration, but external chart behavior and deployed configuration remain
+unverified. Local Compose explicitly sets Spring Security DEBUG overrides and
+must not be treated as a routine non-local deployment configuration.
+
 #### Sentry Logs
 
 Set `SENTRY_DSN` to enable uploads and `SENTRY_ENVIRONMENT` to label the environment.
