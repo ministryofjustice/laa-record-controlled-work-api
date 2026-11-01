@@ -1,0 +1,98 @@
+info:
+  name: Create completed application
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/applications"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const generateApplicationDetailsRequestBody = require("./scripts/application-details.js");
+        bru.deleteVar("completedApplicationId");
+        bru.deleteVar("completedMeansApplicationId");
+        bru.deleteVar("completedEvidenceApplicationId");
+        bru.deleteVar("completedDeclarationApplicationId");
+        bru.deleteVar("completedApplicationStatusUpdatedId");
+        bru.deleteVar("completedApplicationETag");
+        bru.deleteVar("completedApplicationETagApplicationId");
+        req.setBody(JSON.stringify(generateApplicationDetailsRequestBody(bru, {
+          providerOfficeCode: bru.getEnvVar("providerOfficeCode"),
+          legalAidLast6Months: false,
+          reasonForReapplication: "",
+          ecfFlag: undefined,
+          scopingQuestions: { priorLegalAid: "yesSameMatter" },
+          clientDetails: { niNumber: undefined, hasFixedAddress: false, address: undefined }
+        })));
+    - type: after-response
+      code: |-
+        if (res.getStatus() === 201) {
+          const applicationId = res.getBody()?.id;
+
+          if (typeof applicationId === "string" && /^[0-9a-fA-F-]{36}$/.test(applicationId)) {
+            bru.setVar("completedApplicationId", applicationId);
+          }
+        }
+    - type: tests
+      code: |-
+        test("should create a separate synthetic application", function () {
+          expect(res.getStatus()).to.equal(201);
+          expect(res.getBody().id).to.match(/^[0-9a-fA-F-]{36}$/);
+          expect(bru.getVar("completedApplicationId")).to.equal(res.getBody().id);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 201 Response
+    description: Separate synthetic application created for the completion workflow
+    request:
+      url: "{{baseUrl}}/api/v1/applications"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "providerOfficeCode": "AB12CD",
+            "legalAidLast6Months": false,
+            "reasonForReapplication": "",
+            "scopingQuestions": {
+              "priorLegalAid": "yesSameMatter",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false,
+              "laspoEvidenceScope": "domesticAbuse",
+              "caseMeetsMeritsCriteria": true
+            },
+            "clientDetails": {
+              "firstName": "Synthetic",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "hasFixedAddress": false
+            }
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Location
+          value: "{{baseUrl}}/api/v1/applications/11111111-2222-4333-8444-555555555555"
+      body:
+        type: json
+        data: |-
+          {
+            "id": "11111111-2222-4333-8444-555555555555"
+          }

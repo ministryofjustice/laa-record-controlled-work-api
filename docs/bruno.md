@@ -33,9 +33,34 @@ clear it to use the captured ID. The list filter `officeId` is an office UUID, u
 
 ### Synthetic drafts
 
-Only [Create applications](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml)
-creates a persistent draft with no API delete endpoint. Use synthetic client details and an authorized
+The standard
+[Create applications](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml)
+request creates a persistent editable draft with no API delete endpoint. The separate completed
+application example below creates its own fixture. Use synthetic client details and an authorized
 non-production office, never live office codes or real client details.
+
+### Completed application example
+
+Use the
+[Completed application example](../bruno-collection/Record%20Controlled%20Work%20API/applications/Completed%20application/folder.yml)
+requests in order: create the separate fixture, update means, update evidence, update the declaration,
+complete it, retrieve it to confirm `COMPLETED`, then try updating its details. Completion is guarded
+until all three data updates succeeded for that fixture. Its `completedApplicationId` is independent
+of the editable draft's `applicationId`.
+
+Send the requests individually in Bruno, after signing in through the `applications` folder.
+
+The status request includes the required numeric `eTag` field. The current status controller does not
+use this field as the caller-supplied concurrency precondition for the details endpoint. Details updates
+use the strong `If-Match` header captured by the retrieval request. The final details update is deliberate
+and should return `409` with reason `APPLICATION_COMPLETED`.
+
+`COMPLETED` is an application state, not an eligibility result. The collection does not calculate or
+verify eligibility. Its means example stores input data with an empty result.
+
+The current Docker `local` profile propagates application exceptions and returned a `500` for this
+completed-details request. The documented API contract is `409`; treat that local response as an
+environment discrepancy.
 
 ### Editing draft details
 
