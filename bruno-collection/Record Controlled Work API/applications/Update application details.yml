@@ -13,34 +13,16 @@ http:
       value: "{{detailsETag}}"
   body:
     type: json
-    data: |-
-      {
-        "scopingQuestions": {
-          "priorLegalAid": "no",
-          "familyLawClassification": "private",
-          "needsAdviceOnEUOrInternationalMaintenance": false,
-          "needsProtectiveInjunction": false,
-          "laspoEvidenceScope": "domesticAbuse",
-          "caseMeetsMeritsCriteria": true
-        },
-        "legalAidLast6Months": false,
-        "reasonForReapplication": null,
-        "ecfFlag": true,
-        "clientDetails": {
-          "firstName": "Test",
-          "lastName": "Client",
-          "dateOfBirth": "1990-01-01",
-          "niNumber": null,
-          "hasFixedAddress": false,
-          "address": null
-        }
-      }
+    data: "{}"
   auth: inherit
 
 runtime:
   scripts:
     - type: before-request
       code: |-
+        const generateApplicationDetailsRequestBody = require("./scripts/application-details.js");
+        req.setBody(JSON.stringify(generateApplicationDetailsRequestBody(bru)));
+
         const selectedApplicationId = bru.getVar("applicationId");
         const capturedApplicationId = bru.getVar("detailsETagApplicationId");
         const etag = bru.getVar("detailsETag");
@@ -87,30 +69,6 @@ examples:
       headers:
         - name: If-Match
           value: '"1"'
-      body:
-        type: json
-        data: |-
-          {
-            "scopingQuestions": {
-              "priorLegalAid": "no",
-              "familyLawClassification": "private",
-              "needsAdviceOnEUOrInternationalMaintenance": false,
-              "needsProtectiveInjunction": false,
-              "laspoEvidenceScope": "domesticAbuse",
-              "caseMeetsMeritsCriteria": true
-            },
-            "legalAidLast6Months": false,
-            "reasonForReapplication": null,
-            "ecfFlag": true,
-            "clientDetails": {
-              "firstName": "Test",
-              "lastName": "Client",
-              "dateOfBirth": "1990-01-01",
-              "niNumber": null,
-              "hasFixedAddress": false,
-              "address": null
-            }
-          }
     response:
       status: 204
       statusText: No Content

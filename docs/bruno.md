@@ -60,8 +60,15 @@ applications, retrieve the newly selected application first. Retrieval clears th
 sending, so an unsuccessful lookup cannot leave a stale version available. After any update response,
 retrieve the application again before another normal update.
 
-The details request replaces the complete editable details snapshot. Its sample values are synthetic and it
-does not create or complete an application. Use the separate requests deliberately:
+The details request replaces the complete editable details snapshot. A shared generator in
+`bruno-collection/scripts/application-details.js` supplies the create request, normal details update, and
+valid variations. Update the generator once when shared request properties change. Requests pass partial
+property overrides for schema-specific values, merged into the generated defaults. It uses Bruno Faker
+variables for synthetic client names and does not create or complete an application beyond the explicit
+create request. Developer Mode is required for importing this script. When using Bruno CLI, pass
+`--sandbox developer`. Variations are grouped under the
+`Variations/Update application details` folder in the applications collection. Use the separate requests
+deliberately. Run `node bruno-collection/scripts/application-details.test.js` to check the generator.
 
 - **Update application details - invalid input** sends an empty body with the current ETag. Retrieve the
   selected application first. Expect `400` with reason `INVALID_APPLICATION_DETAILS`.

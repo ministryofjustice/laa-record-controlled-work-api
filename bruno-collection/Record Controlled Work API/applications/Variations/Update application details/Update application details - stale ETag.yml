@@ -13,32 +13,17 @@ http:
       value: '"0"'
   body:
     type: json
-    data: |-
-      {
-        "scopingQuestions": {
-          "priorLegalAid": "no",
-          "familyLawClassification": "private",
-          "needsAdviceOnEUOrInternationalMaintenance": false,
-          "needsProtectiveInjunction": false,
-          "laspoEvidenceScope": "domesticAbuse",
-          "caseMeetsMeritsCriteria": true
-        },
-        "legalAidLast6Months": false,
-        "reasonForReapplication": null,
-        "ecfFlag": true,
-        "clientDetails": {
-          "firstName": "Test",
-          "lastName": "Client",
-          "dateOfBirth": "1990-01-01",
-          "niNumber": null,
-          "hasFixedAddress": false,
-          "address": null
-        }
-      }
+    data: "{}"
   auth: inherit
 
 runtime:
   scripts:
+    - type: before-request
+      code: |-
+        const generateApplicationDetailsRequestBody = require("./scripts/application-details.js");
+        req.setBody(JSON.stringify(generateApplicationDetailsRequestBody(bru, {
+          scopingQuestions: { caseMeetsMeritsCriteria: false }
+        })));
     - type: tests
       code: |-
         test("should reject a stale ETag", function () {
@@ -61,30 +46,6 @@ examples:
       headers:
         - name: If-Match
           value: '"0"'
-      body:
-        type: json
-        data: |-
-          {
-            "scopingQuestions": {
-              "priorLegalAid": "no",
-              "familyLawClassification": "private",
-              "needsAdviceOnEUOrInternationalMaintenance": false,
-              "needsProtectiveInjunction": false,
-              "laspoEvidenceScope": "domesticAbuse",
-              "caseMeetsMeritsCriteria": true
-            },
-            "legalAidLast6Months": false,
-            "reasonForReapplication": null,
-            "ecfFlag": true,
-            "clientDetails": {
-              "firstName": "Test",
-              "lastName": "Client",
-              "dateOfBirth": "1990-01-01",
-              "niNumber": null,
-              "hasFixedAddress": false,
-              "address": null
-            }
-          }
     response:
       status: 412
       statusText: Precondition Failed
