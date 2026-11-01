@@ -77,6 +77,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
 @Import(ApplicationRequestSchemaConfiguration.class)
 @TestPropertySource(
     properties = {
+      "laa.request.body.max-size-bytes=65534",
       "spring.jackson.factory.constraints.read.max-string-length=60000",
       "spring.autoconfigure.exclude="
           + "org.springframework.boot.security.oauth2.server.resource"
@@ -88,7 +89,7 @@ import uk.gov.justice.laa.rcw.service.ApplicationUpdateService;
     })
 class CreateApplicationRequestContractTest {
 
-  private static final int MAX_CREATE_BODY_BYTES = 65_536;
+  private static final int MAX_CREATE_BODY_BYTES = 65_534;
 
   @Autowired private MockMvc mockMvc;
   @Autowired private CreateApplicationRequestBodyValidator createApplicationRequestBodyValidator;

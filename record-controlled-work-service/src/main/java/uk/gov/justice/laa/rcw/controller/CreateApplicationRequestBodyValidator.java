@@ -34,7 +34,7 @@ public class CreateApplicationRequestBodyValidator extends RequestBodyAdviceAdap
 
   /** Creates the validator using the configured body limit and create request schema. */
   public CreateApplicationRequestBodyValidator(
-      @Value("${laa.request.body.create-max-size-bytes}") int maxBodySizeBytes,
+      @Value("${laa.request.body.max-size-bytes}") int maxBodySizeBytes,
       @Value("${spring.jackson.factory.constraints.read.max-nesting-depth}") int maxNestingDepth,
       @Value("${spring.jackson.factory.constraints.read.max-string-length}") int maxStringLength,
       @Value("${spring.jackson.factory.constraints.read.max-document-length}")
