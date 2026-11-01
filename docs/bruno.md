@@ -51,6 +51,32 @@ Use synthetic client values only. The local mock-auth setup authorizes `AB12CD` 
 `uat` and `local-entra`, set `providerOfficeCode` to a designated non-production test office that is
 authorized for the signed-in identity. Do not use a live office code or real client details.
 
+### Editing a draft application's details
+
+Select a synthetic draft in `applicationId`, then send **Get application**. A successful response with a
+strong quoted integer `ETag` stores that version alongside the selected application ID. **Update application
+details** sends this value as `If-Match` only while it belongs to the selected application. If you switch
+applications, retrieve the newly selected application first. Retrieval clears the previous version before
+sending, so an unsuccessful lookup cannot leave a stale version available. After any update response,
+retrieve the application again before another normal update.
+
+The details request replaces the complete editable details snapshot. Its sample values are synthetic and it
+does not create or complete an application. Use the separate requests deliberately:
+
+- **Update application details - invalid input** sends an empty body with the current ETag. Retrieve the
+  selected application first. Expect `400` with reason `INVALID_APPLICATION_DETAILS`.
+- **Update application details - missing ETag** sends a valid body without `If-Match`. Expect `428` with
+  reason `IF_MATCH_REQUIRED`.
+- **Update application details - stale ETag** sends `If-Match: "0"`. First retrieve the selected draft and
+  complete one successful normal details update so its version is newer than zero. Then expect `412` with
+  reason `APPLICATION_VERSION_CONFLICT`.
+- **Get missing application** retrieves a fixed, nonexistent UUID. Run it after a successful retrieval to
+  confirm the failed lookup leaves no captured details version. It does not change the selected ID.
+
+If you change `applicationId` and send the normal update before retrieving that application, Bruno stops the
+request before sending it. Only this details request uses the captured version as a caller-supplied
+`If-Match` precondition. This workflow does not imply the same precondition for other mutation requests.
+
 ## How authentication works
 
 The `applications` folder (not the individual requests inside it) owns an OAuth2 **Authorization Code + PKCE**

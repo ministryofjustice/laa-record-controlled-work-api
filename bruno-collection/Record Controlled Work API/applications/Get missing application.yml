@@ -1,0 +1,49 @@
+info:
+  name: Get missing application
+  type: http
+  seq: 10
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/00000000-0000-0000-0000-000000000000"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.deleteVar("detailsETag");
+        bru.deleteVar("detailsETagApplicationId");
+    - type: tests
+      code: |-
+        test("should report a missing application and clear the captured version", function () {
+          expect(res.getStatus()).to.equal(404);
+          expect(bru.getVar("detailsETag")).to.be.undefined;
+          expect(bru.getVar("detailsETagApplicationId")).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 404 Response
+    description: A failed retrieval clears any captured details version
+    request:
+      url: "{{baseUrl}}/api/v1/applications/00000000-0000-0000-0000-000000000000"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Not Found",
+            "status": 404
+          }

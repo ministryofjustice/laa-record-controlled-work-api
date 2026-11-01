@@ -1,0 +1,99 @@
+info:
+  name: Update application details - stale ETag
+  type: http
+  seq: 9
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+  headers:
+    - name: If-Match
+      value: '"0"'
+  body:
+    type: json
+    data: |-
+      {
+        "scopingQuestions": {
+          "priorLegalAid": "no",
+          "familyLawClassification": "private",
+          "needsAdviceOnEUOrInternationalMaintenance": false,
+          "needsProtectiveInjunction": false,
+          "laspoEvidenceScope": "domesticAbuse",
+          "caseMeetsMeritsCriteria": true
+        },
+        "legalAidLast6Months": false,
+        "reasonForReapplication": null,
+        "ecfFlag": true,
+        "clientDetails": {
+          "firstName": "Test",
+          "lastName": "Client",
+          "dateOfBirth": "1990-01-01",
+          "niNumber": null,
+          "hasFixedAddress": false,
+          "address": null
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should reject a stale ETag", function () {
+          expect(res.getStatus()).to.equal(412);
+          expect(res.getBody().reason).to.equal("APPLICATION_VERSION_CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 412 Response
+    description: ETag 0 is stale after a successful details update
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+      method: PUT
+      headers:
+        - name: If-Match
+          value: '"0"'
+      body:
+        type: json
+        data: |-
+          {
+            "scopingQuestions": {
+              "priorLegalAid": "no",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false,
+              "laspoEvidenceScope": "domesticAbuse",
+              "caseMeetsMeritsCriteria": true
+            },
+            "legalAidLast6Months": false,
+            "reasonForReapplication": null,
+            "ecfFlag": true,
+            "clientDetails": {
+              "firstName": "Test",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "niNumber": null,
+              "hasFixedAddress": false,
+              "address": null
+            }
+          }
+    response:
+      status: 412
+      statusText: Precondition Failed
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Precondition Failed",
+            "status": 412,
+            "reason": "APPLICATION_VERSION_CONFLICT"
+          }

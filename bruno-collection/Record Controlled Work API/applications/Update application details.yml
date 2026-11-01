@@ -1,0 +1,122 @@
+info:
+  name: Update application details
+  type: http
+  seq: 6
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+  headers:
+    - name: If-Match
+      value: "{{detailsETag}}"
+  body:
+    type: json
+    data: |-
+      {
+        "scopingQuestions": {
+          "priorLegalAid": "no",
+          "familyLawClassification": "private",
+          "needsAdviceOnEUOrInternationalMaintenance": false,
+          "needsProtectiveInjunction": false,
+          "laspoEvidenceScope": "domesticAbuse",
+          "caseMeetsMeritsCriteria": true
+        },
+        "legalAidLast6Months": false,
+        "reasonForReapplication": null,
+        "ecfFlag": true,
+        "clientDetails": {
+          "firstName": "Test",
+          "lastName": "Client",
+          "dateOfBirth": "1990-01-01",
+          "niNumber": null,
+          "hasFixedAddress": false,
+          "address": null
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const selectedApplicationId = bru.getVar("applicationId");
+        const capturedApplicationId = bru.getVar("detailsETagApplicationId");
+        const etag = bru.getVar("detailsETag");
+
+        if (!selectedApplicationId) {
+          throw new Error("Select an application before updating its details.");
+        }
+
+        if (capturedApplicationId !== selectedApplicationId) {
+          throw new Error("Retrieve the selected application before updating its details.");
+        }
+
+        if (!/^"\d+"$/.test(etag || "")) {
+          throw new Error("Retrieve a strong ETag before updating application details.");
+        }
+    - type: after-response
+      code: |-
+        bru.deleteVar("detailsETag");
+        bru.deleteVar("detailsETagApplicationId");
+    - type: tests
+      code: |-
+        test("should update details and return a strong ETag", function () {
+          expect(res.getStatus()).to.equal(204);
+          expect(res.getHeader("ETag")).to.match(/^"\d+"$/);
+        });
+
+        test("should clear the consumed ETag", function () {
+          expect(bru.getVar("detailsETag")).to.be.undefined;
+          expect(bru.getVar("detailsETagApplicationId")).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Details updated using the ETag from Get application
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+      method: PUT
+      headers:
+        - name: If-Match
+          value: '"1"'
+      body:
+        type: json
+        data: |-
+          {
+            "scopingQuestions": {
+              "priorLegalAid": "no",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false,
+              "laspoEvidenceScope": "domesticAbuse",
+              "caseMeetsMeritsCriteria": true
+            },
+            "legalAidLast6Months": false,
+            "reasonForReapplication": null,
+            "ecfFlag": true,
+            "clientDetails": {
+              "firstName": "Test",
+              "lastName": "Client",
+              "dateOfBirth": "1990-01-01",
+              "niNumber": null,
+              "hasFixedAddress": false,
+              "address": null
+            }
+          }
+    response:
+      status: 204
+      statusText: No Content
+      headers:
+        - name: ETag
+          value: '"2"'
+      body:
+        type: text
+        data: ""

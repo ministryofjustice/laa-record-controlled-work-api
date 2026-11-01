@@ -1,0 +1,66 @@
+info:
+  name: Update application details - invalid input
+  type: http
+  seq: 7
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+  headers:
+    - name: If-Match
+      value: "{{detailsETag}}"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const selectedApplicationId = bru.getVar("applicationId");
+        const capturedApplicationId = bru.getVar("detailsETagApplicationId");
+        const etag = bru.getVar("detailsETag");
+
+        if (!selectedApplicationId || capturedApplicationId !== selectedApplicationId || !/^"\d+"$/.test(etag || "")) {
+          throw new Error("Retrieve the selected application before exercising invalid details input.");
+        }
+    - type: tests
+      code: |-
+        test("should reject invalid details", function () {
+          expect(res.getStatus()).to.equal(400);
+          expect(res.getBody().reason).to.equal("INVALID_APPLICATION_DETAILS");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 400 Response
+    description: Empty details body is rejected without updating the application
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+      method: PUT
+      headers:
+        - name: If-Match
+          value: '"1"'
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Bad Request",
+            "status": 400,
+            "reason": "INVALID_APPLICATION_DETAILS"
+          }
