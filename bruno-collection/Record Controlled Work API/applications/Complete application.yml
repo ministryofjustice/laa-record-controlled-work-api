@@ -1,7 +1,8 @@
 info:
-  name: Update application status
+  name: Complete application
+  description: Marks the selected application as completed.
   type: http
-  seq: 5
+  seq: 8
   tags:
     - applications
 
@@ -12,7 +13,8 @@ http:
     type: json
     data: |-
       {
-        "applicationState": "COMPLETED"
+        "applicationState": "COMPLETED",
+        "eTag": 1
       }
   auth: inherit
 
@@ -22,9 +24,17 @@ settings:
   followRedirects: true
   maxRedirects: 5
 
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should complete the selected application", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
 examples:
   - name: 204 Response
-    description: Success
+    description: Application completed
     request:
       url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/status"
       method: PATCH
@@ -32,7 +42,8 @@ examples:
         type: json
         data: |-
           {
-            "applicationState": "COMPLETED"
+            "applicationState": "COMPLETED",
+            "eTag": 1
           }
     response:
       status: 204
@@ -86,7 +97,8 @@ examples:
         type: json
         data: |-
           {
-            "applicationState": "COMPLETED"
+            "applicationState": "COMPLETED",
+            "eTag": 1
           }
     response:
       status: 404
@@ -103,7 +115,8 @@ examples:
         type: json
         data: |-
           {
-            "applicationState": "COMPLETED"
+            "applicationState": "COMPLETED",
+            "eTag": 1
           }
     response:
       status: 409
@@ -120,7 +133,8 @@ examples:
         type: json
         data: |-
           {
-            "applicationState": "COMPLETED"
+            "applicationState": "COMPLETED",
+            "eTag": 1
           }
     response:
       status: 500

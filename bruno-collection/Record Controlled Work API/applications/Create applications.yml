@@ -22,7 +22,7 @@ runtime:
           providerOfficeCode: bru.getEnvVar("providerOfficeCode"),
           legalAidLast6Months: false,
           reasonForReapplication: "",
-          ecfFlag: false,
+          ecfFlag: undefined,
           scopingQuestions: { priorLegalAid: "yesSameMatter" },
           clientDetails: { niNumber: undefined, hasFixedAddress: false, address: undefined }
         })));

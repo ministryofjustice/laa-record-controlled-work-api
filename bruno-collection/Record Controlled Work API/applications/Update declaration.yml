@@ -1,0 +1,55 @@
+info:
+  name: Update declaration
+  description: Saves a signed declaration for the selected application.
+  type: http
+  seq: 7
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/declaration"
+  body:
+    type: json
+    data: |-
+      {
+        "ufn": "123456/001",
+        "declarationConfirmation": true,
+        "dateSigned": "2026-01-15"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should update the signed declaration", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 204 Response
+    description: Declaration saved
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/declaration"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "ufn": "123456/001",
+            "declarationConfirmation": true,
+            "dateSigned": "2026-01-15"
+          }
+    response:
+      status: 204
+      statusText: No Content
+      body:
+        type: text
+        data: ""

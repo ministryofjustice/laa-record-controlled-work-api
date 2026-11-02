@@ -33,9 +33,36 @@ clear it to use the captured ID. The list filter `officeId` is an office UUID, u
 
 ### Synthetic drafts
 
-Only [Create applications](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml)
-creates a persistent draft with no API delete endpoint. Use synthetic client details and an authorized
-non-production office, never live office codes or real client details.
+The standard
+[Create applications](../bruno-collection/Record%20Controlled%20Work%20API/applications/Create%20applications.yml)
+request creates a persistent editable draft with no API delete endpoint. Use synthetic client details
+and an authorized non-production office, never live office codes or real client details.
+
+### Completed application example
+
+This example reuses the core requests rather than duplicating them. Create or select a synthetic
+application, then send [Update means](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20means.yml)
+and [Update evidence](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20evidence.yml).
+Then send [Update declaration](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20declaration.yml)
+and [Complete application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Complete%20application.yml)
+in that order. All requests use the selected `applicationId`.
+
+After completing it, retrieve it with [Get application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20application.yml)
+to confirm `COMPLETED`. You can then try [Update application details](../bruno-collection/Record%20Controlled%20Work%20API/applications/Update%20application%20details.yml)
+to see that completed applications reject details updates. Send each request individually in Bruno
+after signing in through the `applications` folder.
+
+The status request includes the required numeric `eTag` field. The current status controller does not
+use this field as the caller-supplied concurrency precondition for the details endpoint. Details updates
+use the strong `If-Match` header captured by the retrieval request. The details update should return
+`409` with reason `APPLICATION_COMPLETED`.
+
+`COMPLETED` is an application state, not an eligibility result. The collection does not calculate or
+verify eligibility. The core means request stores input data with an empty result.
+
+The current Docker `local` profile propagates application exceptions and returned a `500` for this
+completed-details request. The documented API contract is `409`; treat that local response as an
+environment discrepancy.
 
 ### Editing draft details
 
