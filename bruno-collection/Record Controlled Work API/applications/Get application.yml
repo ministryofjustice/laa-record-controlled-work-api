@@ -12,10 +12,28 @@ http:
 
 runtime:
   scripts:
+    - type: before-request
+      code: |-
+        bru.deleteVar("detailsETag");
+        bru.deleteVar("detailsETagApplicationId");
+    - type: after-response
+      code: |-
+        const selectedApplicationId = bru.getVar("applicationId");
+        const etag = res.getHeader("ETag");
+
+        if (res.getStatus() === 200 && selectedApplicationId && /^"\d+"$/.test(etag || "")) {
+          bru.setVar("detailsETag", etag);
+          bru.setVar("detailsETagApplicationId", selectedApplicationId);
+        }
     - type: tests
       code: |-
         test("should be 200 response", function () {
           expect(res.getStatus()).to.equal(200);
+        });
+
+        test("should capture the selected application's strong ETag", function () {
+          expect(bru.getVar("detailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("detailsETagApplicationId")).to.equal(bru.getVar("applicationId"));
         });
 
         test("should return an application object", function () {
@@ -64,6 +82,8 @@ examples:
       headers:
         - name: Content-Type
           value: application/json
+        - name: ETag
+          value: '"1"'
       body:
         type: json
         data: |-
@@ -75,7 +95,7 @@ examples:
             "clientDetails": {
               "id": "33333333-4444-4555-8666-777777777777",
               "firstName": "Synthetic",
-              "lastName": "PenTest",
+              "lastName": "Client",
               "dateOfBirth": "1990-01-01",
               "hasFixedAddress": false,
               "address": null,
@@ -105,9 +125,9 @@ examples:
             "applicationType": "RCW",
             "ecfFlag": false,
             "createdAt": "2026-01-01T12:00:00Z",
-            "createdBy": "synthetic-pen-test-user",
+            "createdBy": "synthetic-user",
             "modifiedAt": "2026-01-01T12:00:00Z",
-            "modifiedBy": "synthetic-pen-test-user"
+            "modifiedBy": "synthetic-user"
           }
   - name: 401 Response
     description: Unauthorized

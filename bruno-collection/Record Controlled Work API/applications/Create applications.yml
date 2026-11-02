@@ -10,31 +10,22 @@ http:
   url: "{{baseUrl}}/api/v1/applications"
   body:
     type: json
-    data: |-
-      {
-        "providerOfficeCode": "{{providerOfficeCode}}",
-        "legalAidLast6Months": false,
-        "reasonForReapplication": "",
-        "ecfFlag": false,
-        "scopingQuestions": {
-          "priorLegalAid": "yesSameMatter",
-          "familyLawClassification": "private",
-          "needsAdviceOnEUOrInternationalMaintenance": false,
-          "needsProtectiveInjunction": false,
-          "laspoEvidenceScope": "domesticAbuse",
-          "caseMeetsMeritsCriteria": true
-        },
-        "clientDetails": {
-          "firstName": "Synthetic",
-          "lastName": "PenTest",
-          "dateOfBirth": "1990-01-01",
-          "hasFixedAddress": false
-        }
-      }
+    data: "{}"
   auth: inherit
 
 runtime:
   scripts:
+    - type: before-request
+      code: |-
+        const generateApplicationDetailsRequestBody = require("./scripts/application-details.js");
+        req.setBody(JSON.stringify(generateApplicationDetailsRequestBody(bru, {
+          providerOfficeCode: bru.getEnvVar("providerOfficeCode"),
+          legalAidLast6Months: false,
+          reasonForReapplication: "",
+          ecfFlag: false,
+          scopingQuestions: { priorLegalAid: "yesSameMatter" },
+          clientDetails: { niNumber: undefined, hasFixedAddress: false, address: undefined }
+        })));
     - type: after-response
       code: |-
         if (res.getStatus() === 201) {
@@ -82,29 +73,6 @@ examples:
     request:
       url: "{{baseUrl}}/api/v1/applications"
       method: POST
-      body:
-        type: json
-        data: |-
-          {
-            "providerOfficeCode": "{{providerOfficeCode}}",
-            "legalAidLast6Months": false,
-            "reasonForReapplication": "",
-            "ecfFlag": false,
-            "scopingQuestions": {
-              "priorLegalAid": "yesSameMatter",
-              "familyLawClassification": "private",
-              "needsAdviceOnEUOrInternationalMaintenance": false,
-              "needsProtectiveInjunction": false,
-              "laspoEvidenceScope": "domesticAbuse",
-              "caseMeetsMeritsCriteria": true
-            },
-            "clientDetails": {
-              "firstName": "Synthetic",
-              "lastName": "PenTest",
-              "dateOfBirth": "1990-01-01",
-              "hasFixedAddress": false
-            }
-          }
     response:
       status: 201
       statusText: Created

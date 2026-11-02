@@ -1,0 +1,54 @@
+info:
+  name: Update application details - missing ETag
+  type: http
+  seq: 8
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const generateApplicationDetailsRequestBody = require("./scripts/application-details.js");
+        req.setBody(JSON.stringify(generateApplicationDetailsRequestBody(bru, {
+          scopingQuestions: { priorLegalAid: "yesSameMatter" }
+        })));
+    - type: tests
+      code: |-
+        test("should require If-Match", function () {
+          expect(res.getStatus()).to.equal(428);
+          expect(res.getBody().reason).to.equal("IF_MATCH_REQUIRED");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 428 Response
+    description: A caller-supplied strong ETag is required for details updates
+    request:
+      url: "{{baseUrl}}/api/v1/applications/{{applicationId}}/details"
+      method: PUT
+    response:
+      status: 428
+      statusText: Precondition Required
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Precondition Required",
+            "status": 428,
+            "reason": "IF_MATCH_REQUIRED"
+          }
