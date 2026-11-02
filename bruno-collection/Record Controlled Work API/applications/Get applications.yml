@@ -7,13 +7,13 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status={{applicationStatus}}&eligibilityIndication={{eligibilityIndication}}"
+  url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status={{applicationStatus}}&eligibilityIndication={{eligibilityIndication}}"
   params:
     - name: size
-      value: "1"
+      value: "25"
       type: query
     - name: page
-      value: "1"
+      value: "0"
       type: query
     - name: officeId
       value: "{{officeId}}"
@@ -59,17 +59,17 @@ examples:
   - name: List DRAFT applications
     description: In-progress applications only
     request:
-      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=DRAFT"
+      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=DRAFT"
       method: GET
   - name: List COMPLETE applications
     description: Completed applications with eligible indication
     request:
-      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=ELIGIBLE"
+      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=ELIGIBLE"
       method: GET
   - name: List INELIGIBLE applications
     description: Completed applications with ineligible indication
     request:
-      url: "{{baseUrl}}/api/v1/applications?size=1&page=1&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=INELIGIBLE"
+      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=INELIGIBLE"
       method: GET
   - name: 200 Response
     description: Success
@@ -87,11 +87,11 @@ examples:
         data: |-
           [
             {
-              "id": "",
-              "name": "",
-              "modifiedAt": "",
-              "applicationRefNumber": "",
-              "eligibilityIndication": "eligible"
+              "id": "11111111-2222-4333-8444-555555555555",
+              "name": "Synthetic PenTest",
+              "modifiedAt": "2026-01-01T12:00:00Z",
+              "applicationRefNumber": "CW-111111",
+              "eligibilityIndication": null
             }
           ]
   - name: 401 Response

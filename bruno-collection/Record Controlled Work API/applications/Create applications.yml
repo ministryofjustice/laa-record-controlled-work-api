@@ -12,27 +12,23 @@ http:
     type: json
     data: |-
       {
-        "providerOfficeCode": "R1XEVG",
+        "providerOfficeCode": "{{providerOfficeCode}}",
+        "legalAidLast6Months": false,
+        "reasonForReapplication": "",
+        "ecfFlag": false,
         "scopingQuestions": {
-          "priorLegalAid": "yesSameMatter"
-          "familyLawClassification": "private"
-          "needsAdviceOnEUOrInternationalMaintenance": false
-          "needsProtectiveInjunction": false
-          "laspoEvidenceScope": "domesticAbuse"
+          "priorLegalAid": "yesSameMatter",
+          "familyLawClassification": "private",
+          "needsAdviceOnEUOrInternationalMaintenance": false,
+          "needsProtectiveInjunction": false,
+          "laspoEvidenceScope": "domesticAbuse",
+          "caseMeetsMeritsCriteria": true
         },
         "clientDetails": {
-          "firstName": "Joe",
-          "lastName": "Bloggs",
+          "firstName": "Synthetic",
+          "lastName": "PenTest",
           "dateOfBirth": "1990-01-01",
-          "niNumber": "AB123456C",
-          "hasFixedAddress": true,
-          "address": {
-            "addressLine1": "10 Downing Street",
-            "addressLine2": "Prime ministers address",
-            "postCode": "SW1A 2AA",
-            "townOrCity": "London",
-            "country": "GB"
-          }
+          "hasFixedAddress": false
         }
       }
   auth: inherit
@@ -42,10 +38,9 @@ runtime:
     - type: after-response
       code: |-
         if (res.getStatus() === 201) {
-          const location = res.getHeader("Location");
-          const applicationId = location?.match(/\/api\/v1\/applications\/([0-9a-fA-F-]{36})$/)?.[1];
+          const applicationId = res.getBody()?.id;
 
-          if (applicationId) {
+          if (typeof applicationId === "string" && /^[0-9a-fA-F-]{36}$/.test(applicationId)) {
             bru.setVar("createdApplicationId", applicationId);
           }
         }
@@ -61,14 +56,18 @@ runtime:
           expect(location).to.match(/\/api\/v1\/applications\/[0-9a-fA-F-]{36}$/);
         });
 
-        test("should store the created application ID", function () {
-          const location = res.getHeader("Location");
-          const applicationId = location.match(/\/api\/v1\/applications\/([0-9a-fA-F-]{36})$/)[1];
-          expect(bru.getVar("createdApplicationId")).to.equal(applicationId);
+        test("should return the created application ID", function () {
+          expect(res.getBody().id).to.match(/^[0-9a-fA-F-]{36}$/);
         });
 
-        test("should return empty response body", function () {
-          expect(res.getBody()).to.equal("");
+        test("Location should identify the created application", function () {
+          expect(res.getHeader("Location")).to.match(
+            new RegExp("/api/v1/applications/" + res.getBody().id + "$")
+          );
+        });
+
+        test("should store the created application ID", function () {
+          expect(bru.getVar("createdApplicationId")).to.equal(res.getBody().id);
         });
 
 settings:
@@ -87,28 +86,23 @@ examples:
         type: json
         data: |-
           {
-            "legalAidBefore": "false",
-            "providerOfficeCode": "R1XEVG",
+            "providerOfficeCode": "{{providerOfficeCode}}",
+            "legalAidLast6Months": false,
+            "reasonForReapplication": "",
+            "ecfFlag": false,
             "scopingQuestions": {
-              "priorLegalAid": "yesSameMatter"
-              "familyLawClassification": "private"
-              "needsAdviceOnEUOrInternationalMaintenance": false
-              "needsProtectiveInjunction": false
-              "laspoEvidenceScope": "domesticAbuse"
+              "priorLegalAid": "yesSameMatter",
+              "familyLawClassification": "private",
+              "needsAdviceOnEUOrInternationalMaintenance": false,
+              "needsProtectiveInjunction": false,
+              "laspoEvidenceScope": "domesticAbuse",
+              "caseMeetsMeritsCriteria": true
             },
             "clientDetails": {
-              "firstName": "Joe",
-              "lastName": "Bloggs",
+              "firstName": "Synthetic",
+              "lastName": "PenTest",
               "dateOfBirth": "1990-01-01",
-              "niNumber": "AB123456C",
-              "hasFixedAddress": true,
-              "address": {
-                "addressLine1": "10 Downing Street",
-                "addressLine2": "Prime ministers address",
-                "postCode": "SW1A 2AA",
-                "townOrCity": "London",
-                "country": "GB"
-              }
+              "hasFixedAddress": false
             }
           }
     response:
@@ -116,10 +110,13 @@ examples:
       statusText: Created
       headers:
         - name: Location
-          value: "{{baseUrl}}/api/v1/applications/b2c3d4e5-f6a7-8901-bcde-f12345678901"
+          value: "{{baseUrl}}/api/v1/applications/11111111-2222-4333-8444-555555555555"
       body:
-        type: text
-        data: ""
+        type: json
+        data: |-
+          {
+            "id": "11111111-2222-4333-8444-555555555555"
+          }
   - name: 401 Response
     description: Unauthorized
     request:
