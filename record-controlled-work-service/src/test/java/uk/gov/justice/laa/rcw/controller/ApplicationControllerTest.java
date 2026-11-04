@@ -147,7 +147,7 @@ class ApplicationControllerTest {
         .perform(
             get("/api/v1/applications")
                 .param("status", "COMPLETED")
-                .param("eligibilityIndication", "INELIGIBLE"))
+                .param("eligibilityIndication", "ineligible"))
         .andExpect(status().isOk());
 
     verify(mockApplicationQueryService)
@@ -167,7 +167,7 @@ class ApplicationControllerTest {
                 .param("size", String.valueOf(size))
                 .param("officeId", "office-123")
                 .param("status", "COMPLETED")
-                .param("eligibilityIndication", "INELIGIBLE"))
+                .param("eligibilityIndication", "ineligible"))
         .andExpect(status().isOk());
 
     verify(mockApplicationQueryService)
