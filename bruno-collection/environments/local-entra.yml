@@ -26,11 +26,11 @@ variables:
   - name: oauthScope
     value: "{{entraApiAudience}}/Applications.Read {{entraApiAudience}}/Applications.Write offline_access openid profile"
   - name: entraTenantId
-    value: "{{process.env.ENTRA_TENANT_ID}}"
+    value: "{{process.env.UAT_ENTRA_TENANT_ID}}"
     type: secret
   - name: oauthClientId
-    value: "{{process.env.ENTRA_CLIENT_ID}}"
+    value: "{{process.env.UAT_ENTRA_CLIENT_ID}}"
     type: secret
   - name: oauthClientSecret
-    value: "{{process.env.ENTRA_CLIENT_SECRET}}"
+    value: "{{process.env.UAT_ENTRA_CLIENT_SECRET}}"
     type: secret

@@ -73,8 +73,8 @@ A collection is checked into the repo and can be opened through [Bruno](https://
 the `bruno-collection` folder.
 
 See [docs/bruno.md](docs/bruno.md) for full setup instructions, including how to select an environment,
-fetch an OAuth2 access token for `local`/`uat`, the Entra redirect URI requirement for `uat`, and how to
-inspect a cached token's decoded claims.
+fetch an OAuth2 access token for `local`/`uat`/`staging`, the Entra redirect URI requirements for `uat` and
+`staging`, and how to inspect a cached token's decoded claims.
 
 ## Build And Run Application
 
