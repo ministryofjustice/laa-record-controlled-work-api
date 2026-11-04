@@ -64,12 +64,12 @@ examples:
   - name: List COMPLETE applications
     description: Completed applications with eligible indication
     request:
-      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=ELIGIBLE"
+      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=eligible"
       method: GET
   - name: List INELIGIBLE applications
     description: Completed applications with ineligible indication
     request:
-      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=INELIGIBLE"
+      url: "{{baseUrl}}/api/v1/applications?size=25&page=0&officeId={{officeId}}&status=COMPLETED&eligibilityIndication=ineligible"
       method: GET
   - name: 200 Response
     description: Success

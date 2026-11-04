@@ -16,7 +16,7 @@ variables:
     description: Application status filter for applications list (DRAFT or COMPLETED)
   - name: eligibilityIndication
     value: ""
-    description: Eligibility filter for applications list (ELIGIBLE or INELIGIBLE)
+    description: Eligibility filter for applications list (eligible or ineligible)
   - name: oauthAuthorizeUrl
     value: http://host.docker.internal:9090/default/authorize
   - name: oauthTokenUrl
