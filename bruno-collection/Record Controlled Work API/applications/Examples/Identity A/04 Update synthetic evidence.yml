@@ -1,0 +1,46 @@
+info:
+  name: 04 Update synthetic evidence
+  description: >-
+    Prerequisite: complete steps 01 and 02 as identity A in staging. Target: A's verified
+    application ID from this dataset run. Expected: 204. Side effect: stores synthetic
+    payslip and bank-statement checklist values on the draft.
+  type: http
+  seq: 4
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}/evidence"
+  body:
+    type: json
+    data: |-
+      {
+        "evidenceExemptionCode": null,
+        "evidenceExemptionReason": null,
+        "incomeEvidenceChecklist": {
+          "payslips": true
+        },
+        "expenditureCapitalEvidenceChecklist": {
+          "bankStatements": true
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true, true);
+    - type: tests
+      code: |-
+        test("should save the synthetic evidence checklist", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

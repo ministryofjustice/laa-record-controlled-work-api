@@ -1,0 +1,49 @@
+info:
+  name: 02 Verify created application
+  description: >-
+    Prerequisite: complete step 01 as identity A in staging. Target: retrieve only A's
+    captured application ID from the current dataset run. Expected: 200 with a DRAFT
+    application in office 0R125Q and firm 997. Side effect: captures the returned firm
+    confirmation needed before any lifecycle mutation. No application data is changed.
+  type: http
+  seq: 2
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true);
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureAApplicationFirm(bru, res);
+    - type: tests
+      code: |-
+        test("should retrieve A's created application", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application).to.be.an("object");
+          expect(application.id).to.equal(bru.getVar("exampleAApplicationId"));
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.providerFirmCode).to.equal("997");
+          expect(application.providerOfficeCode).to.equal("0R125Q");
+          expect(application.clientDetails.firstName).to.equal("Synthetic");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleAClientLastName")
+          );
+          expect(bru.getVar("exampleAProviderFirmCode")).to.equal("997");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

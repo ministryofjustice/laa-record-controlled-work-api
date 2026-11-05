@@ -1,0 +1,52 @@
+info:
+  name: 03 Update synthetic means
+  description: >-
+    Prerequisite: complete steps 01 and 02 as identity A in staging. Target: A's verified
+    application ID from this dataset run. Expected: 204. Side effect: stores non-empty,
+    synthetic means data for later authorised retrieval. This input is not a genuine
+    assessment or eligibility determination.
+  type: http
+  seq: 3
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}/means"
+  body:
+    type: json
+    data: |-
+      {
+        "data": {
+          "level_of_help": "controlled",
+          "employment_status": "employed",
+          "incomes": [
+            {
+              "gross_income": 1200,
+              "income_frequency": "monthly"
+            }
+          ]
+        },
+        "result": {
+          "version": "6"
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true, true);
+    - type: tests
+      code: |-
+        test("should save the synthetic means assessment", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

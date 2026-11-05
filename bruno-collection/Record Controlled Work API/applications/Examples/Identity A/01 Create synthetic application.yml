@@ -1,0 +1,57 @@
+info:
+  name: 01 Create synthetic application
+  description: >-
+    Prerequisite: select staging and sign in interactively as identity A. Target: create one
+    synthetic application in provider office 0R125Q. Expected: 201 with an application ID
+    and matching Location header. Side effect: starts a new dataset run, clears the previous
+    A reference and creates one persistent record. Send again only to deliberately start a
+    new dataset. If the result is uncertain, inspect staging before retrying.
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/applications"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, false);
+        examples.beginASetup(bru);
+        req.setBody(JSON.stringify(examples.buildAApplicationCreateBody(bru)));
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureAApplicationResponse(bru, res);
+    - type: tests
+      code: |-
+        test("should create exactly one application", function () {
+          expect(res.getStatus()).to.equal(201);
+        });
+
+        test("should capture the created application's ID and run", function () {
+          const applicationId = res.getBody()?.id;
+          expect(applicationId).to.match(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+          expect(res.getHeader("Location")).to.match(
+            new RegExp("/api/v1/applications/" + applicationId + "$")
+          );
+          expect(bru.getVar("exampleAApplicationId")).to.equal(applicationId);
+          expect(bru.getVar("exampleAApplicationRunId")).to.equal(
+            bru.getVar("exampleDatasetRunId")
+          );
+          expect(bru.getVar("exampleASetupStatus")).to.equal("created");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

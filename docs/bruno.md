@@ -65,6 +65,54 @@ The current Docker `local` profile propagates application exceptions and returne
 completed-details request. The documented API contract is `409`; treat that local response as an
 environment discrepancy.
 
+### Guarded AppSec application lifecycle
+
+The staging-only [Examples](../bruno-collection/Record%20Controlled%20Work%20API/applications/Examples/folder.yml)
+workflow creates one synthetic application for identity A, populates its means, evidence and
+declaration, completes it, then retrieves it. It is separate from the general-purpose requests above
+and never falls back to the selected `applicationId`.
+
+Select the `staging` environment and keep its configured `baseUrl` unchanged. The requests refuse
+dispatch unless both the selected environment name and resolved request URL match staging. Sign in
+through the existing `applications` folder's **Auth > Get Access Token** flow. Use identity A for
+these requests. If the identity provider reuses a cached sign-in, choose **Use another account** or
+sign out of that browser session before signing in again. The collection uses neutral labels and
+does not include or print credentials, tokens or identity claims.
+
+The local pre-request check decodes the active token payload only to compare its `LAA_ACCOUNTS`
+office set with `0R125Q`. The API's current authorization flow consumes that office claim, not a firm
+claim. Step 02 confirms `providerFirmCode` is `997` and `providerOfficeCode` is `0R125Q` in the
+returned application before lifecycle mutations are allowed. These checks are tester safeguards.
+They do not verify token signatures, replace API authorization, query live entitlements or guarantee
+immediate revocation.
+
+Send the requests individually in order:
+
+1. **01 Create synthetic application** starts a new run, clears the previous A reference, generates
+   an office-unique contract-shaped UFN and creates one application.
+2. **02 Verify created application** retrieves the captured ID and confirms the expected firm,
+   office and DRAFT state.
+3. **03 Update synthetic means** and **04 Update synthetic evidence** populate non-empty synthetic
+   data.
+4. **05 Sign synthetic declaration** records the generated UFN and current date.
+5. **06 Complete synthetic application** moves the application to COMPLETED.
+6. **07 Verify completed application** checks the same ID, state, firm, office, means, evidence and
+   declaration.
+
+All requests use an A-specific ID associated with the current run. Missing, stale or incomplete
+references stop dispatch. Re-sending step 01 deliberately starts another run and creates another
+persistent record. If its result is uncertain after dispatch, inspect staging before retrying.
+There is no public delete operation, and these examples do not promise cleanup.
+
+COMPLETED is an application state, not financial eligibility or a recorded eligible application.
+The synthetic means result is not calculated. The status request includes the contract-required
+numeric `eTag`; this does not provide the details route's caller-controlled `If-Match` guarantee.
+
+Run `node bruno-collection/scripts/staging-examples.test.js` for local guard, fixture-reference and
+generated-body checks. These checks do not contact Entra or the deployed API. Do not bypass the
+staging guard to claim a local end-to-end pass. Sending staging requests or creating records requires
+separate authorization.
+
 ### Editing draft details
 
 Retrieve the selected draft with [Get application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20application.yml)

@@ -1,0 +1,41 @@
+info:
+  name: 06 Complete synthetic application
+  description: >-
+    Prerequisite: complete steps 01 through 05 as identity A in staging. Target: A's
+    verified application ID from this dataset run. Expected: 204. Side effect: changes the
+    application state to COMPLETED. The required numeric eTag is part of this status body;
+    it is not the caller-controlled If-Match guarantee used by application-details updates.
+  type: http
+  seq: 6
+  tags:
+    - applications
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}/status"
+  body:
+    type: json
+    data: |-
+      {
+        "applicationState": "COMPLETED",
+        "eTag": 1
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true, true);
+    - type: tests
+      code: |-
+        test("should complete the application", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

@@ -1,0 +1,65 @@
+info:
+  name: 07 Verify completed application
+  description: >-
+    Prerequisite: complete steps 01 through 06 as identity A in staging. Target: A's
+    verified application ID from this dataset run. Expected: 200 with the same ID, firm 997,
+    office 0R125Q, COMPLETED state, populated means data, evidence and declaration. No
+    application data is changed.
+  type: http
+  seq: 7
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true, true);
+    - type: tests
+      code: |-
+        test("should retrieve A's completed application", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application).to.be.an("object");
+          expect(application.id).to.equal(bru.getVar("exampleAApplicationId"));
+          expect(application.applicationState).to.equal("COMPLETED");
+          expect(application.providerFirmCode).to.equal("997");
+          expect(application.providerOfficeCode).to.equal("0R125Q");
+          expect(application.clientDetails.firstName).to.equal("Synthetic");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleAClientLastName")
+          );
+        });
+
+        test("should return the synthetic means content", function () {
+          const data = res.getBody().eligibilityAssessment?.data;
+          expect(data).to.be.an("object");
+          expect(data.level_of_help).to.equal("controlled");
+          expect(data.incomes).to.be.an("array").with.lengthOf(1);
+          expect(data.incomes[0].gross_income).to.equal(1200);
+          expect(res.getBody().eligibilityAssessment.result.version).to.equal("6");
+        });
+
+        test("should return the synthetic evidence and declaration", function () {
+          const application = res.getBody();
+          expect(application.evidence.incomeEvidenceChecklist.payslips).to.equal(true);
+          expect(application.evidence.expenditureCapitalEvidenceChecklist.bankStatements)
+            .to.equal(true);
+          expect(application.declaration.ufn).to.equal(bru.getVar("exampleAUfn"));
+          expect(application.declaration.declarationConfirmation).to.equal(true);
+          expect(application.declaration.dateSigned).to.equal(
+            bru.getVar("exampleADeclarationDate")
+          );
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0
