@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +27,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.exception.ApplicationForbiddenException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
+import uk.gov.justice.laa.rcw.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
@@ -58,7 +58,8 @@ class ApplicationMeansServiceTest {
   void shouldUpdateMeans_fetchesETagAndForwardsDataAndResultToDatastore() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     EligibilityData eligibilityData = EligibilityData.builder().levelOfHelp("controlled").build();
-    Map<String, Object> result = Map.of("indication", true);
+    EligibilityCalculationResult result =
+        EligibilityCalculationResult.builder().version("6").build();
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
@@ -76,14 +77,15 @@ class ApplicationMeansServiceTest {
     assertThat(commandCaptor.getValue().geteTag()).isEqualTo(7L);
     assertThat(commandCaptor.getValue().getData().getLevelOfHelp_JsonNullable())
         .isEqualTo(JsonNullable.of("controlled"));
-    assertThat(commandCaptor.getValue().getResult()).isEqualTo(result);
+    assertThat(commandCaptor.getValue().getResult().getVersion()).isEqualTo("6");
   }
 
   @Test
   void shouldUpdateMeans_retriesOnceWithFreshETag_whenDatastoreReturnsConflict() {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     EligibilityData data = EligibilityData.builder().levelOfHelp("controlled").build();
-    Map<String, Object> result = Map.of("indication", true);
+    EligibilityCalculationResult result =
+        EligibilityCalculationResult.builder().version("6").build();
     when(mockApplicationGateway.fetchApplication(eq(applicationId)))
         .thenReturn(
             ApplicationResponse.builder()
@@ -133,7 +135,9 @@ class ApplicationMeansServiceTest {
     assertThatThrownBy(
             () ->
                 applicationMeansService.updateMeans(
-                    applicationId, EligibilityData.builder().build(), Map.of()))
+                    applicationId,
+                    EligibilityData.builder().build(),
+                    EligibilityCalculationResult.builder().build()))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString())
         .cause()
@@ -157,7 +161,9 @@ class ApplicationMeansServiceTest {
     assertThatThrownBy(
             () ->
                 applicationMeansService.updateMeans(
-                    applicationId, EligibilityData.builder().build(), Map.of()))
+                    applicationId,
+                    EligibilityData.builder().build(),
+                    EligibilityCalculationResult.builder().build()))
         .isInstanceOf(ApplicationConflictException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -174,7 +180,9 @@ class ApplicationMeansServiceTest {
     assertThatThrownBy(
             () ->
                 applicationMeansService.updateMeans(
-                    applicationId, EligibilityData.builder().build(), Map.of()))
+                    applicationId,
+                    EligibilityData.builder().build(),
+                    EligibilityCalculationResult.builder().build()))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 
@@ -195,7 +203,9 @@ class ApplicationMeansServiceTest {
     assertThatThrownBy(
             () ->
                 applicationMeansService.updateMeans(
-                    applicationId, EligibilityData.builder().build(), Map.of()))
+                    applicationId,
+                    EligibilityData.builder().build(),
+                    EligibilityCalculationResult.builder().build()))
         .isInstanceOf(ApplicationForbiddenException.class)
         .hasMessageContaining(applicationId.toString());
 

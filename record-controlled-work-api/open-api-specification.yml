@@ -662,7 +662,7 @@ components:
         - applicationState
         - declaration
         - evidence
-        - eligibility
+        - eligibilityAssessment
         - scopingQuestions
         - applicationType
         - ecfFlag
@@ -699,10 +699,10 @@ components:
           nullable: true
           allOf:
             - $ref: "#/components/schemas/Evidence"
-        eligibility:
+        eligibilityAssessment:
           nullable: true
           allOf:
-            - $ref: "#/components/schemas/Eligibility"
+            - $ref: "#/components/schemas/EligibilityAssessment"
         reasonForReapplication:
           type: string
           nullable: true
@@ -756,7 +756,7 @@ components:
         data:
           $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
-          type: object
+          $ref: './open-api-specifications/components/eligibility-result-schema.yml#/components/schemas/EligibilityCalculationResult'
 
     UpdateApplicationStatusRequestBody:
       type: object
@@ -786,7 +786,7 @@ components:
           type: string
           format: date
 
-    Eligibility:
+    EligibilityAssessment:
       required:
         - result
         - data
@@ -797,8 +797,9 @@ components:
           allOf:
             - $ref: './open-api-specifications/components/eligibility-data-schema.yml#/components/schemas/EligibilityData'
         result:
-          type: object
           nullable: true
+          allOf:
+            - $ref: './open-api-specifications/components/eligibility-result-schema.yml#/components/schemas/EligibilityCalculationResult'
 
     Declaration:
       required:

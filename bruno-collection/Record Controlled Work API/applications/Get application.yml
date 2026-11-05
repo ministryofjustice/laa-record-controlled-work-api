@@ -53,7 +53,7 @@ runtime:
             "applicationState",
             "declaration",
             "evidence",
-            "eligibility",
+            "eligibilityAssessment",
             "scopingQuestions",
             "applicationType",
             "ecfFlag",
@@ -110,7 +110,7 @@ examples:
               "incomeEvidenceChecklist": null,
               "expenditureCapitalEvidenceChecklist": null
             },
-            "eligibility": {
+            "eligibilityAssessment": {
               "data": null,
               "result": null
             },

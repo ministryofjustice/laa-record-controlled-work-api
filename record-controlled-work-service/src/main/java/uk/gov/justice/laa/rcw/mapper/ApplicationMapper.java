@@ -52,7 +52,6 @@ public interface ApplicationMapper {
    * @return the RCW API application
    */
   @Mapping(target = "clientDetails", source = "client")
-  @Mapping(target = "eligibility", source = "eligibilityResult")
   @Mapping(target = "evidence", source = "evidence")
   @Mapping(target = "meansAssessmentId", ignore = true)
   @Mapping(target = "applicationRefNumber", source = "referenceNumber")
@@ -84,6 +83,8 @@ public interface ApplicationMapper {
   /** Maps the RCW create request to the datastore start-application command. */
   @Mapping(target = "client", source = "clientDetails")
   @Mapping(target = "ufn", ignore = true)
+  @Mapping(target = "providerContractType", ignore = true)
+  @Mapping(target = "categoryOfLaw", ignore = true)
   @Mapping(
       target = "applicationType",
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")

@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -58,6 +57,7 @@ import uk.gov.justice.laa.rcw.model.Application;
 import uk.gov.justice.laa.rcw.model.ApplicationOverview;
 import uk.gov.justice.laa.rcw.model.ApplicationState;
 import uk.gov.justice.laa.rcw.model.CreateApplicationRequestBody;
+import uk.gov.justice.laa.rcw.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.model.FamilyLawClassification;
@@ -515,7 +515,7 @@ class ApplicationControllerTest {
     UUID applicationId = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
     String requestBody =
         """
-        {"data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+        {"data": {"level_of_help": "controlled"}, "result": {"version": "6"}}
         """;
 
     mockMvc
@@ -527,11 +527,13 @@ class ApplicationControllerTest {
 
     ArgumentCaptor<EligibilityData> eligibiltyDataCaptor =
         ArgumentCaptor.forClass(EligibilityData.class);
+    ArgumentCaptor<EligibilityCalculationResult> resultCaptor =
+        ArgumentCaptor.forClass(EligibilityCalculationResult.class);
 
     verify(mockApplicationMeansService)
-        .updateMeans(
-            eq(applicationId), eligibiltyDataCaptor.capture(), eq(Map.of("indication", true)));
+        .updateMeans(eq(applicationId), eligibiltyDataCaptor.capture(), resultCaptor.capture());
     assertEquals("controlled", eligibiltyDataCaptor.getValue().getLevelOfHelp());
+    assertEquals("6", resultCaptor.getValue().getVersion());
   }
 
   @Test

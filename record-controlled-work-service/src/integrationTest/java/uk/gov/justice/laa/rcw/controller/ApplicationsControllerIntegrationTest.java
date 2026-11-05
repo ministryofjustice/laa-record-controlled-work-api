@@ -612,9 +612,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             "clientDeclarationStatus": "DRAFT",
                             "declarationConfirmation": true
                         },
-                        "eligibilityResult": {
+                        "eligibilityAssessment": {
                             "data": {"level_of_help": "controlled"},
-                            "result": {"indication": true}
+                            "result": {"version": "6", "success": true}
                         }
                     }
                     """
@@ -641,8 +641,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.declaration.id").value("d4e5f6a7-b8c9-0123-def1-234567890123"))
         .andExpect(jsonPath("$.declaration.clientDeclarationStatus").doesNotExist())
         .andExpect(jsonPath("$.evidence.evidenceStatus").doesNotExist())
-        .andExpect(jsonPath("$.eligibility.data.level_of_help").value("controlled"))
-        .andExpect(jsonPath("$.eligibility.result.indication").value(true));
+        .andExpect(jsonPath("$.eligibilityAssessment.data.level_of_help").value("controlled"))
+        .andExpect(jsonPath("$.eligibilityAssessment.result.success").value(true));
   }
 
   @Test
@@ -658,7 +658,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "referenceNumber": null,
                         "eTag": 0,
-                        "eligibilityResult": {
+                        "eligibilityAssessment": {
                             "data": {
                                 "additional_property_owned": null,
                                 "adult_dependants": false,
@@ -695,9 +695,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                                 }
                             },
                             "result": {
-                                "keep": false,
-                                "discard": null,
-                                "empty": []
+                                "version": "6",
+                                "timestamp": null,
+                                "success": false
                             }
                         }
                     }
@@ -707,29 +707,39 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.eligibility.data.additional_property_owned").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.level_of_help").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.adult_dependants").value(false))
-        .andExpect(jsonPath("$.eligibility.data.adult_dependants_count").value(0))
-        .andExpect(jsonPath("$.eligibility.data.bank_accounts[0].amount").value(0))
-        .andExpect(jsonPath("$.eligibility.data.bank_accounts[0].account_in_dispute").value(false))
-        .andExpect(jsonPath("$.eligibility.data.benefits").isEmpty())
-        .andExpect(jsonPath("$.eligibility.data.early_result.result").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.early_result.gross_income_excess").value(0))
-        .andExpect(jsonPath("$.eligibility.data.early_result.type").value("income"))
-        .andExpect(jsonPath("$.eligibility.data.incomes[0].gross_income").value(0))
-        .andExpect(jsonPath("$.eligibility.data.incomes[0].income_frequency").value("monthly"))
-        .andExpect(jsonPath("$.eligibility.data.incomes[0].income_tax").doesNotHaveJsonPath())
         .andExpect(
-            jsonPath("$.eligibility.data.incomes[0].national_insurance").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.api_response").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.feature_flags.active").value(false))
-        .andExpect(jsonPath("$.eligibility.data.feature_flags.discard").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.data.pending.saved").value(0))
-        .andExpect(jsonPath("$.eligibility.data.pending.discard").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.eligibility.result.keep").value(false))
-        .andExpect(jsonPath("$.eligibility.result.discard").value(nullValue()))
-        .andExpect(jsonPath("$.eligibility.result.empty").isEmpty())
+            jsonPath("$.eligibilityAssessment.data.additional_property_owned")
+                .doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.data.level_of_help").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.data.adult_dependants").value(false))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.adult_dependants_count").value(0))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.bank_accounts[0].amount").value(0))
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.bank_accounts[0].account_in_dispute")
+                .value(false))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.benefits").isEmpty())
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.early_result.result").doesNotHaveJsonPath())
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.early_result.gross_income_excess").value(0))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.early_result.type").value("income"))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.incomes[0].gross_income").value(0))
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.incomes[0].income_frequency").value("monthly"))
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.incomes[0].income_tax").doesNotHaveJsonPath())
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.incomes[0].national_insurance")
+                .doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.data.api_response").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.data.feature_flags.active").value(false))
+        .andExpect(
+            jsonPath("$.eligibilityAssessment.data.feature_flags.discard").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.data.pending.saved").value(0))
+        .andExpect(jsonPath("$.eligibilityAssessment.data.pending.discard").doesNotHaveJsonPath())
+        .andExpect(jsonPath("$.eligibilityAssessment.result.version").value("6"))
+        .andExpect(jsonPath("$.eligibilityAssessment.result.timestamp").value(nullValue()))
+        .andExpect(jsonPath("$.eligibilityAssessment.result.success").value(false))
         .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
   }
 
@@ -746,9 +756,9 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                         "providerOfficeCode": "%s",
                         "referenceNumber": null,
                         "eTag": 0,
-                        "eligibilityResult": {
+                        "eligibilityAssessment": {
                             "data": null,
-                            "result": {"indication": false}
+                            "result": {"version": "6", "success": false}
                         }
                     }
                     """
@@ -757,8 +767,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
     mockMvc
         .perform(get("/api/v1/applications/%s".formatted(applicationId)).withBearerReadToken())
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.eligibility.data").value(nullValue()))
-        .andExpect(jsonPath("$.eligibility.result.indication").value(false))
+        .andExpect(jsonPath("$.eligibilityAssessment.data").value(nullValue()))
+        .andExpect(jsonPath("$.eligibilityAssessment.result.success").value(false))
         .andExpect(jsonPath("$.applicationRefNumber").value(nullValue()));
   }
 
@@ -1006,6 +1016,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             }
                         },
                         "ufn": null,
+                        "providerContractType": null,
+                        "categoryOfLaw": null,
                         "applicationType": "RCW",
                         "providerOfficeCode": "%s"
                     }
@@ -1482,6 +1494,48 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  void shouldUpdateApplicationMeans_passesTypedResultThroughUnchanged() throws Exception {
+    String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    String result =
+        """
+        {
+            "version": "6",
+            "success": true,
+            "result_summary": {
+                "overall_result": {
+                    "result": "a_value_cfe_adds_later",
+                    "capital_contribution": 10.50,
+                    "income_contribution": 0
+                }
+            },
+            "assessment": {"id": "assessment-1", "level_of_help": "controlled"}
+        }
+        """;
+    DATASTORE.stubFor(
+        WireMock.get(urlPathEqualTo("/api/v0/applications/" + applicationId))
+            .willReturn(
+                okJson(
+                    "{\"id\": \"%s\", \"eTag\": 5, \"providerOfficeCode\": \"%s\"}"
+                        .formatted(applicationId, TestJwtConfig.AUTHORIZED_OFFICE_CODE))));
+    DATASTORE.stubFor(
+        WireMock.put(urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .willReturn(WireMock.noContent()));
+
+    mockMvc
+        .perform(
+            put("/api/v1/applications/%s/means".formatted(applicationId))
+                .withBearerWriteToken()
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"data\": {}, \"result\": %s}".formatted(result)))
+        .andExpect(status().isNoContent());
+
+    DATASTORE.verify(
+        WireMock.putRequestedFor(
+                urlPathEqualTo("/api/v0/applications/" + applicationId + ":update-means-data"))
+            .withRequestBody(equalToJson("{\"result\": %s}".formatted(result), true, true)));
+  }
+
+  @Test
   void shouldUpdateApplicationMeans_fetchesETagAndPersistsDataAndResult() throws Exception {
     String applicationId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
     DATASTORE.stubFor(
@@ -1501,7 +1555,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
-                    {"data": {"level_of_help": "controlled"}, "result": {"indication": true}}
+                    {"data": {"level_of_help": "controlled"}, "result": {"version": "6"}}
                     """))
         .andExpect(status().isNoContent());
 
@@ -1627,7 +1681,7 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                           "valuables_relevant" : null,
                           "vehicle_owned" : null
                         },
-                        "result": {"indication": true}
+                        "result": {"version": "6"}
                     }
                     """)));
   }

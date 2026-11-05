@@ -12,6 +12,7 @@ import uk.gov.justice.laa.rcw.exception.ApplicationConflictException;
 import uk.gov.justice.laa.rcw.gateway.ApplicationGateway;
 import uk.gov.justice.laa.rcw.logging.StructuredLogger;
 import uk.gov.justice.laa.rcw.mapper.EligibilityMapper;
+import uk.gov.justice.laa.rcw.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 
 /** Service class for updating application means data. */
@@ -34,12 +35,16 @@ public class ApplicationMeansService {
    * @param data the means Q&A data
    * @param result the means calculation result
    */
-  public void updateMeans(UUID applicationId, EligibilityData data, Object result) {
+  public void updateMeans(
+      UUID applicationId, EligibilityData data, EligibilityCalculationResult result) {
     updateMeans(applicationId, data, result, true);
   }
 
   private void updateMeans(
-      UUID applicationId, EligibilityData data, Object result, boolean retryOnConflict) {
+      UUID applicationId,
+      EligibilityData data,
+      EligibilityCalculationResult result,
+      boolean retryOnConflict) {
     ApplicationResponse application = applicationGateway.fetchApplication(applicationId);
     applicationGuard.checkAuthorizedForOffice(applicationId, application.getProviderOfficeCode());
     checkNotAlreadyRecorded(applicationId, application.getApplicationState());
@@ -47,7 +52,7 @@ public class ApplicationMeansService {
         UpdateMeansDataCommand.builder()
             .eTag(application.geteTag())
             .data(eligibilityMapper.toDatastoreMeansData(data))
-            .result(result)
+            .result(eligibilityMapper.toDatastoreResult(result))
             .build();
     try {
       applicationGateway.updateMeansData(applicationId, command);

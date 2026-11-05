@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.openapitools.jackson.nullable.JsonNullable;
-import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityAssessment;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 import uk.gov.justice.laa.rcw.util.MapperFixtures;
 
@@ -24,27 +24,30 @@ class EligibilityMapperTest {
   }
 
   @Test
-  void shouldMapEligibilityResult() {
+  void shouldMapEligibilityAssessment() {
     var data =
         uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
             .levelOfHelp("controlled")
             .adultDependants(false)
             .adultDependantsCount(0)
             .build();
-    EligibilityResult eligibilityResult =
-        EligibilityResult.builder().data(data).result(Map.of("eligible", true)).build();
+    EligibilityAssessment eligibilityAssessment =
+        EligibilityAssessment.builder()
+            .data(data)
+            .result(EligibilityCalculationResult.builder().version("6").build())
+            .build();
 
-    var result = eligibilityMapper.toEligibility(eligibilityResult);
+    var result = eligibilityMapper.toEligibilityAssessment(eligibilityAssessment);
 
     assertThat(result.getData().getLevelOfHelp()).isEqualTo("controlled");
     assertThat(result.getData().getAdultDependants()).isFalse();
     assertThat(result.getData().getAdultDependantsCount()).isZero();
-    assertThat(result.getResult()).isEqualTo(Map.of("eligible", true));
+    assertThat(result.getResult().getVersion()).isEqualTo("6");
   }
 
   @Test
-  void shouldMapNullEligibilityResultToNull() {
-    assertThat(eligibilityMapper.toEligibility(null)).isNull();
+  void shouldMapNullEligibilityAssessmentToNull() {
+    assertThat(eligibilityMapper.toEligibilityAssessment(null)).isNull();
   }
 
   @Test
