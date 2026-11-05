@@ -1,0 +1,54 @@
+info:
+  name: 09 Retrieve B shared-office draft
+  description: >-
+    Prerequisite: complete B's setup and sign in as C. Target: B's captured 0R695K draft.
+    Expected: 200 with firm 998, DRAFT state and B's populated synthetic means. Side effect:
+    captures a fresh strong ETag tied to this application for the next request.
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginCSharedRead(bru, req);
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureCSharedApplication(bru, res);
+    - type: tests
+      code: |-
+        test("C should retrieve B's shared-office draft", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBSharedApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R695K");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBSharedClientLastName")
+          );
+          const data = application.eligibilityAssessment?.data;
+          expect(data).to.be.an("object");
+          expect(data.incomes).to.have.lengthOf(1);
+          expect(data.incomes[0].gross_income).to.equal(1300);
+          expect(bru.getVar("exampleCSharedDetailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleCSharedDetailsETagApplicationId")).to.equal(
+            application.id
+          );
+          expect(bru.getVar("exampleCSharedReadStatus")).to.equal("verified");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

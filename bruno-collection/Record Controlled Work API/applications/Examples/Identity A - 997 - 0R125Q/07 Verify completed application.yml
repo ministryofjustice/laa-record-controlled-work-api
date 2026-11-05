@@ -21,6 +21,10 @@ runtime:
       code: |-
         const examples = require("./scripts/staging-examples.js");
         examples.assertARequest(bru, req, true, true);
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureACompletion(bru, res);
     - type: tests
       code: |-
         test("should retrieve A's completed application", function () {

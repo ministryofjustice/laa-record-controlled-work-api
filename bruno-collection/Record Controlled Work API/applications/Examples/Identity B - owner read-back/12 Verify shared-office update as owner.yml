@@ -1,0 +1,55 @@
+info:
+  name: 12 Verify shared-office update as owner
+  description: >-
+    Prerequisite: complete step 11 as B. Target: B's 0R695K draft after C's permitted
+    update. Expected: 200 with C's changed synthetic client marker, retained means and
+    DRAFT state. Side effect: refreshes the owner-observed baseline and strong ETag for
+    later examples. The provider-office collaboration does not transfer ownership.
+  type: http
+  seq: 2
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertBOwnerReadbackRequest(bru, req, "shared");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBOwnerReadback(bru, res, "shared");
+    - type: tests
+      code: |-
+        test("B should observe C's shared-office update", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBSharedApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R695K");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleCSharedUpdatedLastName")
+          );
+          expect(application.eligibilityAssessment.data.incomes[0].gross_income).to.equal(1300);
+          expect(bru.getVar("exampleBSharedOwnerObservedClientLastName")).to.equal(
+            bru.getVar("exampleCSharedUpdatedLastName")
+          );
+          expect(bru.getVar("exampleBSharedDetailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleBSharedDetailsETagApplicationId")).to.equal(
+            application.id
+          );
+          expect(bru.getVar("exampleBSetupStatus")).to.equal("complete");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

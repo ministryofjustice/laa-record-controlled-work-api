@@ -1,0 +1,11 @@
+info:
+  name: Identity B - 998 - 0R128U and 0R695K
+  description: >-
+    After completing A's lifecycle, switch interactively to B and run steps 01-08 in order.
+    B must have exactly the LAA_ACCOUNTS office set 0R128U and 0R695K. The API uses that
+    office claim for authorization, then each retrieved draft confirms firm 998 and its
+    office. Steps 01 and 04 explicitly create the only two B drafts for this dataset.
+    Records persist. Do not retry a failed setup step or create a replacement. Start a new
+    dataset with A's explicit setup request instead. The examples never print tokens or claims.
+  type: folder
+  seq: 2

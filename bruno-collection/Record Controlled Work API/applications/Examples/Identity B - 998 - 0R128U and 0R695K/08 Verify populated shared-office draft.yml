@@ -1,0 +1,59 @@
+info:
+  name: 08 Verify populated shared-office draft
+  description: >-
+    Prerequisite: complete steps 01-07 as B. Target: retrieve the 0R695K draft after
+    population. Expected: 200 with the intended means content and a separate strong ETag
+    tied to this application. No data is changed.
+  type: http
+  seq: 8
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginBApplicationRead(bru, req, "shared", "means-saved");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBPopulatedApplication(bru, res, "shared");
+    - type: tests
+      code: |-
+        test("should retrieve the populated shared-office draft", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBSharedApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R695K");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBSharedClientLastName")
+          );
+          const data = application.eligibilityAssessment?.data;
+          expect(data).to.be.an("object");
+          expect(data.level_of_help).to.equal("controlled");
+          expect(data.employment_status).to.equal("employed");
+          expect(data.incomes).to.have.lengthOf(1);
+          expect(data.incomes[0].gross_income).to.equal(1300);
+          expect(data.incomes[0].income_frequency).to.equal("monthly");
+          expect(application.eligibilityAssessment.result.version).to.equal("6");
+          expect(bru.getVar("exampleBSharedDetailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleBSharedDetailsETagApplicationId")).to.equal(
+            application.id
+          );
+          expect(bru.getVar("exampleBSharedOwnerObservedState")).to.equal("DRAFT");
+          expect(bru.getVar("exampleBSetupStatus")).to.equal("ready");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

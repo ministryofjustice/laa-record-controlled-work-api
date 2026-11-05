@@ -1,0 +1,48 @@
+info:
+  name: 05 Verify shared-office draft
+  description: >-
+    Prerequisite: complete step 04 as B. Target: retrieve this dataset's 0R695K draft.
+    Expected: 200 with the separately captured ID, firm 998, office 0R695K and DRAFT
+    state. Side effect: verifies the returned firm and fixture marker before populating means.
+  type: http
+  seq: 5
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertBFixtureRequest(bru, req, "shared", "created");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBApplicationVerification(bru, res, "shared");
+    - type: tests
+      code: |-
+        test("should retrieve B's shared-office draft", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBSharedApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R695K");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.firstName).to.equal("Synthetic");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBSharedClientLastName")
+          );
+          expect(bru.getVar("exampleBSharedProviderFirmCode")).to.equal("998");
+          expect(bru.getVar("exampleBSharedSetupStatus")).to.equal("verified");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0
