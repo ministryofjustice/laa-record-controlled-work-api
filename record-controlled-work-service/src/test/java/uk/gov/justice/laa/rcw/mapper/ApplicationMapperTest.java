@@ -16,7 +16,8 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationSummary;
 import uk.gov.justice.laa.ia.datastore.client.model.ClientDetails;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
-import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityAssessment;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EvidenceResponse;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
 import uk.gov.justice.laa.rcw.generator.CreateApplicationRequestGenerator;
@@ -146,13 +147,13 @@ class ApplicationMapperTest {
             .modifiedAt(now)
             .modifiedBy("Joe Bloggs")
             .build();
-    EligibilityResult eligibilityResult =
-        EligibilityResult.builder()
+    EligibilityAssessment eligibilityAssessment =
+        EligibilityAssessment.builder()
             .data(
                 uk.gov.justice.laa.ia.datastore.client.model.EligibilityData.builder()
                     .levelOfHelp("controlled")
                     .build())
-            .result(Map.of("indication", true))
+            .result(EligibilityCalculationResult.builder().version("6").build())
             .build();
     EvidenceResponse evidence =
         EvidenceResponse.builder()
@@ -176,7 +177,7 @@ class ApplicationMapperTest {
             .contribution("100.00")
             .scopingQuestions(Map.of("priorLegalAid", "yesSameMatter"))
             .applicationType("CONTROLLED_WORK")
-            .eligibilityResult(eligibilityResult)
+            .eligibilityAssessment(eligibilityAssessment)
             .evidence(evidence)
             .referenceNumber(REFERENCE_NUMBER)
             .ufn("123456/123")
@@ -212,7 +213,7 @@ class ApplicationMapperTest {
     assertThat(result.getClientDetails().getAddress().getAddressLine1())
         .isEqualTo("10 Downing Street");
     assertThat(result.getDeclaration().getDeclarationConfirmation()).isTrue();
-    assertThat(result.getEligibility().getResult()).isEqualTo(Map.of("indication", true));
+    assertThat(result.getEligibilityAssessment().getResult().getVersion()).isEqualTo("6");
   }
 
   @ParameterizedTest
@@ -244,7 +245,7 @@ class ApplicationMapperTest {
     Application result = applicationMapper.toApplication(applicationResponse);
 
     assertThat(result.getDeclaration()).isNull();
-    assertThat(result.getEligibility()).isNull();
+    assertThat(result.getEligibilityAssessment()).isNull();
     assertThat(result.getEvidence()).isNull();
     assertThat(result.getUfn()).isNull();
     assertThat(result.getClientDetails().getAddress()).isNull();

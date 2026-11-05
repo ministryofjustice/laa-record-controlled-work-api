@@ -36,6 +36,7 @@ import uk.gov.justice.laa.ia.datastore.client.model.ApplicationResponses;
 import uk.gov.justice.laa.ia.datastore.client.model.ApplicationState;
 import uk.gov.justice.laa.ia.datastore.client.model.DeclarationCommand;
 import uk.gov.justice.laa.ia.datastore.client.model.EditApplicationCommand;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityData;
 import uk.gov.justice.laa.ia.datastore.client.model.EligibilityIndication;
 import uk.gov.justice.laa.ia.datastore.client.model.StartApplicationCommand;
@@ -702,7 +703,7 @@ class ApplicationGatewayTest {
     return UpdateMeansDataCommand.builder()
         .eTag(1L)
         .data(EligibilityData.builder().clientAge("1").build())
-        .result("r")
+        .result(EligibilityCalculationResult.builder().build())
         .build();
   }
 

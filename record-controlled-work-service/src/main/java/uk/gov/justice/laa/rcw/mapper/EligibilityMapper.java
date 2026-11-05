@@ -1,12 +1,16 @@
 package uk.gov.justice.laa.rcw.mapper;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.List;
 import org.mapstruct.InjectionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.openapitools.jackson.nullable.JsonNullable;
-import uk.gov.justice.laa.ia.datastore.client.model.EligibilityResult;
-import uk.gov.justice.laa.rcw.model.Eligibility;
+import org.openapitools.jackson.nullable.JsonNullableModule;
+import uk.gov.justice.laa.ia.datastore.client.model.EligibilityAssessment;
+import uk.gov.justice.laa.rcw.model.EligibilityCalculationResult;
 import uk.gov.justice.laa.rcw.model.EligibilityData;
 import uk.gov.justice.laa.rcw.model.EligibilityIndication;
 
@@ -17,9 +21,26 @@ import uk.gov.justice.laa.rcw.model.EligibilityIndication;
     injectionStrategy = InjectionStrategy.CONSTRUCTOR)
 public interface EligibilityMapper {
 
-  /** Maps the datastore eligibility result onto the RCW API model. */
+  JsonMapper RESULT_JSON_MAPPER =
+      JsonMapper.builder()
+          .addModule(new JsonNullableModule())
+          .defaultPropertyInclusion(JsonInclude.Value.construct(Include.NON_NULL, Include.NON_NULL))
+          .build();
+
+  /** Maps the datastore eligibility assessment onto the RCW API model. */
   @Mapping(target = "data._apiResponse", ignore = true)
-  Eligibility toEligibility(EligibilityResult eligibilityResult);
+  uk.gov.justice.laa.rcw.model.EligibilityAssessment toEligibilityAssessment(
+      EligibilityAssessment eligibilityAssessment);
+
+  /**
+   * Maps the RCW calculation result onto the datastore's means-data command payload. The result is
+   * passed through by JSON shape, as both schemas mirror the CFE response.
+   */
+  default uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult
+      toDatastoreResult(EligibilityCalculationResult result) {
+    return RESULT_JSON_MAPPER.convertValue(
+        result, uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult.class);
+  }
 
   /** Maps RCW eligibility data onto the datastore's means-data command payload. */
   @Mapping(target = "_apiResponse", ignore = true)
