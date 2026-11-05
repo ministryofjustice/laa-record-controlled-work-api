@@ -83,8 +83,13 @@ public interface ApplicationMapper {
   /** Maps the RCW create request to the datastore start-application command. */
   @Mapping(target = "client", source = "clientDetails")
   @Mapping(target = "ufn", ignore = true)
-  @Mapping(target = "providerContractType", ignore = true)
-  @Mapping(target = "categoryOfLaw", ignore = true)
+  @Mapping(
+      target = "providerContractType",
+      expression =
+          "java(uk.gov.justice.laa.ia.datastore.client.model.ProviderContractType.FACE_TO_FACE)")
+  @Mapping(
+      target = "categoryOfLaw",
+      expression = "java(uk.gov.justice.laa.ia.datastore.client.model.CategoryOfLaw.FAMILY)")
   @Mapping(
       target = "applicationType",
       expression = "java(StartApplicationCommand.ApplicationTypeEnum.RCW)")
