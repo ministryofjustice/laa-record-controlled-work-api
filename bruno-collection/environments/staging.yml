@@ -18,7 +18,7 @@ variables:
     value: ""
     description: Eligibility filter for applications list (ELIGIBLE or INELIGIBLE)
   - name: entraApiAudience
-    value: https://devlexternal.onmicrosoft.com/laa-record-controlled-work-api-staging
+    value: api://rcw-api-staging
   - name: oauthAuthorizeUrl
     value: "https://login.microsoftonline.com/{{entraTenantId}}/oauth2/v2.0/authorize"
   - name: oauthTokenUrl
