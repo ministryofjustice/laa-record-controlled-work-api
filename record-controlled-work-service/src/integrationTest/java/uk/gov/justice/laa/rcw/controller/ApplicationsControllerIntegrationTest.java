@@ -1016,8 +1016,8 @@ class ApplicationsControllerIntegrationTest extends BaseIntegrationTest {
                             }
                         },
                         "ufn": null,
-                        "providerContractType": null,
-                        "categoryOfLaw": null,
+                        "providerContractType": "face-to-face",
+                        "categoryOfLaw": "family",
                         "applicationType": "RCW",
                         "providerOfficeCode": "%s"
                     }

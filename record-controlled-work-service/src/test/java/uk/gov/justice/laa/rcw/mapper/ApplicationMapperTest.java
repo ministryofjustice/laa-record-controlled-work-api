@@ -269,6 +269,26 @@ class ApplicationMapperTest {
         .isEqualTo(request.getClientDetails().getAddress().getAddressLine1());
   }
 
+  @Test
+  void shouldMapProviderContractTypeToFaceToFaceOnStartApplicationCommand() {
+    var request = CreateApplicationRequestGenerator.createWithName(null);
+
+    StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
+
+    assertThat(result.getProviderContractType())
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.ProviderContractType.FACE_TO_FACE);
+  }
+
+  @Test
+  void shouldMapCategoryOfLawToFamilyOnStartApplicationCommand() {
+    var request = CreateApplicationRequestGenerator.createWithName(null);
+
+    StartApplicationCommand result = applicationMapper.toStartApplicationCommand(request);
+
+    assertThat(result.getCategoryOfLaw())
+        .isEqualTo(uk.gov.justice.laa.ia.datastore.client.model.CategoryOfLaw.FAMILY);
+  }
+
   @ParameterizedTest
   @NullSource
   @ValueSource(strings = "Change in circumstances")
