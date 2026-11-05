@@ -27,7 +27,7 @@ autoscaling:
 
 ingress:
   green:
-    className: default
+    className: modsec
     hostname: "laa-record-controlled-work-api.cloud-platform.service.justice.gov.uk"
     pathType: Prefix
     annotations:
@@ -37,6 +37,10 @@ ingress:
       external-dns.alpha.kubernetes.io/set-identifier: "laa-record-controlled-work-api-green-laa-record-controlled-work-api-production-green"
       # Global Protect alpha ranges; Prisma VPN range: 128.77.75.64/26. HTTP via ingress only allowed on VPN.
       nginx.ingress.kubernetes.io/whitelist-source-range: "35.176.93.186/32, 18.169.147.172/32, 18.130.148.126/32, 35.176.148.126/32, 128.77.75.64/26"
+      nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+      nginx.ingress.kubernetes.io/modsecurity-snippet: |
+        SecRuleEngine On
+        SecDefaultAction "phase:2,pass,log,tag:github_team=laa-record-controlled-work"
 
 
 podSecurityContext:
