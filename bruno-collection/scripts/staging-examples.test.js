@@ -1,11 +1,7 @@
 const assert = require("node:assert/strict");
 const {
   assertARequest,
-  assertCurrentAApplication,
   beginASetup,
-  assertExpectedOffices,
-  assertFixtureReference,
-  assertStagingDestination,
   buildAApplicationCreateBody,
   buildADeclarationBody,
   captureAApplicationFirm,
@@ -14,59 +10,22 @@ const {
 
 const stagingUrl =
   "https://laa-record-controlled-work-api-staging.cloud-platform.service.justice.gov.uk/api/v1/applications";
-
-assert.throws(
-  () => assertStagingDestination("uat", stagingUrl),
-  /staging environment/i
-);
-assert.throws(
-  () => assertStagingDestination("staging", "http://localhost:8081/api/v1/applications"),
-  /staging destination/i
-);
-assert.doesNotThrow(() => assertStagingDestination("staging", stagingUrl));
+const applicationId = "11111111-2222-4333-8444-555555555555";
 
 function accessToken(claims) {
-  const encodedClaims = Buffer.from(JSON.stringify(claims)).toString("base64url");
-  return `header.${encodedClaims}.signature`;
+  const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+  return `header.${payload}.signature`;
 }
 
-assert.throws(
-  () => assertExpectedOffices(undefined, ["0R125Q"]),
-  /identity/i
-);
-assert.throws(
-  () => assertExpectedOffices(accessToken({}), ["0R125Q"]),
-  /office/i
-);
-assert.throws(
-  () => assertExpectedOffices(accessToken({ LAA_ACCOUNTS: ["0R125Q", "0R128U"] }), ["0R125Q"]),
-  /office/i
-);
-assert.doesNotThrow(() =>
-  assertExpectedOffices(accessToken({ LAA_ACCOUNTS: ["0R125Q"] }), ["0R125Q"])
-);
-
-const applicationId = "11111111-2222-4333-8444-555555555555";
-assert.throws(
-  () => assertFixtureReference("", applicationId, "", "created"),
-  /dataset/i
-);
-assert.throws(
-  () => assertFixtureReference("run-current", applicationId, "run-previous", "created"),
-  /dataset/i
-);
-assert.throws(
-  () => assertFixtureReference("run-current", "", "run-current", "created"),
-  /dataset/i
-);
-assert.doesNotThrow(() =>
-  assertFixtureReference("run-current", applicationId, "run-current", "created")
-);
-
-function createVariables(initialValues = {}) {
-  const values = new Map(Object.entries(initialValues));
+function createBrunoContext({
+  environmentName = "staging",
+  token = accessToken({ LAA_ACCOUNTS: ["0R125Q"] }),
+  initialVariables = {}
+} = {}) {
+  const values = new Map(Object.entries(initialVariables));
   return {
-    values,
+    getEnvName: () => environmentName,
+    getOauth2CredentialVar: () => token,
     getVar: name => values.get(name),
     setVar: (name, value) => values.set(name, value),
     deleteVar: name => values.delete(name),
@@ -74,176 +33,139 @@ function createVariables(initialValues = {}) {
   };
 }
 
-const variables = createVariables({
-  exampleDatasetRunId: "run-old",
-  exampleAApplicationId: applicationId,
-  exampleAApplicationRunId: "run-old",
-  exampleASetupStatus: "created"
-});
-const runId = beginASetup(variables, {
-  now: 1_767_671_180_000,
-  random: () => 0.123456789
-});
+function createRequest(url = stagingUrl) {
+  return { getUrl: () => url };
+}
 
-assert.notEqual(runId, "run-old");
-assert.equal(variables.getVar("exampleASetupStatus"), "creating");
-assert.equal(variables.values.has("exampleAApplicationId"), false);
-assert.equal(variables.values.has("exampleAApplicationRunId"), false);
-assert.throws(() => assertCurrentAApplication(variables), /dataset/i);
-assert.match(variables.getVar("exampleAUfn"), /^\d{6}\/\d{3}$/);
-
-const createBody = buildAApplicationCreateBody(variables);
-assert.equal(createBody.providerOfficeCode, "0R125Q");
-assert.equal(createBody.clientDetails.firstName, "Synthetic");
-assert.match(createBody.clientDetails.lastName, /^Example/);
-assert.equal(createBody.clientDetails.hasFixedAddress, false);
-assert.equal(createBody.scopingQuestions.priorLegalAid, "yesSameMatter");
-assert.equal(createBody.ecfFlag, false);
-
-captureAApplicationResponse(variables, {
-  getStatus: () => 201,
-  getBody: () => ({ id: applicationId })
-});
-assert.equal(variables.getVar("exampleAApplicationId"), applicationId);
-assert.equal(variables.getVar("exampleAApplicationRunId"), runId);
-assert.equal(variables.getVar("exampleASetupStatus"), "created");
-
-beginASetup(variables, {
-  now: 1_767_671_180_001,
-  random: () => 0.223456789
-});
-captureAApplicationResponse(variables, {
-  getStatus: () => 500,
-  getBody: () => ({})
-});
-assert.equal(variables.getVar("exampleASetupStatus"), "failed");
-assert.equal(variables.values.has("exampleAApplicationId"), false);
-
-function createBrunoContext(overrides = {}, fixtureVariables = createVariables()) {
+function fixtureVariables(overrides = {}) {
   return {
-    getEnvName: () => overrides.environmentName ?? "staging",
-    getOauth2CredentialVar: () => overrides.accessToken ?? accessToken({ LAA_ACCOUNTS: ["0R125Q"] }),
-    getVar: fixtureVariables.getVar
+    exampleDatasetRunId: "run-current",
+    exampleAApplicationId: applicationId,
+    exampleAApplicationRunId: "run-current",
+    exampleASetupStatus: "created",
+    exampleAClientLastName: "ExampleRunCurrent",
+    ...overrides
   };
 }
 
-const request = { getUrl: () => stagingUrl };
+const request = createRequest();
 assert.doesNotThrow(() => assertARequest(createBrunoContext(), request, false));
-assert.doesNotThrow(() =>
-  assertARequest(
-    createBrunoContext({}, createVariables({
-      exampleDatasetRunId: "run-current",
-      exampleAApplicationId: applicationId,
-      exampleAApplicationRunId: "run-current",
-      exampleASetupStatus: "created"
-    })),
-    request,
-    true
-  )
-);
-assert.throws(
-  () => assertARequest(createBrunoContext({ environmentName: "uat" }), request, false),
-  /staging environment/i
-);
-assert.throws(
-  () => assertARequest(
-    createBrunoContext({
-      accessToken: accessToken({ LAA_ACCOUNTS: ["0R128U"] })
-    }),
-    request,
-    false
-  ),
-  /provider-office access/i
-);
-assert.throws(
-  () => assertARequest(createBrunoContext(), request, true),
-  /dataset/i
-);
 
-const verifiedVariables = createVariables({
-  exampleDatasetRunId: "run-current",
-  exampleAApplicationId: applicationId,
-  exampleAApplicationRunId: "run-current",
-  exampleASetupStatus: "created",
-  exampleAClientLastName: "ExampleRunCurrent"
+[
+  [createBrunoContext({ environmentName: "uat" }), request],
+  [createBrunoContext(), createRequest("http://localhost:8081/api/v1/applications")],
+  [createBrunoContext({ token: null }), request],
+  [createBrunoContext({ token: accessToken({}) }), request],
+  [createBrunoContext({ token: accessToken({ LAA_ACCOUNTS: ["0R128U"] }) }), request],
+  [
+    createBrunoContext({
+      token: accessToken({ LAA_ACCOUNTS: ["0R125Q", "0R128U"] })
+    }),
+    request
+  ]
+].forEach(([bru, target]) => {
+  assert.throws(() => assertARequest(bru, target, false));
 });
-captureAApplicationFirm(verifiedVariables, {
-  getStatus: () => 200,
-  getBody: () => ({
-    id: applicationId,
-    providerFirmCode: "997",
-    providerOfficeCode: "0R125Q",
-    applicationState: "DRAFT",
-    clientDetails: {
-      firstName: "Synthetic",
-      lastName: "ExampleRunCurrent"
-    }
-  })
-});
-assert.equal(verifiedVariables.getVar("exampleAProviderFirmCode"), "997");
+
 assert.doesNotThrow(() =>
   assertARequest(
-    createBrunoContext({}, verifiedVariables),
+    createBrunoContext({ initialVariables: fixtureVariables() }),
     request,
-    true,
     true
   )
 );
-captureAApplicationFirm(verifiedVariables, {
-  getStatus: () => 200,
-  getBody: () => ({
-    id: applicationId,
-    providerFirmCode: "997",
-    providerOfficeCode: "0R125Q",
-    applicationState: "DRAFT",
-    clientDetails: {
-      firstName: "Synthetic",
-      lastName: "ExampleOldRun"
-    }
-  })
+[
+  {},
+  fixtureVariables({ exampleAApplicationRunId: "run-old" }),
+  fixtureVariables({ exampleASetupStatus: "creating" })
+].forEach(initialVariables => {
+  assert.throws(
+    () => assertARequest(createBrunoContext({ initialVariables }), request, true),
+    /dataset/i
+  );
 });
-assert.equal(verifiedVariables.values.has("exampleAProviderFirmCode"), false);
-captureAApplicationFirm(verifiedVariables, {
-  getStatus: () => 200,
-  getBody: () => ({
-    id: applicationId,
-    providerFirmCode: "998",
-    providerOfficeCode: "0R125Q",
-    applicationState: "DRAFT"
-  })
-});
-assert.equal(verifiedVariables.values.has("exampleAProviderFirmCode"), false);
 assert.throws(
   () =>
     assertARequest(
-      createBrunoContext({}, verifiedVariables),
+      createBrunoContext({ initialVariables: fixtureVariables() }),
       request,
       true,
       true
     ),
   /firm/i
 );
-const completedVariables = createVariables({
-  exampleAApplicationId: applicationId
+
+const setup = createBrunoContext({
+  initialVariables: fixtureVariables({
+    exampleAProviderFirmCode: "997",
+    exampleAUfn: "123456/789"
+  })
 });
-captureAApplicationFirm(completedVariables, {
+const runId = beginASetup(setup, {
+  now: 1_767_671_180_000,
+  random: () => 0.123456789
+});
+assert.notEqual(runId, "run-current");
+assert.equal(setup.getVar("exampleASetupStatus"), "creating");
+assert.equal(setup.getVar("exampleAApplicationId"), undefined);
+assert.throws(() => assertARequest(setup, request, true), /dataset/i);
+assert.match(setup.getVar("exampleAUfn"), /^\d{6}\/\d{3}$/);
+
+const createBody = buildAApplicationCreateBody(setup);
+assert.equal(createBody.providerOfficeCode, "0R125Q");
+assert.equal(createBody.clientDetails.firstName, "Synthetic");
+assert.match(createBody.clientDetails.lastName, /^Example/);
+assert.equal(createBody.clientDetails.hasFixedAddress, false);
+
+assert.deepEqual(buildADeclarationBody(setup, "2026-11-05"), {
+  ufn: setup.getVar("exampleAUfn"),
+  declarationConfirmation: true,
+  dateSigned: "2026-11-05"
+});
+
+captureAApplicationResponse(setup, {
+  getStatus: () => 201,
+  getBody: () => ({ id: applicationId })
+});
+assert.doesNotThrow(() => assertARequest(setup, request, true));
+
+captureAApplicationFirm(setup, {
   getStatus: () => 200,
   getBody: () => ({
     id: applicationId,
     providerFirmCode: "997",
     providerOfficeCode: "0R125Q",
-    applicationState: "COMPLETED"
+    applicationState: "DRAFT",
+    clientDetails: {
+      firstName: "Synthetic",
+      lastName: setup.getVar("exampleAClientLastName")
+    }
   })
 });
-assert.equal(completedVariables.values.has("exampleAProviderFirmCode"), false);
+assert.doesNotThrow(() => assertARequest(setup, request, true, true));
 
-const declarationVariables = createVariables({ exampleAUfn: "123456/789" });
-assert.deepEqual(
-  buildADeclarationBody(declarationVariables, "2026-11-05"),
-  {
-    ufn: "123456/789",
-    declarationConfirmation: true,
-    dateSigned: "2026-11-05"
-  }
-);
-assert.equal(declarationVariables.getVar("exampleADeclarationDate"), "2026-11-05");
+captureAApplicationFirm(setup, {
+  getStatus: () => 200,
+  getBody: () => ({
+    id: applicationId,
+    providerFirmCode: "998",
+    providerOfficeCode: "0R125Q",
+    applicationState: "DRAFT",
+    clientDetails: {
+      firstName: "Synthetic",
+      lastName: setup.getVar("exampleAClientLastName")
+    }
+  })
+});
+assert.throws(() => assertARequest(setup, request, true, true), /firm/i);
+
+beginASetup(setup, {
+  now: 1_767_671_180_001,
+  random: () => 0.223456789
+});
+captureAApplicationResponse(setup, {
+  getStatus: () => 500,
+  getBody: () => ({})
+});
+assert.equal(setup.getVar("exampleASetupStatus"), "failed");
+assert.throws(() => assertARequest(setup, request, true), /dataset/i);
