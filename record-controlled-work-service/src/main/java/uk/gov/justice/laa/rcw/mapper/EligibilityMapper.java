@@ -33,6 +33,15 @@ public interface EligibilityMapper {
       EligibilityAssessment eligibilityAssessment);
 
   /**
+   * Maps the datastore calculation result onto the RCW API model. The result is passed through by
+   * JSON shape, as both schemas mirror the CFE response.
+   */
+  default EligibilityCalculationResult toResult(
+      uk.gov.justice.laa.ia.datastore.client.model.EligibilityCalculationResult result) {
+    return RESULT_JSON_MAPPER.convertValue(result, EligibilityCalculationResult.class);
+  }
+
+  /**
    * Maps the RCW calculation result onto the datastore's means-data command payload. The result is
    * passed through by JSON shape, as both schemas mirror the CFE response.
    */
