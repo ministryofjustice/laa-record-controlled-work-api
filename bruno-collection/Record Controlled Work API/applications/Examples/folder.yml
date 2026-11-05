@@ -3,8 +3,8 @@ info:
   description: >-
     Staging-only workflows. Requests stop before dispatch unless both the selected
     environment and actual destination are staging. Run A steps 01-07, switch to B for
-    steps 01-08, switch to C for steps 09-10, then switch back to B for owner read-back
-    steps 11-12. The setup creates three persistent synthetic applications per run.
+    steps 01-08, switch to C for steps 09-10, then switch back to B to verify both drafts
+    in steps 11-12. The setup creates three persistent synthetic applications per run.
     No credentials, tokens or identifying claims are printed.
   type: folder
   seq: 9

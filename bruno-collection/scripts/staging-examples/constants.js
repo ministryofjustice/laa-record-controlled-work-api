@@ -20,7 +20,7 @@ const B_FIXTURE_VARIABLE_SUFFIXES = [
   "OwnerObservedClientLastName",
   "DetailsETag",
   "DetailsETagApplicationId",
-  "OwnerReadbackStatus"
+  "PostUpdateVerificationStatus"
 ];
 const UUID_PATTERN = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const STRONG_ETAG_PATTERN = /^"\d+"$/;

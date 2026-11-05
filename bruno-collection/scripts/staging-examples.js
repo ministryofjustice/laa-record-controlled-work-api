@@ -4,13 +4,14 @@ const aSetup = require("./staging-examples/a-setup.js");
 const bApplicationSetup = require("./staging-examples/b-application-setup.js");
 const bMeans = require("./staging-examples/b-means.js");
 const sharedAccess = require("./staging-examples/shared-access.js");
-const ownerReadback = require("./staging-examples/owner-readback.js");
+const postUpdateVerification = require("./staging-examples/b-post-update-verification.js");
 
 module.exports = {
   assertARequest: aGuards.assertARequest,
   assertBFixtureRequest: bApplicationSetup.assertBFixtureRequest,
   assertBRequest: bApplicationSetup.assertBRequest,
-  assertBOwnerReadbackRequest: ownerReadback.assertBOwnerReadbackRequest,
+  assertBPostUpdateVerificationRequest:
+    postUpdateVerification.assertBPostUpdateVerificationRequest,
   assertCSharedRequest: sharedAccess.assertCSharedRequest,
   assertCurrentAApplication: aGuards.assertCurrentAApplication,
   assertExpectedOffices: identity.assertExpectedOffices,
@@ -33,7 +34,8 @@ module.exports = {
   captureBApplicationVerification: bApplicationSetup.captureBApplicationVerification,
   captureBMeansResponse: bMeans.captureBMeansResponse,
   captureBPopulatedApplication: bMeans.captureBPopulatedApplication,
-  captureBOwnerReadback: ownerReadback.captureBOwnerReadback,
+  captureBPostUpdateVerification:
+    postUpdateVerification.captureBPostUpdateVerification,
   captureCSharedApplication: sharedAccess.captureCSharedApplication,
   captureCSharedUpdate: sharedAccess.captureCSharedUpdate,
   generateUfn: aSetup.generateUfn

@@ -19,11 +19,11 @@ runtime:
     - type: before-request
       code: |-
         const examples = require("./scripts/staging-examples.js");
-        examples.assertBOwnerReadbackRequest(bru, req, "private");
+        examples.assertBPostUpdateVerificationRequest(bru, req, "private");
     - type: after-response
       code: |-
         const examples = require("./scripts/staging-examples.js");
-        examples.captureBOwnerReadback(bru, res, "private");
+        examples.captureBPostUpdateVerification(bru, res, "private");
     - type: tests
       code: |-
         test("B's private-office draft should remain unchanged", function () {

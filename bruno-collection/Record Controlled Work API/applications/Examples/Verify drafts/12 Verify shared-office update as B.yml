@@ -1,10 +1,10 @@
 info:
-  name: 12 Verify shared-office update as owner
+  name: 12 Verify shared-office update as B
   description: >-
     Prerequisite: complete step 11 as B. Target: B's 0R695K draft after C's permitted
     update. Expected: 200 with C's changed synthetic client marker, retained means and
-    DRAFT state. Side effect: refreshes the owner-observed baseline and strong ETag for
-    later examples. The provider-office collaboration does not transfer ownership.
+    DRAFT state. Records the state B observes and a fresh strong ETag for later examples.
+    C's collaboration updates B's draft without transferring ownership.
   type: http
   seq: 2
   tags:
@@ -20,11 +20,11 @@ runtime:
     - type: before-request
       code: |-
         const examples = require("./scripts/staging-examples.js");
-        examples.assertBOwnerReadbackRequest(bru, req, "shared");
+        examples.assertBPostUpdateVerificationRequest(bru, req, "shared");
     - type: after-response
       code: |-
         const examples = require("./scripts/staging-examples.js");
-        examples.captureBOwnerReadback(bru, res, "shared");
+        examples.captureBPostUpdateVerification(bru, res, "shared");
     - type: tests
       code: |-
         test("B should observe C's shared-office update", function () {

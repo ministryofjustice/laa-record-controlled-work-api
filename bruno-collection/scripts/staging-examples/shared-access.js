@@ -27,7 +27,7 @@ function assertCSharedRequest(bru, request, requiresETag = false) {
     throw new Error("Complete B's explicit two-office setup before using shared access.");
   }
   if (bru.getVar("exampleCSharedUpdateStatus") === "updated") {
-    throw new Error("C's shared-office update is complete. Switch back to B for owner read-back.");
+    throw new Error("C's update is complete. Switch back to B to verify both drafts.");
   }
   if (bru.getVar("exampleBPrivateProviderFirmCode") !== "998" ||
       bru.getVar("exampleBSharedProviderFirmCode") !== "998") {

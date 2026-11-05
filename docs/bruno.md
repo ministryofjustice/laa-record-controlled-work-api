@@ -87,9 +87,9 @@ Run the folders in this order:
    and 08 confirm the means, DRAFT state and separate strong ETags.
 3. Switch to C and run steps **09–10**. C retrieves B's `0R695K` draft, then updates its
    synthetic client marker using the captured application-associated `If-Match` value.
-4. Switch back to B and run owner read-back steps **11–12**. The private-office draft must
-   remain unchanged. The shared-office draft must show C's deliberate update and remain DRAFT.
-   Both responses refresh owner-observed state and ETags for later examples.
+4. Switch back to B and run steps **11–12** to verify both drafts. Confirm the private-office
+   draft remains unchanged and the shared-office draft shows C's update and remains DRAFT.
+   Both responses record the state B observes and refresh ETags for later examples.
 
 Each successful setup run creates exactly three records: A's completed application and B's
 two drafts. Run markers and separate IDs survive account switching. Reads and access checks

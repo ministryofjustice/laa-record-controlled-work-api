@@ -3,17 +3,17 @@ const { applicationHasBMeans } = require("./application-contracts.js");
 const { assertBFixtureRequest } = require("./b-application-setup.js");
 const { bFixture, bVariable, failBSetup } = require("./fixture-state.js");
 
-function assertBOwnerReadbackRequest(bru, request, fixtureName) {
+function assertBPostUpdateVerificationRequest(bru, request, fixtureName) {
   assertBFixtureRequest(bru, request, fixtureName, "populated");
   if (bru.getVar("exampleCSharedUpdateStatus") !== "updated") {
-    throw new Error("Complete C's shared-office update before owner read-back.");
+    throw new Error("Complete C's shared-office update before verifying B's drafts.");
   }
   bru.deleteVar(bVariable(fixtureName, "DetailsETag"));
   bru.deleteVar(bVariable(fixtureName, "DetailsETagApplicationId"));
-  bru.setVar(bVariable(fixtureName, "OwnerReadbackStatus"), "reading");
+  bru.setVar(bVariable(fixtureName, "PostUpdateVerificationStatus"), "reading");
 }
 
-function captureBOwnerReadback(bru, response, fixtureName) {
+function captureBPostUpdateVerification(bru, response, fixtureName) {
   const fixture = bFixture(fixtureName);
   const application = response.getBody();
   const expectedLastName =
@@ -42,17 +42,17 @@ function captureBOwnerReadback(bru, response, fixtureName) {
   bru.setVar(bVariable(fixtureName, "OwnerObservedClientLastName"), expectedLastName);
   bru.setVar(bVariable(fixtureName, "DetailsETag"), etag);
   bru.setVar(bVariable(fixtureName, "DetailsETagApplicationId"), applicationId);
-  bru.setVar(bVariable(fixtureName, "OwnerReadbackStatus"), "verified");
+  bru.setVar(bVariable(fixtureName, "PostUpdateVerificationStatus"), "verified");
 
   if (
-    bru.getVar(bVariable("private", "OwnerReadbackStatus")) === "verified" &&
-    bru.getVar(bVariable("shared", "OwnerReadbackStatus")) === "verified"
+    bru.getVar(bVariable("private", "PostUpdateVerificationStatus")) === "verified" &&
+    bru.getVar(bVariable("shared", "PostUpdateVerificationStatus")) === "verified"
   ) {
     bru.setVar("exampleBSetupStatus", "complete");
   }
 }
 
 module.exports = {
-  assertBOwnerReadbackRequest,
-  captureBOwnerReadback
+  assertBPostUpdateVerificationRequest,
+  captureBPostUpdateVerification
 };

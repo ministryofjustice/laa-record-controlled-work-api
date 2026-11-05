@@ -1,5 +1,5 @@
 info:
-  name: Identity B - 998 - 0R128U and 0R695K
+  name: Provider B - 998 - 0R128U and 0R695K
   description: >-
     After completing A's lifecycle, switch interactively to B and run steps 01-08 in order.
     B must have exactly the LAA_ACCOUNTS office set 0R128U and 0R695K. The API uses that

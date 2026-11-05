@@ -3,7 +3,8 @@ info:
   description: >-
     Prerequisite: complete step 09 as C. Target: B's captured 0R695K draft. Expected: 204
     with a new strong ETag. Side effect: changes the synthetic client marker using the
-    captured ETag. B's owner read-back must confirm the new value and DRAFT state.
+    captured ETag. After switching back to B, verify the draft shows the new value and
+    remains DRAFT.
   type: http
   seq: 2
   tags:

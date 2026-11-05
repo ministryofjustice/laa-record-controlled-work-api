@@ -3,7 +3,7 @@ const {
   assertARequest,
   assertBFixtureRequest,
   assertBRequest,
-  assertBOwnerReadbackRequest,
+  assertBPostUpdateVerificationRequest,
   assertCSharedRequest,
   beginBApplicationCreate,
   beginBApplicationRead,
@@ -22,7 +22,7 @@ const {
   captureBApplicationVerification,
   captureBMeansResponse,
   captureBPopulatedApplication,
-  captureBOwnerReadback,
+  captureBPostUpdateVerification,
   captureCSharedApplication,
   captureCSharedUpdate
 } = require("./staging-examples.js");
@@ -473,8 +473,10 @@ const ownerContext = createBrunoContext({
     exampleCSharedUpdatedLastName: cContext.getVar("exampleCSharedUpdatedLastName")
   }
 });
-assert.doesNotThrow(() => assertBOwnerReadbackRequest(ownerContext, request, "private"));
-captureBOwnerReadback(ownerContext, {
+assert.doesNotThrow(() =>
+  assertBPostUpdateVerificationRequest(ownerContext, request, "private")
+);
+captureBPostUpdateVerification(ownerContext, {
   getStatus: () => 200,
   getHeader: name => name === "ETag" ? '"12"' : undefined,
   getBody: () => bApplication(
@@ -484,7 +486,7 @@ captureBOwnerReadback(ownerContext, {
     1100
   )
 }, "private");
-captureBOwnerReadback(ownerContext, {
+captureBPostUpdateVerification(ownerContext, {
   getStatus: () => 200,
   getHeader: name => name === "ETag" ? '"13"' : undefined,
   getBody: () => bApplication(

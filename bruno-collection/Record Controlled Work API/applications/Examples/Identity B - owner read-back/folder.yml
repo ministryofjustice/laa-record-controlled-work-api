@@ -1,9 +1,0 @@
-info:
-  name: Identity B - owner read-back
-  description: >-
-    After C's successful shared-office update, switch back to B and run both requests.
-    The private-office draft must remain unchanged. The shared-office draft must show C's
-    deliberate client-marker change, remain DRAFT and retain its synthetic means. Each
-    request captures a fresh owner-observed ETag for later examples.
-  type: folder
-  seq: 4

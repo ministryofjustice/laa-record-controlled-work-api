@@ -1,0 +1,8 @@
+info:
+  name: Verify drafts
+  description: >-
+    After C's update, switch back to B and run both requests. Confirm the private-office
+    draft remains unchanged and the shared-office draft shows C's client-marker change,
+    remains DRAFT and retains its synthetic means.
+  type: folder
+  seq: 4
