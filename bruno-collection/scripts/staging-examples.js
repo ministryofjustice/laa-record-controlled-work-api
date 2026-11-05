@@ -245,18 +245,10 @@ function beginBApplicationCreate(bru, request, fixtureName) {
   bru.setVar(bVariable(fixtureName, "SetupStatus"), "creating");
 }
 
-function buildBApplicationCreateBody(bru, fixtureName) {
-  const fixture = bFixture(fixtureName);
-  assertACompletedSetup(bru);
-  if (bru.getVar(bVariable(fixtureName, "SetupStatus")) !== "creating") {
-    throw new Error("Start the explicit B draft creation request first.");
-  }
-
-  const runId = bru.getVar("exampleDatasetRunId");
-  const lastName = `SyntheticB${fixture.label}${runId.replace(/[^a-z0-9]/gi, "")}`;
+function buildSyntheticApplicationCreateBody(bru, { providerOfficeCode, lastName }) {
   const generateApplicationDetailsRequestBody = require("./application-details.js");
-  const body = generateApplicationDetailsRequestBody(bru, {
-    providerOfficeCode: fixture.officeCode,
+  return generateApplicationDetailsRequestBody(bru, {
+    providerOfficeCode,
     legalAidLast6Months: false,
     reasonForReapplication: "",
     ecfFlag: false,
@@ -270,6 +262,21 @@ function buildBApplicationCreateBody(bru, fixtureName) {
       address: undefined
     }
   });
+}
+
+function buildBApplicationCreateBody(bru, fixtureName) {
+  const fixture = bFixture(fixtureName);
+  assertACompletedSetup(bru);
+  if (bru.getVar(bVariable(fixtureName, "SetupStatus")) !== "creating") {
+    throw new Error("Start the explicit B draft creation request first.");
+  }
+
+  const runId = bru.getVar("exampleDatasetRunId");
+  const lastName = `SyntheticB${fixture.label}${runId.replace(/[^a-z0-9]/gi, "")}`;
+  const body = buildSyntheticApplicationCreateBody(bru, {
+    providerOfficeCode: fixture.officeCode,
+    lastName
+  });
 
   bru.setVar(bVariable(fixtureName, "ClientLastName"), lastName);
   return body;
@@ -279,15 +286,24 @@ function captureBApplicationResponse(bru, response, fixtureName) {
   bFixture(fixtureName);
   const runId = bru.getVar("exampleDatasetRunId");
   const applicationId = response.getBody()?.id;
-  if (
+  const location = response.getHeader("Location");
+  const wasCreated =
     bru.getVar(bVariable(fixtureName, "SetupStatus")) === "creating" &&
     typeof runId === "string" &&
     runId.length > 0 &&
     response.getStatus() === 201 &&
-    UUID_PATTERN.test(applicationId || "")
-  ) {
+    UUID_PATTERN.test(applicationId || "");
+
+  if (wasCreated) {
     bru.setVar(bVariable(fixtureName, "ApplicationId"), applicationId);
     bru.setVar(bVariable(fixtureName, "ApplicationRunId"), runId);
+  }
+
+  if (
+    wasCreated &&
+    typeof location === "string" &&
+    location.endsWith(`/api/v1/applications/${applicationId}`)
+  ) {
     bru.setVar(bVariable(fixtureName, "SetupStatus"), "created");
     return;
   }
@@ -504,9 +520,9 @@ function buildCSharedDetailsUpdateBody(bru) {
       firstName: "Synthetic",
       lastName: updatedLastName,
       dateOfBirth: "1990-01-01",
-      niNumber: undefined,
+      niNumber: null,
       hasFixedAddress: false,
-      address: undefined
+      address: null
     }
   });
 }
@@ -644,22 +660,10 @@ function buildAApplicationCreateBody(bru) {
     throw new Error("Start a new A dataset run before creating its application.");
   }
 
-  const generateApplicationDetailsRequestBody = require("./application-details.js");
   const lastName = `Example${runId.replace(/[^a-z0-9]/gi, "")}`;
-  const body = generateApplicationDetailsRequestBody(bru, {
+  const body = buildSyntheticApplicationCreateBody(bru, {
     providerOfficeCode: "0R125Q",
-    legalAidLast6Months: false,
-    reasonForReapplication: "",
-    ecfFlag: false,
-    scopingQuestions: { priorLegalAid: "yesSameMatter" },
-    clientDetails: {
-      firstName: "Synthetic",
-      lastName,
-      dateOfBirth: "1990-01-01",
-      niNumber: undefined,
-      hasFixedAddress: false,
-      address: undefined
-    }
+    lastName
   });
 
   bru.setVar("exampleAClientLastName", lastName);

@@ -132,6 +132,8 @@ assert.match(setup.getVar("exampleAUfn"), /^\d{6}\/\d{3}$/);
 
 const createBody = buildAApplicationCreateBody(setup);
 assert.equal(createBody.providerOfficeCode, "0R125Q");
+assert.equal(createBody.legalAidLast6Months, false);
+assert.equal(createBody.scopingQuestions.priorLegalAid, "yesSameMatter");
 assert.equal(createBody.clientDetails.firstName, "Synthetic");
 assert.match(createBody.clientDetails.lastName, /^Example/);
 assert.equal(createBody.clientDetails.hasFixedAddress, false);
@@ -211,16 +213,17 @@ function bApplication(id, officeCode, lastName, income) {
     providerOfficeCode: officeCode,
     applicationState: "DRAFT",
     clientDetails: { firstName: "Synthetic", lastName },
-    eligibilityAssessment: income === undefined
-      ? { data: null, result: null }
-      : {
-      data: {
-        level_of_help: "controlled",
-        employment_status: "employed",
-        incomes: [{ gross_income: income, income_frequency: "monthly" }]
-      },
-      result: { version: "6" }
-    }
+    eligibilityAssessment:
+      income === undefined
+        ? { data: null, result: null }
+        : {
+            data: {
+              level_of_help: "controlled",
+              employment_status: "employed",
+              incomes: [{ gross_income: income, income_frequency: "monthly" }]
+            },
+            result: { version: "6" }
+          }
   };
 }
 
@@ -228,12 +231,16 @@ function populateBFixture(bru, fixture, id, officeCode, income, etag) {
   beginBApplicationCreate(bru, request, fixture);
   const createBody = buildBApplicationCreateBody(bru, fixture);
   assert.equal(createBody.providerOfficeCode, officeCode);
+  assert.equal(createBody.legalAidLast6Months, false);
+  assert.equal(createBody.scopingQuestions.priorLegalAid, "yesSameMatter");
   assert.equal(createBody.clientDetails.firstName, "Synthetic");
   assert.match(createBody.clientDetails.lastName, /^SyntheticB/);
   assert.match(createBody.clientDetails.lastName, /runcurrent/i);
   captureBApplicationResponse(bru, {
     getStatus: () => 201,
-    getBody: () => ({ id })
+    getBody: () => ({ id }),
+    getHeader: name =>
+      name === "Location" ? `/api/v1/applications/${id}` : undefined
   }, fixture);
   assert.doesNotThrow(() => assertBFixtureRequest(bru, request, fixture, "created"));
 
@@ -384,10 +391,15 @@ const partialSetup = createBrunoContext({
 populateBFixture(partialSetup, "private", privateApplicationId, "0R128U", 1100, '"7"');
 beginBApplicationCreate(partialSetup, request, "shared");
 captureBApplicationResponse(partialSetup, {
-  getStatus: () => 500,
-  getBody: () => ({})
+  getStatus: () => 201,
+  getBody: () => ({ id: sharedApplicationId }),
+  getHeader: name =>
+    name === "Location" ? "/api/v1/applications/unrelated" : undefined
 }, "shared");
 assert.equal(partialSetup.getVar("exampleBPrivateApplicationId"), privateApplicationId);
+assert.equal(partialSetup.getVar("exampleBSharedApplicationId"), sharedApplicationId);
+assert.equal(partialSetup.getVar("exampleBSharedApplicationRunId"), "run-current");
+assert.equal(partialSetup.getVar("exampleBSharedSetupStatus"), "failed");
 assert.equal(partialSetup.getVar("exampleBSetupStatus"), "failed");
 assert.throws(() => assertBRequest(partialSetup, request), /failed/i);
 assert.throws(() => beginBApplicationCreate(partialSetup, request, "shared"), /failed/i);
@@ -436,6 +448,9 @@ captureCSharedApplication(cContext, {
 assert.doesNotThrow(() => assertCSharedRequest(cContext, request, true));
 const cUpdateBody = buildCSharedDetailsUpdateBody(cContext);
 assert.equal(cUpdateBody.clientDetails.firstName, "Synthetic");
+const serializedCUpdateBody = JSON.parse(JSON.stringify(cUpdateBody));
+assert.equal(serializedCUpdateBody.clientDetails.niNumber, null);
+assert.equal(serializedCUpdateBody.clientDetails.address, null);
 assert.notEqual(
   cUpdateBody.clientDetails.lastName,
   cContext.getVar("exampleBSharedClientLastName")

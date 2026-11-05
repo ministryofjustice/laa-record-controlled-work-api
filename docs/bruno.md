@@ -72,11 +72,11 @@ workflow creates a controlled three-application dataset and proves shared-office
 
 Select `staging`, keep its `baseUrl` unchanged, then sign in through
 **applications > Auth > Get Access Token**. Before switching identity, sign out or choose
-**Use another account**. Confirm the account in Bruno's interactive sign-in flow. The guards
-check the exact `LAA_ACCOUNTS` office set used by API authorization: A has `0R125Q`, B has
-`0R128U` and `0R695K`, and C has only `0R695K`. Retrieved applications confirm the expected
-firm and office. These are tester safeguards, not token-signature verification or live
-entitlement checks. Tokens and claims are never printed.
+**Use another account**. Confirm the account in Bruno's interactive sign-in flow. API
+authorization uses the `LAA_ACCOUNTS` office claim. The guards require these exact identity
+sets: A has `0R125Q`, B has `0R128U` and `0R695K`, and C has only `0R695K`. Retrieved
+applications confirm the expected firm and office. These are tester safeguards, not
+token-signature verification or live entitlement checks. Tokens and claims are never printed.
 
 Run the folders in this order:
 
