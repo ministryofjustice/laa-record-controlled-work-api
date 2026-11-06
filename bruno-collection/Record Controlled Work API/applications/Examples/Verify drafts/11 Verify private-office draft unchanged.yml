@@ -1,0 +1,53 @@
+info:
+  name: 11 Verify private-office draft unchanged
+  description: >-
+    Prerequisite: complete C's update and switch back to B. Target: B's 0R128U draft.
+    Expected: 200 with its original client marker, means value and DRAFT state. Side effect:
+    captures a fresh, application-associated strong ETag. No data is changed.
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBPrivateApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertBPostUpdateVerificationRequest(bru, req, "private");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBPostUpdateVerification(bru, res, "private");
+    - type: tests
+      code: |-
+        test("B's private-office draft should remain unchanged", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBPrivateApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R128U");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBPrivateClientLastName")
+          );
+          expect(application.eligibilityAssessment.data.incomes[0].gross_income).to.equal(1100);
+          expect(bru.getVar("exampleBPrivateOwnerObservedClientLastName")).to.equal(
+            bru.getVar("exampleBPrivateClientLastName")
+          );
+          expect(bru.getVar("exampleBPrivateDetailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleBPrivateDetailsETagApplicationId")).to.equal(
+            application.id
+          );
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

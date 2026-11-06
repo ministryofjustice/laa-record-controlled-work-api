@@ -1,0 +1,52 @@
+info:
+  name: 01 Create synthetic private-office draft
+  description: >-
+    Prerequisite: complete A's lifecycle, then sign in as B. Target: create one synthetic
+    draft in 0R128U for this dataset. Expected: 201 with a captured application ID and
+    matching Location. Side effect: creates one persistent record. Send only once. If the
+    result is uncertain, inspect staging before starting a new dataset.
+  type: http
+  seq: 1
+  tags:
+    - applications
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/applications"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginBApplicationCreate(bru, req, "private");
+        req.setBody(JSON.stringify(examples.buildBApplicationCreateBody(bru, "private")));
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBApplicationResponse(bru, res, "private");
+    - type: tests
+      code: |-
+        test("should create B's private-office draft", function () {
+          expect(res.getStatus()).to.equal(201);
+          const applicationId = res.getBody()?.id;
+          expect(applicationId).to.match(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+          expect(res.getHeader("Location")).to.match(
+            new RegExp("/api/v1/applications/" + applicationId + "$")
+          );
+          expect(bru.getVar("exampleBPrivateApplicationId")).to.equal(applicationId);
+          expect(bru.getVar("exampleBPrivateApplicationRunId")).to.equal(
+            bru.getVar("exampleDatasetRunId")
+          );
+          expect(bru.getVar("exampleBPrivateSetupStatus")).to.equal("created");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

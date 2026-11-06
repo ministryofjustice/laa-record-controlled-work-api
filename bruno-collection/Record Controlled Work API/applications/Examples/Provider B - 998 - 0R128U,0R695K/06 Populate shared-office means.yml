@@ -1,0 +1,43 @@
+info:
+  name: 06 Populate shared-office means
+  description: >-
+    Prerequisite: complete steps 04 and 05 as B. Target: B's verified 0R695K draft.
+    Expected: 204. Side effect: saves non-empty synthetic means data identified by a
+    distinct income value and this dataset's client marker. This is not an eligibility
+    calculation.
+  type: http
+  seq: 6
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}/means"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginBMeansUpdate(bru, req, "shared");
+        req.setBody(JSON.stringify(examples.buildBMeansBody("shared")));
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBMeansResponse(bru, res, "shared");
+    - type: tests
+      code: |-
+        test("should save shared-office synthetic means", function () {
+          expect(res.getStatus()).to.equal(204);
+          expect(bru.getVar("exampleBSharedSetupStatus")).to.equal("means-saved");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

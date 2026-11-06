@@ -1,0 +1,48 @@
+info:
+  name: 10 Update B shared-office draft details
+  description: >-
+    Prerequisite: complete step 09 as C. Target: B's captured 0R695K draft. Expected: 204
+    with a new strong ETag. Side effect: changes the synthetic client marker using the
+    captured ETag. After switching back to B, verify the draft shows the new value and
+    remains DRAFT.
+  type: http
+  seq: 2
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBSharedApplicationId}}/details"
+  headers:
+    - name: If-Match
+      value: "{{exampleCSharedDetailsETag}}"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertCSharedRequest(bru, req, true);
+        req.setBody(JSON.stringify(examples.buildCSharedDetailsUpdateBody(bru)));
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureCSharedUpdate(bru, res);
+    - type: tests
+      code: |-
+        test("C should update the shared-office draft", function () {
+          expect(res.getStatus()).to.equal(204);
+          expect(res.getHeader("ETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleCSharedUpdateStatus")).to.equal("updated");
+          expect(bru.getVar("exampleCSharedDetailsETag")).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

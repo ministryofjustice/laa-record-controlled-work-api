@@ -1,0 +1,48 @@
+info:
+  name: 02 Verify private-office draft
+  description: >-
+    Prerequisite: complete step 01 as B. Target: retrieve this dataset's 0R128U draft.
+    Expected: 200 with the captured ID, firm 998, office 0R128U and DRAFT state. Side
+    effect: verifies the returned firm and fixture marker before populating means.
+  type: http
+  seq: 2
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBPrivateApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertBFixtureRequest(bru, req, "private", "created");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBApplicationVerification(bru, res, "private");
+    - type: tests
+      code: |-
+        test("should retrieve B's private-office draft", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBPrivateApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R128U");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.firstName).to.equal("Synthetic");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBPrivateClientLastName")
+          );
+          expect(bru.getVar("exampleBPrivateProviderFirmCode")).to.equal("998");
+          expect(bru.getVar("exampleBPrivateSetupStatus")).to.equal("verified");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

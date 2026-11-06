@@ -1,0 +1,10 @@
+info:
+  name: Provider C - 998 - 0R695K
+  description: >-
+    After B completes steps 01-08, switch interactively to C. C must have exactly the
+    LAA_ACCOUNTS office set 0R695K. Retrieve and update only B's captured shared-office
+    draft. The API uses the office claim for authorization; the returned application
+    confirms firm 998. The update is a deliberate collaboration, not an ownership transfer.
+    B must read both drafts back afterward.
+  type: folder
+  seq: 3

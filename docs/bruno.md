@@ -68,24 +68,45 @@ environment discrepancy.
 ### Guarded staging application lifecycle
 
 The staging-only [Examples](../bruno-collection/Record%20Controlled%20Work%20API/applications/Examples/folder.yml)
-workflow creates and completes a synthetic application for identity A.
+workflow creates a controlled three-application dataset and proves shared-office access.
 
 Select `staging`, keep its `baseUrl` unchanged, then sign in through
-**applications > Auth > Get Access Token**. If a cached account is reused, choose **Use another
-account** or sign out first. Requests block non-staging destinations and check A's `LAA_ACCOUNTS`
-office claim. Step 02 confirms firm `997` and office `0R125Q` from the application response. These
-checks do not verify token signatures or live entitlements. Tokens and claims are not printed.
+**applications > Auth > Get Access Token**. Before switching identity, sign out or choose
+**Use another account**. Confirm the account in Bruno's interactive sign-in flow. API
+authorization uses the `LAA_ACCOUNTS` office claim. The guards require these exact identity
+sets: A has `0R125Q`, B has `0R128U` and `0R695K`, and C has only `0R695K`. Retrieved
+applications confirm the expected firm and office. These are tester safeguards, not
+token-signature verification or live entitlement checks. Tokens and claims are never printed.
 
-Run requests **01–07** in order: create, verify, update means, update evidence, declare, complete,
-then verify. Missing or stale fixture references block dispatch. Re-running 01 creates another
-persistent record. If the result is unclear, inspect staging before retrying. There is no public
-delete operation.
+Run the folders in this order:
 
-COMPLETED does not mean eligible. The status body's numeric `eTag` is not the details route's
-caller-controlled `If-Match` guarantee.
+1. As A, run steps **01–07** in order. This explicitly creates A's application, populates
+   synthetic means, evidence and declaration data, completes it, then verifies it.
+2. Switch to B and run steps **01–08**. Steps 01 and 04 explicitly create the private-office
+   and shared-office drafts. Verify each returned firm before populating its means. Steps 07
+   and 08 confirm the means, DRAFT state and separate strong ETags.
+3. Switch to C and run steps **09–10**. C retrieves B's `0R695K` draft, then updates its
+   synthetic client marker using the captured application-associated `If-Match` value.
+4. Switch back to B and run steps **11–12** to verify both drafts. Confirm the private-office
+   draft remains unchanged and the shared-office draft shows C's update and remains DRAFT.
+   Both responses record the state B observes and refresh ETags for later examples.
 
-Run `node bruno-collection/scripts/staging-examples.test.js` for local checks. It does not contact
-Entra or staging. Staging use requires separate authorization.
+Each successful setup run creates exactly three records: A's completed application and B's
+two drafts. Run markers and separate IDs survive account switching. Reads and access checks
+never create records. All records persist, including partial setup failures, and there is no
+public delete operation. Do not retry an uncertain create. Inspect staging first. To recover
+from a confirmed partial failure, deliberately start a new dataset with A's create request.
+That creates new persistent records and clears old fixture references; it does not clean up
+earlier records.
+
+Means values are synthetic identifiers, not a CCQ calculation or eligibility determination.
+COMPLETED is an application state, not an eligibility result. The status body's numeric
+`eTag` is not the details route's caller-controlled `If-Match` guarantee.
+
+Run `node bruno-collection/scripts/staging-examples.test.js` and
+`node bruno-collection/scripts/application-details.test.js` for offline checks. They do not
+contact Entra or staging. Real account switching and staging results remain unverified and
+require separate authorization.
 
 ### Editing draft details
 

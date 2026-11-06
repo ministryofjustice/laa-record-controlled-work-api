@@ -1,0 +1,58 @@
+info:
+  name: 07 Verify populated private-office draft
+  description: >-
+    Prerequisite: complete steps 01-06 as B. Target: retrieve the 0R128U draft after
+    population. Expected: 200 with the intended means content and a strong ETag tied to
+    this application. No data is changed.
+  type: http
+  seq: 7
+  tags:
+    - applications
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBPrivateApplicationId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginBApplicationRead(bru, req, "private", "means-saved");
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBPopulatedApplication(bru, res, "private");
+    - type: tests
+      code: |-
+        test("should retrieve the populated private-office draft", function () {
+          expect(res.getStatus()).to.equal(200);
+          const application = res.getBody();
+          expect(application.id).to.equal(bru.getVar("exampleBPrivateApplicationId"));
+          expect(application.providerFirmCode).to.equal("998");
+          expect(application.providerOfficeCode).to.equal("0R128U");
+          expect(application.applicationState).to.equal("DRAFT");
+          expect(application.clientDetails.lastName).to.equal(
+            bru.getVar("exampleBPrivateClientLastName")
+          );
+          const data = application.eligibilityAssessment?.data;
+          expect(data).to.be.an("object");
+          expect(data.level_of_help).to.equal("controlled");
+          expect(data.employment_status).to.equal("employed");
+          expect(data.incomes).to.have.lengthOf(1);
+          expect(data.incomes[0].gross_income).to.equal(1100);
+          expect(data.incomes[0].income_frequency).to.equal("monthly");
+          expect(application.eligibilityAssessment.result.version).to.equal("6");
+          expect(bru.getVar("exampleBPrivateDetailsETag")).to.match(/^"\d+"$/);
+          expect(bru.getVar("exampleBPrivateDetailsETagApplicationId")).to.equal(
+            application.id
+          );
+          expect(bru.getVar("exampleBPrivateOwnerObservedState")).to.equal("DRAFT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

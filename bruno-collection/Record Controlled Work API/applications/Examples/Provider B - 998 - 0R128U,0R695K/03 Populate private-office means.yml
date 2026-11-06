@@ -1,0 +1,43 @@
+info:
+  name: 03 Populate private-office means
+  description: >-
+    Prerequisite: complete steps 01 and 02 as B. Target: B's verified 0R128U draft.
+    Expected: 204. Side effect: saves non-empty synthetic means data identified by a
+    distinct income value and this dataset's client marker. This is not an eligibility
+    calculation.
+  type: http
+  seq: 3
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleBPrivateApplicationId}}/means"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.beginBMeansUpdate(bru, req, "private");
+        req.setBody(JSON.stringify(examples.buildBMeansBody("private")));
+    - type: after-response
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.captureBMeansResponse(bru, res, "private");
+    - type: tests
+      code: |-
+        test("should save private-office synthetic means", function () {
+          expect(res.getStatus()).to.equal(204);
+          expect(bru.getVar("exampleBPrivateSetupStatus")).to.equal("means-saved");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

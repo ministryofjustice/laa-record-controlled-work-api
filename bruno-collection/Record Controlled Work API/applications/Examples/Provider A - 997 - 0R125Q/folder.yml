@@ -1,7 +1,7 @@
 info:
-  name: Identity A
+  name: Provider A
   description: >-
-    Identity A is expected to represent firm 997 with authorised provider office 0R125Q.
+    Provider A is expected to represent firm 997 with authorised provider office 0R125Q.
     Requests check the API's LAA_ACCOUNTS office claim before dispatch. The first read
     checks the returned application firm and office before lifecycle mutations are enabled.
     These are tester safeguards, not token signature verification, live entitlement checks
