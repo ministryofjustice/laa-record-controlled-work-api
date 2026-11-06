@@ -65,6 +65,28 @@ The current Docker `local` profile propagates application exceptions and returne
 completed-details request. The documented API contract is `409`; treat that local response as an
 environment discrepancy.
 
+### Guarded staging application lifecycle
+
+The staging-only [Examples](../bruno-collection/Record%20Controlled%20Work%20API/applications/Examples/folder.yml)
+workflow creates and completes a synthetic application for identity A.
+
+Select `staging`, keep its `baseUrl` unchanged, then sign in through
+**applications > Auth > Get Access Token**. If a cached account is reused, choose **Use another
+account** or sign out first. Requests block non-staging destinations and check A's `LAA_ACCOUNTS`
+office claim. Step 02 confirms firm `997` and office `0R125Q` from the application response. These
+checks do not verify token signatures or live entitlements. Tokens and claims are not printed.
+
+Run requests **01–07** in order: create, verify, update means, update evidence, declare, complete,
+then verify. Missing or stale fixture references block dispatch. Re-running 01 creates another
+persistent record. If the result is unclear, inspect staging before retrying. There is no public
+delete operation.
+
+COMPLETED does not mean eligible. The status body's numeric `eTag` is not the details route's
+caller-controlled `If-Match` guarantee.
+
+Run `node bruno-collection/scripts/staging-examples.test.js` for local checks. It does not contact
+Entra or staging. Staging use requires separate authorization.
+
 ### Editing draft details
 
 Retrieve the selected draft with [Get application](../bruno-collection/Record%20Controlled%20Work%20API/applications/Get%20application.yml)

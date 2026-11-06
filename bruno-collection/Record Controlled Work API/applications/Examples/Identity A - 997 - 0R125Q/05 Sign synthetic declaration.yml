@@ -1,0 +1,37 @@
+info:
+  name: 05 Sign synthetic declaration
+  description: >-
+    Prerequisite: complete steps 01 and 02 as identity A in staging. Target: A's verified
+    application ID from this dataset run. Expected: 204. Side effect: records a confirmed
+    synthetic declaration using the run's generated, contract-valid UFN and today's date.
+  type: http
+  seq: 5
+  tags:
+    - applications
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/applications/{{exampleAApplicationId}}/declaration"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const examples = require("./scripts/staging-examples.js");
+        examples.assertARequest(bru, req, true, true);
+        req.setBody(JSON.stringify(examples.buildADeclarationBody(bru)));
+    - type: tests
+      code: |-
+        test("should save the synthetic declaration", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: false
+  maxRedirects: 0

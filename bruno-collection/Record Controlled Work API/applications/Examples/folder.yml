@@ -1,0 +1,7 @@
+info:
+  name: Examples
+  description: >-
+    Staging-only workflows for testers. Requests fail before dispatch
+    unless both the selected environment and actual destination are staging.
+  type: folder
+  seq: 9
